@@ -6,20 +6,29 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const { supabase } = await requireAdmin();
 
-  const [{ data: tenant }, { data: plans }, { data: addons }, { data: subscriptionAddons }] = await Promise.all([
-    supabase
-      .from("tenants")
-      .select("id, name, slug, status, created_at, subscriptions(id, plan_id, billing_cycle, status, current_period_start)")
-      .eq("id", id)
-      .single(),
-    supabase.from("plans").select("id, name, slug, plan_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
-    supabase.from("addons").select("id, name, slug, feature_key, addon_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
-    supabase
-      .from("subscription_addons")
-      .select("addon_id, status, subscriptions!inner(tenant_id)")
-      .eq("subscriptions.tenant_id", id)
-      .eq("status", "active"),
-  ]);
+  const [{ data: tenant }, { data: plans }, { data: addons }, { data: subscriptionAddons }, { data: discount }] =
+    await Promise.all([
+      supabase
+        .from("tenants")
+        .select("id, name, slug, status, created_at, subscriptions(id, plan_id, billing_cycle, status, current_period_start)")
+        .eq("id", id)
+        .single(),
+      supabase.from("plans").select("id, name, slug, plan_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
+      supabase.from("addons").select("id, name, slug, feature_key, addon_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
+      supabase
+        .from("subscription_addons")
+        .select("addon_id, status, subscriptions!inner(tenant_id)")
+        .eq("subscriptions.tenant_id", id)
+        .eq("status", "active"),
+      supabase
+        .from("tenant_discounts")
+        .select("id, discount_percent, note, created_at")
+        .eq("tenant_id", id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
   if (!tenant) notFound();
 
@@ -35,6 +44,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         plans={plans ?? []}
         addons={addons ?? []}
         activeAddonIds={(subscriptionAddons ?? []).map((sa: any) => sa.addon_id)}
+        activeDiscount={discount ?? null}
       />
     </div>
   );
