@@ -1,7 +1,20 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BrandHeader } from "@/components/brand-header";
+import { InstallPwaButton } from "@/components/install-pwa-button";
+
+// Overrides the root manifest so /dashboard installs as its own app
+// ("Angel Clinic — Staff"), separate from the Super Admin dashboard.
+export const metadata: Metadata = {
+  manifest: "/api/pwa/staff-manifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AC Staff",
+  },
+};
 
 // Protected page. Deliberately queries user_profiles and tenants with
 // the LOGGED-IN USER'S OWN session (no service-role key anywhere in
@@ -31,8 +44,12 @@ export default async function DashboardPage() {
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "48px 24px" }}>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <BrandHeader />
+        <InstallPwaButton
+          label="Install app"
+          style={{ borderColor: "#0c1730", color: "#0c1730" }}
+        />
       </div>
       <h1 style={{ fontSize: 24 }}>Dashboard</h1>
       <p style={{ color: "#555" }}>Signed in as {user!.email}</p>
