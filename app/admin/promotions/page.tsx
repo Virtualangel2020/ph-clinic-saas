@@ -13,7 +13,7 @@ export default async function PromotionsPage() {
       .from("promotions")
       .select("id, code, label, discount_percent, applies_to_plan_id, max_redemptions, redemptions_count, is_active, starts_at, ends_at, created_at, plans:applies_to_plan_id(name)")
       .order("created_at", { ascending: false }),
-    supabase.from("plans").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("plans").select("id, name").eq("is_active", true).order("sort_order"),
   ]);
 
   return (

@@ -6,6 +6,7 @@ import {
   removePlanPriceAction,
   upsertAddonPriceAction,
   removeAddonPriceAction,
+  setPlanSortOrderAction,
 } from "@/app/admin/actions";
 
 const CYCLES = [
@@ -14,7 +15,7 @@ const CYCLES = [
   { value: "one_time", label: "One-time" },
 ] as const;
 
-type Item = { id: string; name: string; plan_prices?: any[]; addon_prices?: any[] };
+type Item = { id: string; name: string; sort_order?: number; plan_prices?: any[]; addon_prices?: any[] };
 
 export function PriceGrid({ kind, items }: { kind: "plan" | "addon"; items: Item[] }) {
   return (
@@ -23,6 +24,7 @@ export function PriceGrid({ kind, items }: { kind: "plan" | "addon"; items: Item
         <thead>
           <tr style={{ background: "#fafafa", textAlign: "left" }}>
             <th style={{ padding: "10px 16px", fontWeight: 600, color: "#555" }}>{kind === "plan" ? "Plan" : "Add-on"}</th>
+            {kind === "plan" && <th style={{ padding: "10px 16px", fontWeight: 600, color: "#555" }}>Order</th>}
             {CYCLES.map((c) => (
               <th key={c.value} style={{ padding: "10px 16px", fontWeight: 600, color: "#555" }}>{c.label}</th>
             ))}
@@ -44,6 +46,11 @@ function ItemRow({ kind, item }: { kind: "plan" | "addon"; item: Item }) {
   return (
     <tr style={{ borderTop: "1px solid #eee" }}>
       <td style={{ padding: "10px 16px", fontWeight: 600, verticalAlign: "top" }}>{item.name}</td>
+      {kind === "plan" && (
+        <td style={{ padding: "10px 16px", verticalAlign: "top" }}>
+          <SortOrderCell planId={item.id} initialOrder={item.sort_order ?? 0} />
+        </td>
+      )}
       {CYCLES.map((c) => {
         const existing = prices.find((p: any) => p.billing_cycle === c.value);
         return (
@@ -53,6 +60,47 @@ function ItemRow({ kind, item }: { kind: "plan" | "addon"; item: Item }) {
         );
       })}
     </tr>
+  );
+}
+
+function SortOrderCell({ planId, initialOrder }: { planId: string; initialOrder: number }) {
+  const [value, setValue] = useState(String(initialOrder));
+  const [pending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function save() {
+    setError(null);
+    setSaved(false);
+    const num = Number(value.trim());
+    if (isNaN(num)) {
+      setError("Invalid");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await setPlanSortOrderAction(planId, num);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch (e: any) {
+        setError(e.message);
+      }
+    });
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        disabled={pending}
+        style={{ width: 56, padding: "6px 8px", borderRadius: 6, border: "1px solid #ccc", fontSize: 13 }}
+      />
+      {saved && <span style={{ color: "#1a7f37", fontSize: 11 }}>saved</span>}
+      {error && <span style={{ color: "crimson", fontSize: 11 }}>{error}</span>}
+    </div>
   );
 }
 

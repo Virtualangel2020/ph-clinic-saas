@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Plan = { id: string; name: string; slug: string; description: string | null; plan_prices: { billing_cycle: string; price_php: number }[] };
@@ -16,7 +16,7 @@ type Promotion = {
 const CYCLES = [
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
-  { value: "one_time", label: "One-time" },
+  { value: "one_time", label: "Lifetime" },
 ] as const;
 
 function priceFor(prices: { billing_cycle: string; price_php: number }[], cycle: string) {
@@ -39,10 +39,16 @@ export function RequestAccessForm({
   plans,
   addons,
   promotions = [],
+  selection = null,
 }: {
   plans: Plan[];
   addons: Addon[];
   promotions?: Promotion[];
+  // Set by the pricing cards above when someone clicks "Request this
+  // plan" — preselects that plan and whichever billing cycle they were
+  // previewing. `token` increments on every click so the effect below
+  // fires even if they click the same plan/cycle combo twice in a row.
+  selection?: { planId: string; cycle: (typeof CYCLES)[number]["value"]; token: number } | null;
 }) {
   const [clinicName, setClinicName] = useState("");
   const [contactName, setContactName] = useState("");
@@ -50,6 +56,13 @@ export function RequestAccessForm({
   const [phone, setPhone] = useState("");
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [cycle, setCycle] = useState<(typeof CYCLES)[number]["value"]>("monthly");
+
+  useEffect(() => {
+    if (!selection) return;
+    setPlanId(selection.planId);
+    setCycle(selection.cycle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection?.token]);
   const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
   const [promoCode, setPromoCode] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");

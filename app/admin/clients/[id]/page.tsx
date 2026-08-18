@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/require-admin";
 import { ClientEditor } from "./client-editor";
 import { BillingPanel } from "./billing-panel";
+import { StaffPanel } from "./staff-panel";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,13 +18,14 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     { data: tenantCarePlan },
     { data: invoices },
     { data: payments },
+    { data: staff },
   ] = await Promise.all([
     supabase
       .from("tenants")
       .select("id, name, slug, status, created_at, subscriptions(id, plan_id, billing_cycle, status, current_period_start)")
       .eq("id", id)
       .single(),
-    supabase.from("plans").select("id, name, slug, plan_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
+    supabase.from("plans").select("id, name, slug, plan_prices(billing_cycle, price_php)").eq("is_active", true).order("sort_order"),
     supabase.from("addons").select("id, name, slug, feature_key, addon_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
     supabase
       .from("subscription_addons")
@@ -47,6 +49,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       .maybeSingle(),
     supabase.from("invoices").select("*").eq("tenant_id", id).order("created_at", { ascending: false }),
     supabase.from("payments").select("*").eq("tenant_id", id).order("payment_date", { ascending: false }),
+    supabase
+      .from("user_profiles")
+      .select("id, full_name, role, is_active, created_at")
+      .eq("tenant_id", id)
+      .order("created_at"),
   ]);
 
   if (!tenant) notFound();
@@ -65,6 +72,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         activeAddonIds={(subscriptionAddons ?? []).map((sa: any) => sa.addon_id)}
         activeDiscount={discount ?? null}
       />
+
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 12 }}>Staff access</h2>
+        <StaffPanel tenantId={tenant.id} staff={(staff as any) ?? []} />
+      </div>
 
       <div style={{ marginTop: 32 }}>
         <h2 style={{ fontSize: 18, marginBottom: 12 }}>Billing & maintenance</h2>

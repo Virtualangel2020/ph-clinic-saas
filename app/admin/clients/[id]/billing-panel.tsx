@@ -6,6 +6,7 @@ import {
   setTenantCarePlanStatusAction,
   createInvoiceAction,
   recordPaymentAction,
+  createPaymentLinkAction,
 } from "@/app/admin/actions";
 
 type CarePlan = { id: string; name: string; kind: string; price_php: number | null; billing_cycle: string | null };
@@ -25,6 +26,7 @@ type Invoice = {
   status: string;
   due_date: string | null;
   created_at: string;
+  paymongo_checkout_url: string | null;
 };
 type Payment = {
   id: string;
@@ -169,6 +171,28 @@ function InvoicesCard({ tenantId, invoices }: { tenantId: string; invoices: Invo
   const [dueDate, setDueDate] = useState("");
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [linkPendingId, setLinkPendingId] = useState<string | null>(null);
+  const [links, setLinks] = useState<Record<string, string>>({});
+
+  function getPaymentLink(invoiceId: string) {
+    setLinkPendingId(invoiceId);
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const url = await createPaymentLinkAction(invoiceId);
+        setLinks((prev) => ({ ...prev, [invoiceId]: url }));
+      } catch (e: any) {
+        setMessage(`Error: ${e.message}`);
+      } finally {
+        setLinkPendingId(null);
+      }
+    });
+  }
+
+  function copy(url: string) {
+    navigator.clipboard?.writeText(url);
+    setMessage("Payment link copied — send it to the client via SMS, email, or Messenger.");
+  }
 
   function create() {
     if (!description.trim() || !amount.trim()) {
@@ -207,20 +231,42 @@ function InvoicesCard({ tenantId, invoices }: { tenantId: string; invoices: Invo
               <th style={{ padding: "4px 8px" }}>Discount</th>
               <th style={{ padding: "4px 8px" }}>Status</th>
               <th style={{ padding: "4px 8px" }}>Due</th>
+              <th style={{ padding: "4px 8px" }}>Payment link</th>
             </tr>
           </thead>
           <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: "6px 8px" }}>{inv.description}</td>
-                <td style={{ padding: "6px 8px" }}>₱{Number(inv.amount_php).toLocaleString()}</td>
-                <td style={{ padding: "6px 8px" }}>{inv.discount_php > 0 ? `₱${Number(inv.discount_php).toLocaleString()}` : "—"}</td>
-                <td style={{ padding: "6px 8px" }}>
-                  <span style={{ color: INVOICE_STATUS_COLOR[inv.status] ?? "#666", fontWeight: 600 }}>{inv.status}</span>
-                </td>
-                <td style={{ padding: "6px 8px" }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}</td>
-              </tr>
-            ))}
+            {invoices.map((inv) => {
+              const payable = inv.status === "pending" || inv.status === "partially_paid" || inv.status === "overdue";
+              const url = links[inv.id] ?? inv.paymongo_checkout_url;
+              return (
+                <tr key={inv.id} style={{ borderTop: "1px solid #eee" }}>
+                  <td style={{ padding: "6px 8px" }}>{inv.description}</td>
+                  <td style={{ padding: "6px 8px" }}>₱{Number(inv.amount_php).toLocaleString()}</td>
+                  <td style={{ padding: "6px 8px" }}>{inv.discount_php > 0 ? `₱${Number(inv.discount_php).toLocaleString()}` : "—"}</td>
+                  <td style={{ padding: "6px 8px" }}>
+                    <span style={{ color: INVOICE_STATUS_COLOR[inv.status] ?? "#666", fontWeight: 600 }}>{inv.status}</span>
+                  </td>
+                  <td style={{ padding: "6px 8px" }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}</td>
+                  <td style={{ padding: "6px 8px" }}>
+                    {!payable ? (
+                      "—"
+                    ) : url ? (
+                      <button onClick={() => copy(url)} style={{ ...buttonStyle, padding: "5px 10px", fontSize: 11, background: "#1a7f37" }}>
+                        Copy link
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => getPaymentLink(inv.id)}
+                        disabled={pending && linkPendingId === inv.id}
+                        style={{ ...buttonStyle, padding: "5px 10px", fontSize: 11 }}
+                      >
+                        {pending && linkPendingId === inv.id ? "Creating..." : "Get PayMongo link"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       ) : (

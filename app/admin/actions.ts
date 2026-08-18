@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/require-admin";
 
 // Every action here just calls the SECURITY DEFINER Postgres functions
 // from migration 009 with the caller's own session — the functions
@@ -137,6 +140,17 @@ export async function removePlanPriceAction(planId: string, billingCycle: string
   const { error } = await supabase.rpc("admin_remove_plan_price", {
     p_plan_id: planId,
     p_billing_cycle: billingCycle,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/pricing");
+  revalidatePath("/");
+}
+
+export async function setPlanSortOrderAction(planId: string, sortOrder: number) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan_sort_order", {
+    p_plan_id: planId,
+    p_sort_order: sortOrder,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/pricing");
@@ -306,4 +320,130 @@ export async function recordRefundAction(input: {
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/clients/${input.tenantId}`);
+}
+
+// Reconstructs this deploy's own origin from the incoming request headers
+// instead of needing a hardcoded site-URL env var — works the same on
+// preview and production Vercel deployments.
+async function siteOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
+}
+
+// Creates the clinic staff member's login. Uses Supabase's own
+// invite-by-email (see lib/supabase/admin.ts for why that needs the
+// service-role key) — Supabase sends the email itself, so nothing here
+// depends on us having our own email/SMS provider.
+export async function inviteStaffAction(input: {
+  tenantId: string;
+  email: string;
+  fullName: string;
+  role: "clinic_admin" | "doctor" | "staff";
+}) {
+  const { supabase } = await requireAdmin();
+  const origin = await siteOrigin();
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
+    redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+    data: { full_name: input.fullName },
+  });
+  if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Invite did not return a user — please try again.");
+
+  const { error: profileError } = await supabase.rpc("admin_create_staff_profile", {
+    p_user_id: data.user.id,
+    p_tenant_id: input.tenantId,
+    p_full_name: input.fullName,
+    p_role: input.role,
+  });
+  if (profileError) throw new Error(profileError.message);
+
+  revalidatePath(`/admin/clients/${input.tenantId}`);
+}
+
+// Creates a PayMongo Checkout Session for the remaining balance on an
+// invoice and returns a hosted payment-page link. There's no automated
+// email/SMS to deliver it yet, so the admin copies this link and sends it
+// to the client themselves (same as everything else that isn't provisioned
+// automatically in this system). Once the client pays, PayMongo calls our
+// webhook (/api/webhooks/paymongo) which records the payment automatically.
+export async function createPaymentLinkAction(invoiceId: string) {
+  const { supabase } = await requireAdmin();
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .select("id, tenant_id, description, amount_php, discount_php, paymongo_checkout_url")
+    .eq("id", invoiceId)
+    .single();
+  if (invoiceError || !invoice) throw new Error(invoiceError?.message ?? "Invoice not found");
+
+  const { data: payments } = await supabase
+    .from("payments")
+    .select("amount_php")
+    .eq("invoice_id", invoiceId);
+  const alreadyPaid = (payments ?? []).reduce((sum, p: any) => sum + Number(p.amount_php), 0);
+  const remaining = Number(invoice.amount_php) - Number(invoice.discount_php) - alreadyPaid;
+
+  if (remaining <= 0) {
+    throw new Error("This invoice is already fully paid.");
+  }
+
+  const secretKey = process.env.PAYMONGO_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error(
+      "PAYMONGO_SECRET_KEY isn't set yet — add it as a server Environment Variable in Vercel (from your PayMongo dashboard's API keys page) and redeploy."
+    );
+  }
+
+  const origin = await siteOrigin();
+  const amountCentavos = Math.round(remaining * 100);
+
+  const res = await fetch("https://api.paymongo.com/v1/checkout_sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      data: {
+        attributes: {
+          send_email_receipt: false,
+          show_line_items: true,
+          description: `Angel Clinic — ${invoice.description}`,
+          line_items: [
+            {
+              name: invoice.description,
+              amount: amountCentavos,
+              currency: "PHP",
+              quantity: 1,
+            },
+          ],
+          payment_method_types: ["gcash", "paymaya", "card", "grab_pay"],
+          success_url: `${origin}/pay/success`,
+        },
+      },
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    const message = json?.errors?.[0]?.detail ?? `PayMongo error (HTTP ${res.status})`;
+    throw new Error(message);
+  }
+
+  const checkoutUrl: string = json.data.attributes.checkout_url;
+  const sessionId: string = json.data.id;
+
+  const { error: saveError } = await supabase.rpc("admin_set_invoice_checkout_session", {
+    p_invoice_id: invoiceId,
+    p_session_id: sessionId,
+    p_checkout_url: checkoutUrl,
+  });
+  if (saveError) throw new Error(saveError.message);
+
+  revalidatePath(`/admin/clients/${invoice.tenant_id}`);
+  return checkoutUrl;
 }

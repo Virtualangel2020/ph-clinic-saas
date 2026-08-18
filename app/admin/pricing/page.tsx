@@ -13,8 +13,8 @@ export default async function PricingPage() {
   const [{ data: plans }, { data: addons }, { data: carePlans }, { data: billingSettings }] = await Promise.all([
     supabase
       .from("plans")
-      .select("id, name, plan_prices(billing_cycle, price_php)")
-      .order("name"),
+      .select("id, name, sort_order, plan_prices(billing_cycle, price_php)")
+      .order("sort_order"),
     supabase
       .from("addons")
       .select("id, name, addon_prices(billing_cycle, price_php)")
@@ -33,6 +33,10 @@ export default async function PricingPage() {
 
       <div style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 16, marginBottom: 10 }}>Plan prices</h2>
+        <p style={{ color: "#888", fontSize: 12, marginBottom: 10 }}>
+          "Order" controls the sequence plans appear in on the public pricing page (lowest number first) — it
+          doesn't have to match price order.
+        </p>
         <PriceGrid kind="plan" items={(plans as any) ?? []} />
       </div>
 
