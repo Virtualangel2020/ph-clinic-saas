@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AuthErrorBanner } from "@/components/auth-error-banner";
 
 export const metadata: Metadata = {
   title: "Angel Clinic — Smart Clinic. Better Care.",
@@ -37,6 +38,7 @@ export default function RootLayout({
           color: "#1a1a1a",
         }}
       >
+        <AuthErrorBanner />
         {children}
       </body>
     </html>

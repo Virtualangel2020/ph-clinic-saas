@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { inviteStaffAction } from "@/app/admin/actions";
+import { inviteStaffAction, resendStaffInviteAction } from "@/app/admin/actions";
 
 type StaffMember = { id: string; full_name: string | null; role: string; is_active: boolean; created_at: string };
 
@@ -17,7 +17,22 @@ export function StaffPanel({ tenantId, staff }: { tenantId: string; staff: Staff
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<(typeof ROLES)[number]["value"]>("clinic_admin");
   const [pending, startTransition] = useTransition();
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  function resend(staffId: string) {
+    setResendingId(staffId);
+    startTransition(async () => {
+      try {
+        await resendStaffInviteAction(staffId, tenantId);
+        setMessage("A fresh invite link was sent — the old one no longer works, only the new email will.");
+      } catch (e: any) {
+        setMessage(`Error: ${e.message}`);
+      } finally {
+        setResendingId(null);
+      }
+    });
+  }
 
   function invite() {
     if (!email.trim() || !fullName.trim()) {
@@ -48,6 +63,7 @@ export function StaffPanel({ tenantId, staff }: { tenantId: string; staff: Staff
               <th style={{ padding: "4px 8px" }}>Name</th>
               <th style={{ padding: "4px 8px" }}>Role</th>
               <th style={{ padding: "4px 8px" }}>Invited</th>
+              <th style={{ padding: "4px 8px" }}></th>
             </tr>
           </thead>
           <tbody>
@@ -56,6 +72,15 @@ export function StaffPanel({ tenantId, staff }: { tenantId: string; staff: Staff
                 <td style={{ padding: "6px 8px" }}>{s.full_name || "—"}</td>
                 <td style={{ padding: "6px 8px" }}>{s.role}</td>
                 <td style={{ padding: "6px 8px" }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                <td style={{ padding: "6px 8px" }}>
+                  <button
+                    onClick={() => resend(s.id)}
+                    disabled={pending && resendingId === s.id}
+                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, cursor: "pointer", padding: 0 }}
+                  >
+                    {pending && resendingId === s.id ? "Sending..." : "Resend invite"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

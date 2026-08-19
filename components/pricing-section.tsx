@@ -9,10 +9,11 @@ type Plan = {
   name: string;
   slug: string;
   description: string | null;
+  tagline?: string | null;
   plan_prices: PlanPrice[];
-  plan_features?: { feature_key: string; features: { label: string } | null }[];
+  plan_features?: { feature_key: string; features: { label: string; description: string | null } | null }[];
 };
-type Addon = { id: string; name: string; slug: string; addon_prices: PlanPrice[] };
+type Addon = { id: string; name: string; slug: string; description?: string | null; recommended_for?: string | null; addon_prices: PlanPrice[] };
 type Promotion = {
   id: string;
   code: string | null;
@@ -117,10 +118,18 @@ export function PricingSection({
                   </>
                 )}
               </div>
+              {plan.tagline && (
+                <p style={{ color: "#333", fontSize: 13, fontWeight: 600, margin: "0 0 4px" }}>Best for: {plan.tagline}</p>
+              )}
               <p style={{ color: "#666", fontSize: 13 }}>{plan.description}</p>
               <ul style={{ fontSize: 13, color: "#333", paddingLeft: 18, margin: "0 0 16px" }}>
                 {(plan.plan_features ?? []).map((pf) => (
-                  <li key={pf.feature_key}>{pf.features?.label}</li>
+                  <li key={pf.feature_key} style={{ marginBottom: 6 }}>
+                    {pf.features?.label}
+                    {pf.features?.description && (
+                      <div style={{ color: "#888", fontSize: 12, fontWeight: 400 }}>{pf.features.description}</div>
+                    )}
+                  </li>
                 ))}
               </ul>
               {price === null ? (
@@ -164,16 +173,23 @@ export function PricingSection({
         })}
       </div>
 
-      <h2 style={{ fontSize: 15, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>
+      <h2 style={{ fontSize: 15, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
         Add-ons (separate pricing)
       </h2>
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", marginBottom: 40 }}>
+      <p style={{ color: "#888", fontSize: 12, marginTop: 0, marginBottom: 12 }}>
+        Not sure if you need one of these yet? You can always add it later — these aren't required to get started.
+      </p>
+      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 40 }}>
         {addons.map((a) => {
           const price = priceFor(a.addon_prices, cycle);
           const cycleMeta = CYCLES.find((c) => c.value === cycle)!;
           return (
             <div key={a.id} style={{ background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", fontSize: 13 }}>
-              <div style={{ fontWeight: 600 }}>{a.name}</div>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{a.name}</div>
+              {a.description && <div style={{ color: "#666", fontSize: 12, marginBottom: 4 }}>{a.description}</div>}
+              {a.recommended_for && (
+                <div style={{ color: "#7a5c12", fontSize: 11, marginBottom: 4 }}>Recommended for: {a.recommended_for}</div>
+              )}
               <div style={{ color: "#888" }}>
                 {price !== null ? `₱${price.toLocaleString()}${cycleMeta.suffix}` : "not offered this way"}
               </div>

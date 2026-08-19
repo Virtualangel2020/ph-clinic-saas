@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BrandHeader } from "@/components/brand-header";
+import { WhatsappButton } from "@/components/whatsapp-button";
 import { GetStartedForm } from "./get-started-form";
 
 // Step 2 of self-serve signup (step 1 is /signup — create the account).
@@ -85,6 +86,7 @@ export default async function GetStartedPage({
         initialPlanId={planParam ?? null}
         initialCycle={cycleParam ?? null}
       />
+      <WhatsappButton />
     </main>
   );
 }

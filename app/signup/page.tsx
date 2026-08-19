@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
+import { WhatsappButton } from "@/components/whatsapp-button";
 
 // This REPLACES the old anonymous "Request Access" form for new clinics.
 // Create-account-first, pay-to-unlock: an account here just gets someone a
@@ -89,6 +90,7 @@ function SignupForm() {
             to choosing your plan and paying.
           </p>
         </div>
+        <WhatsappButton />
       </main>
     );
   }
@@ -132,6 +134,7 @@ function SignupForm() {
       <p style={{ fontSize: 12, color: "#999", marginTop: 16 }}>
         Already have a portal account? <a href="/login" style={{ color: "#2563eb" }}>Sign in instead</a>.
       </p>
+      <WhatsappButton />
     </main>
   );
 }

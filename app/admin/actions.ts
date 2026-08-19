@@ -192,6 +192,81 @@ export async function removeAddonPriceAction(addonId: string, billingCycle: stri
   revalidatePath("/");
 }
 
+// ── Customer-facing content (Phase 1 of the self-service redesign) ─────────
+// Everything here edits copy the public pricing page and customer portal
+// display — package taglines/descriptions, add-on descriptions, feature
+// descriptions, FAQ, and WhatsApp support settings — so none of it needs a
+// developer to change later.
+
+export async function setPlanContentAction(planId: string, description: string, tagline: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan_content", {
+    p_plan_id: planId,
+    p_description: description || null,
+    p_tagline: tagline || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/pricing");
+  revalidatePath("/");
+}
+
+export async function setAddonContentAction(addonId: string, description: string, recommendedFor: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_addon_content", {
+    p_addon_id: addonId,
+    p_description: description || null,
+    p_recommended_for: recommendedFor || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/pricing");
+  revalidatePath("/");
+}
+
+export async function setFeatureDescriptionAction(featureKey: string, description: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_feature_description", {
+    p_feature_key: featureKey,
+    p_description: description || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/pricing");
+  revalidatePath("/");
+}
+
+export async function upsertFaqAction(input: { id: string | null; question: string; answer: string; sortOrder: number; isActive: boolean }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_upsert_faq", {
+    p_id: input.id,
+    p_question: input.question,
+    p_answer: input.answer,
+    p_sort_order: input.sortOrder,
+    p_is_active: input.isActive,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/faqs");
+  revalidatePath("/");
+}
+
+export async function deleteFaqAction(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_delete_faq", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/faqs");
+  revalidatePath("/");
+}
+
+export async function setWhatsappSettingsAction(input: { phoneNumber: string; defaultMessage: string; isEnabled: boolean }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_whatsapp_settings", {
+    p_phone_number: input.phoneNumber || null,
+    p_default_message: input.defaultMessage,
+    p_is_enabled: input.isEnabled,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/settings");
+  revalidatePath("/");
+}
+
 export async function updateBillingSettingsAction(input: {
   gracePeriodDays: number;
   dataRetentionDays: number;
@@ -374,6 +449,46 @@ export async function inviteStaffAction(input: {
   if (profileError) throw new Error(profileError.message);
 
   revalidatePath(`/admin/clients/${input.tenantId}`);
+}
+
+// Re-sends a staff invite for someone who never completed it — most
+// commonly because the first email link died on a broken redirect (see
+// components/auth-error-banner.tsx) and their only options otherwise were
+// clicking the same now-dead link again (which fails, invite links are
+// single-use) or you creating a duplicate account by hand. This calls
+// Supabase's inviteUserByEmail again for the SAME existing auth user,
+// which issues a fresh token — admin_create_staff_profile is idempotent
+// (upsert on id), so re-running it is harmless.
+export async function resendStaffInviteAction(userId: string, tenantId: string) {
+  const { supabase } = await requireAdmin();
+  const origin = await siteOrigin();
+  const admin = createAdminClient();
+
+  const { data: authUser, error: authError } = await admin.auth.admin.getUserById(userId);
+  if (authError || !authUser.user?.email) throw new Error("Couldn't find that person's account.");
+
+  const { data: profile, error: profileFetchError } = await supabase
+    .from("user_profiles")
+    .select("full_name, role")
+    .eq("id", userId)
+    .single();
+  if (profileFetchError || !profile) throw new Error("Couldn't find that person's staff record.");
+
+  const { error } = await admin.auth.admin.inviteUserByEmail(authUser.user.email, {
+    redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+    data: { full_name: profile.full_name },
+  });
+  if (error) throw new Error(error.message);
+
+  const { error: profileError } = await supabase.rpc("admin_create_staff_profile", {
+    p_user_id: userId,
+    p_tenant_id: tenantId,
+    p_full_name: profile.full_name,
+    p_role: profile.role,
+  });
+  if (profileError) throw new Error(profileError.message);
+
+  revalidatePath(`/admin/clients/${tenantId}`);
 }
 
 // Creates a PayMongo Checkout Session for the remaining balance on an
