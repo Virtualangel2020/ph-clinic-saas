@@ -173,14 +173,20 @@ function InvoicesCard({ tenantId, invoices }: { tenantId: string; invoices: Invo
   const [message, setMessage] = useState<string | null>(null);
   const [linkPendingId, setLinkPendingId] = useState<string | null>(null);
   const [links, setLinks] = useState<Record<string, string>>({});
+  const [autoCompleted, setAutoCompleted] = useState<Set<string>>(new Set());
 
   function getPaymentLink(invoiceId: string) {
     setLinkPendingId(invoiceId);
     setMessage(null);
     startTransition(async () => {
       try {
-        const url = await createPaymentLinkAction(invoiceId);
-        setLinks((prev) => ({ ...prev, [invoiceId]: url }));
+        const result = await createPaymentLinkAction(invoiceId);
+        if (result.testMode) {
+          setAutoCompleted((prev) => new Set(prev).add(invoiceId));
+          setMessage("Test client — payment auto-completed, no real charge was made.");
+        } else if (result.checkoutUrl) {
+          setLinks((prev) => ({ ...prev, [invoiceId]: result.checkoutUrl! }));
+        }
       } catch (e: any) {
         setMessage(`Error: ${e.message}`);
       } finally {
@@ -248,7 +254,9 @@ function InvoicesCard({ tenantId, invoices }: { tenantId: string; invoices: Invo
                   </td>
                   <td style={{ padding: "6px 8px" }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}</td>
                   <td style={{ padding: "6px 8px" }}>
-                    {!payable ? (
+                    {autoCompleted.has(inv.id) ? (
+                      <span style={{ color: "#1a7f37", fontWeight: 600 }}>Auto-completed (test)</span>
+                    ) : !payable ? (
                       "—"
                     ) : url ? (
                       <button onClick={() => copy(url)} style={{ ...buttonStyle, padding: "5px 10px", fontSize: 11, background: "#1a7f37" }}>

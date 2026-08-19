@@ -9,22 +9,34 @@ import { requireAdmin } from "@/lib/require-admin";
 export default async function AdminDashboard() {
   const { supabase } = await requireAdmin();
 
-  const [{ count: tenantCount }, { count: pendingCount }, { data: tenants }, { data: pendingRequests }] =
-    await Promise.all([
-      supabase.from("tenants").select("*", { count: "exact", head: true }),
-      supabase.from("requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      supabase
-        .from("tenants")
-        .select("id, name, status, created_at, subscriptions(plan_id, status, billing_cycle, plans(name))")
-        .order("created_at", { ascending: false })
-        .limit(10),
-      supabase
-        .from("requests")
-        .select("id, type, clinic_name, contact_name, contact_email, created_at")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(10),
-    ]);
+  const [
+    { count: tenantCount },
+    { count: activeTenantCount },
+    { count: testTenantCount },
+    { count: pendingCount },
+    { data: tenants },
+    { data: pendingRequests },
+  ] = await Promise.all([
+    // "Total clients" and "Active clinics" deliberately exclude test
+    // clients (tenants.is_test) — they're real platform totals, and a
+    // test client should never inflate them. Test clients still show up
+    // individually in the table below, with a badge.
+    supabase.from("tenants").select("*", { count: "exact", head: true }).eq("is_test", false),
+    supabase.from("tenants").select("*", { count: "exact", head: true }).eq("is_test", false).eq("status", "active"),
+    supabase.from("tenants").select("*", { count: "exact", head: true }).eq("is_test", true),
+    supabase.from("requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase
+      .from("tenants")
+      .select("id, name, status, is_test, created_at, subscriptions(plan_id, status, billing_cycle, plans(name))")
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("requests")
+      .select("id, type, clinic_name, contact_name, contact_email, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
   return (
     <div>
@@ -33,10 +45,11 @@ export default async function AdminDashboard() {
         Every client account and every pending request, always — nothing here hides itself when the numbers are zero.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
         <StatCard label="Total clients" value={tenantCount ?? 0} />
+        <StatCard label="Active clinics" value={activeTenantCount ?? 0} />
         <StatCard label="Pending requests" value={pendingCount ?? 0} highlight={(pendingCount ?? 0) > 0} />
-        <StatCard label="Active clinics" value={(tenants ?? []).filter((t: any) => t.status === "active").length} />
+        <StatCard label="Test clients (excluded above)" value={testTenantCount ?? 0} />
       </div>
 
       <Section title="Pending requests" action={<Link href="/admin/requests" style={{ fontSize: 13, color: "#2563eb" }}>View all →</Link>}>
@@ -60,7 +73,7 @@ export default async function AdminDashboard() {
           <Table
             headers={["Clinic", "Plan", "Billing", "Sub. status", "Tenant status", "Created"]}
             rows={tenants.map((t: any) => [
-              t.name,
+              t.is_test ? `${t.name} (TEST)` : t.name,
               t.subscriptions?.[0]?.plans?.name ?? "—",
               t.subscriptions?.[0]?.billing_cycle ?? "—",
               t.subscriptions?.[0]?.status ?? "—",

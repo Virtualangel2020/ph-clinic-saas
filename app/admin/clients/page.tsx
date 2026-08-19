@@ -6,7 +6,7 @@ export default async function ClientsPage() {
 
   const { data: tenants } = await supabase
     .from("tenants")
-    .select("id, name, status, created_at, subscriptions(plan_id, status, billing_cycle, plans(name))")
+    .select("id, name, status, is_test, created_at, subscriptions(plan_id, status, billing_cycle, plans(name))")
     .order("created_at", { ascending: false });
 
   return (
@@ -30,7 +30,14 @@ export default async function ClientsPage() {
             <tbody>
               {tenants.map((t: any) => (
                 <tr key={t.id} style={{ borderTop: "1px solid #eee" }}>
-                  <td style={{ padding: "10px 16px", fontWeight: 600 }}>{t.name}</td>
+                  <td style={{ padding: "10px 16px", fontWeight: 600 }}>
+                    {t.name}
+                    {t.is_test && (
+                      <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "2px 7px" }}>
+                        TEST
+                      </span>
+                    )}
+                  </td>
                   <td style={{ padding: "10px 16px" }}>{t.subscriptions?.[0]?.plans?.name ?? "—"}</td>
                   <td style={{ padding: "10px 16px" }}>{t.subscriptions?.[0]?.billing_cycle ?? "—"}</td>
                   <td style={{ padding: "10px 16px" }}>{t.status}</td>

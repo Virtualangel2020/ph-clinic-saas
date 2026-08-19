@@ -6,6 +6,7 @@ import {
   setTenantAddonAction,
   setTenantStatusAction,
   setTenantDiscountAction,
+  setTenantTestFlagAction,
 } from "@/app/admin/actions";
 
 type Plan = { id: string; name: string; slug: string; plan_prices: { billing_cycle: string; price_php: number }[] };
@@ -39,8 +40,22 @@ export function ClientEditor({
   const [activeAddons, setActiveAddons] = useState<Set<string>>(new Set(activeAddonIds));
   const [discountPercent, setDiscountPercent] = useState(activeDiscount?.discount_percent?.toString() ?? "");
   const [discountNote, setDiscountNote] = useState("");
+  const [isTest, setIsTest] = useState<boolean>(!!tenant.is_test);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+
+  function toggleTest(next: boolean) {
+    setIsTest(next);
+    startTransition(async () => {
+      try {
+        await setTenantTestFlagAction(tenant.id, next);
+        setMessage(next ? "Marked as a test client." : "Unmarked as a test client.");
+      } catch (e: any) {
+        setIsTest(!next);
+        setMessage(`Error: ${e.message}`);
+      }
+    });
+  }
 
   function saveDiscount() {
     const value = discountPercent.trim() === "" ? null : Number(discountPercent);
@@ -120,6 +135,25 @@ export function ClientEditor({
       {message && (
         <div style={{ fontSize: 13, color: pending ? "#888" : "#2563eb" }}>{pending ? "Saving..." : message}</div>
       )}
+
+      {isTest && (
+        <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 12, padding: "10px 16px", fontSize: 13, color: "#7a5c12" }}>
+          🧪 This is a <strong>test client</strong>. It behaves like a normal client everywhere, but its payments
+          auto-complete without charging anything, and it's excluded from the platform's totals and reports.
+        </div>
+      )}
+
+      <Card title="Test client">
+        <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer" }}>
+          <input type="checkbox" checked={isTest} disabled={pending} onChange={(e) => toggleTest(e.target.checked)} />
+          Mark as a test client
+        </label>
+        <p style={{ fontSize: 12, color: "#888", marginTop: 8, marginBottom: 0 }}>
+          Everything works normally for this client — signup, plan/add-on changes, invoices — except its payment
+          step auto-completes instead of charging a real card/GCash, and it's left out of every count, total, and
+          report everyone else sees. Its own data still shows here, individually, exactly like any other client.
+        </p>
+      </Card>
 
       <Card title="Plan & billing">
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>

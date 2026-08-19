@@ -73,6 +73,18 @@ export async function setTenantStatusAction(tenantId: string, status: string) {
   revalidatePath("/admin/clients");
 }
 
+export async function setTenantTestFlagAction(tenantId: string, isTest: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_tenant_test_flag", {
+    p_tenant_id: tenantId,
+    p_is_test: isTest,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/clients/${tenantId}`);
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin");
+}
+
 export async function setTenantDiscountAction(
   tenantId: string,
   discountPercent: number | null,
@@ -370,12 +382,19 @@ export async function inviteStaffAction(input: {
 // to the client themselves (same as everything else that isn't provisioned
 // automatically in this system). Once the client pays, PayMongo calls our
 // webhook (/api/webhooks/paymongo) which records the payment automatically.
-export async function createPaymentLinkAction(invoiceId: string) {
+//
+// Test clients (tenants.is_test) skip PayMongo entirely — the "payment"
+// auto-completes immediately via the same admin_record_payment path a
+// manual cash/bank entry uses, so nothing is ever actually charged. This
+// only exercises the invoice/payment/reporting side of things; it does
+// NOT verify the PayMongo checkout+webhook wiring itself — that still
+// needs one real (or PayMongo test-mode) payment to confirm.
+export async function createPaymentLinkAction(invoiceId: string): Promise<{ testMode: boolean; checkoutUrl: string | null }> {
   const { supabase } = await requireAdmin();
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .select("id, tenant_id, description, amount_php, discount_php, paymongo_checkout_url")
+    .select("id, tenant_id, description, amount_php, discount_php, paymongo_checkout_url, tenants(is_test)")
     .eq("id", invoiceId)
     .single();
   if (invoiceError || !invoice) throw new Error(invoiceError?.message ?? "Invoice not found");
@@ -389,6 +408,23 @@ export async function createPaymentLinkAction(invoiceId: string) {
 
   if (remaining <= 0) {
     throw new Error("This invoice is already fully paid.");
+  }
+
+  const isTestClient = (invoice as any).tenants?.is_test === true;
+  if (isTestClient) {
+    const { error: payError } = await supabase.rpc("admin_record_payment", {
+      p_tenant_id: invoice.tenant_id,
+      p_amount_php: remaining,
+      p_method: "other",
+      p_reference: "TEST CLIENT — auto-completed",
+      p_payment_date: new Date().toISOString().slice(0, 10),
+      p_note: "Test client — payment auto-completed, no real charge (PayMongo was not contacted).",
+      p_invoice_id: invoiceId,
+    });
+    if (payError) throw new Error(payError.message);
+
+    revalidatePath(`/admin/clients/${invoice.tenant_id}`);
+    return { testMode: true, checkoutUrl: null };
   }
 
   const secretKey = process.env.PAYMONGO_SECRET_KEY;
@@ -445,5 +481,5 @@ export async function createPaymentLinkAction(invoiceId: string) {
   if (saveError) throw new Error(saveError.message);
 
   revalidatePath(`/admin/clients/${invoice.tenant_id}`);
-  return checkoutUrl;
+  return { testMode: false, checkoutUrl };
 }
