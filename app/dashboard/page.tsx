@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BrandHeader } from "@/components/brand-header";
-import { InstallPwaButton } from "@/components/install-pwa-button";
 
 // Overrides the root manifest so /dashboard installs as its own app
 // ("Angel Clinic — Staff"), separate from the Super Admin dashboard.
@@ -95,17 +94,12 @@ export default async function DashboardPage() {
     .eq("status", "active")
     .order("feature_key");
 
+  // Rendered inside the EMR shell (app/dashboard/layout.tsx) once a tenant
+  // exists — no BrandHeader/nav here, the shell already provides it.
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "48px 24px" }}>
-      <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <BrandHeader />
-        <InstallPwaButton
-          label="Install app"
-          style={{ borderColor: "#0c1730", color: "#0c1730" }}
-        />
-      </div>
-      <h1 style={{ fontSize: 24, marginBottom: 2 }}>{tenant?.name ?? "Your clinic"}</h1>
-      <p style={{ color: "#555", marginBottom: 20 }}>Signed in as {user!.email}</p>
+    <div style={{ maxWidth: 900 }}>
+      <h1 style={{ fontSize: 22, marginBottom: 2 }}>Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}</h1>
+      <p style={{ color: "#555", marginBottom: 20, fontSize: 13 }}>{tenant?.name ?? "Your clinic"} · {user!.email}</p>
 
       {tenant?.status && tenant.status !== "active" && (
         <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#7a5c12", marginBottom: 20 }}>
@@ -113,19 +107,31 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <Link
-          href="/dashboard/billing"
-          style={{ display: "inline-block", padding: "8px 14px", borderRadius: 8, background: "white", border: "1px solid #0c1730", color: "#0c1730", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
-        >
-          Billing & invoices →
-        </Link>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+          <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>
+            Today's schedule
+          </h2>
+          <p style={{ color: "#888", fontSize: 13, margin: 0 }}>
+            Calendar & Scheduling isn't wired up yet — this fills in automatically once that module ships.
+          </p>
+        </div>
+        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+          <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>
+            Quick links
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Link href="/dashboard/billing" style={{ fontSize: 13, color: "#2563eb" }}>Billing & invoices →</Link>
+            <Link href="/dashboard/settings/clinic-profile" style={{ fontSize: 13, color: "#2563eb" }}>Clinic profile & branding →</Link>
+            <Link href="/dashboard/settings/users" style={{ fontSize: 13, color: "#2563eb" }}>Staff & permissions →</Link>
+          </div>
+        </div>
       </div>
 
       <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
         <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>What's included in your system</h2>
         {entitlements && entitlements.length > 0 ? (
-          <ul style={{ fontSize: 14, color: "#333", paddingLeft: 18, margin: 0 }}>
+          <ul style={{ fontSize: 14, color: "#333", paddingLeft: 18, margin: 0, columns: 2 }}>
             {entitlements.map((e: any) => (
               <li key={e.feature_key} style={{ marginBottom: 4 }}>{e.features?.label ?? e.feature_key}</li>
             ))}
@@ -137,6 +143,6 @@ export default async function DashboardPage() {
           Want more? You can add features or upgrade your plan anytime as your clinic grows.
         </p>
       </div>
-    </main>
+    </div>
   );
 }
