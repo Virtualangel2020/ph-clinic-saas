@@ -33,7 +33,7 @@ type ExistingRequest = {
   status: string;
 } | null;
 
-const CYCLES = [
+const ALL_CYCLES = [
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
   { value: "one_time", label: "Lifetime" },
@@ -57,6 +57,7 @@ export function GetStartedForm({
   existingRequest,
   initialPlanId,
   initialCycle,
+  enabledCycles,
 }: {
   plans: Plan[];
   addons: Addon[];
@@ -66,14 +67,21 @@ export function GetStartedForm({
   existingRequest: ExistingRequest;
   initialPlanId: string | null;
   initialCycle: string | null;
+  enabledCycles?: { monthly: boolean; yearly: boolean; one_time: boolean };
 }) {
   const router = useRouter();
+
+  // Which billing cycles are offered is Superadmin-configurable (Settings →
+  // Commerce) rather than hardcoded here — see migration
+  // 028_admin_advanced_controls / commerce_settings.
+  const CYCLES = ALL_CYCLES.filter((c) => enabledCycles?.[c.value] !== false);
 
   const [clinicName, setClinicName] = useState(existingRequest?.clinic_name ?? defaultClinicName);
   const [phone, setPhone] = useState(existingRequest?.contact_phone ?? defaultPhone);
   const [planId, setPlanId] = useState(existingRequest?.requested_plan_id ?? initialPlanId ?? plans[0]?.id ?? "");
-  const [cycle, setCycle] = useState<(typeof CYCLES)[number]["value"]>(
-    (existingRequest?.requested_billing_cycle as any) ?? (initialCycle as any) ?? "monthly"
+  const requestedCycle = (existingRequest?.requested_billing_cycle as any) ?? (initialCycle as any) ?? "monthly";
+  const [cycle, setCycle] = useState<(typeof ALL_CYCLES)[number]["value"]>(
+    CYCLES.some((c) => c.value === requestedCycle) ? requestedCycle : CYCLES[0]?.value ?? "monthly"
   );
   const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set(existingRequest?.requested_addon_ids ?? []));
   const [promoCode, setPromoCode] = useState("");

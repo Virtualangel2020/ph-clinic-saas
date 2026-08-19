@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   setTenantPlanAction,
   setTenantAddonAction,
@@ -33,6 +34,7 @@ export function ClientEditor({
   activeAddonIds: string[];
   activeDiscount: { id: string; discount_percent: number; note: string | null; created_at: string } | null;
 }) {
+  const router = useRouter();
   const sub = tenant.subscriptions?.[0];
   const [planId, setPlanId] = useState(sub?.plan_id ?? plans[0]?.id ?? "");
   const [cycle, setCycle] = useState<(typeof CYCLES)[number]>((sub?.billing_cycle as any) ?? "monthly");
@@ -71,10 +73,10 @@ export function ClientEditor({
     applyDiscount(null);
   }
 
-  function applyDiscount(value: number | null) {
+  function applyDiscount(value: number | null, noteOverride?: string) {
     startTransition(async () => {
       try {
-        await setTenantDiscountAction(tenant.id, value, discountNote);
+        await setTenantDiscountAction(tenant.id, value, noteOverride ?? discountNote);
         setMessage(value ? `Discount of ${value}% applied.` : "Discount removed.");
       } catch (e: any) {
         setMessage(`Error: ${e.message}`);
@@ -87,6 +89,27 @@ export function ClientEditor({
       try {
         await setTenantPlanAction(tenant.id, planId, cycle);
         setMessage("Plan updated.");
+      } catch (e: any) {
+        setMessage(`Error: ${e.message}`);
+      }
+    });
+  }
+
+  // Covers tenants that ended up with no subscriptions row at all — created
+  // directly (not through the request/checkout flow), or left behind by a
+  // webhook that never finished. admin_set_tenant_plan is an upsert (see
+  // migration 028_admin_advanced_controls), so this same call both creates
+  // and edits a subscription; router.refresh() re-renders the page once the
+  // row exists so the full editor below takes over.
+  function createSubscription(complimentary: boolean) {
+    startTransition(async () => {
+      try {
+        await setTenantPlanAction(tenant.id, planId, cycle);
+        if (complimentary) {
+          await setTenantDiscountAction(tenant.id, 100, "Complimentary account — no charge");
+        }
+        setMessage(complimentary ? "Subscription created — this client is complimentary (free)." : "Subscription created.");
+        router.refresh();
       } catch (e: any) {
         setMessage(`Error: ${e.message}`);
       }
@@ -123,9 +146,45 @@ export function ClientEditor({
 
   if (!sub) {
     return (
-      <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 12, padding: 20 }}>
-        This tenant has no subscription record yet (it was likely created outside the request-approval flow).
-        Plan/add-on management needs a subscription row first.
+      <div style={{ display: "grid", gap: 16 }}>
+        {message && (
+          <div style={{ fontSize: 13, color: pending ? "#888" : "#2563eb" }}>{pending ? "Saving..." : message}</div>
+        )}
+        <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 12, padding: 20 }}>
+          <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 8 }}>No subscription yet</h2>
+          <p style={{ fontSize: 13, color: "#7a5c12", marginBottom: 16 }}>
+            This tenant was created without a plan attached — e.g. set up directly instead of through checkout, or a
+            payment that was interrupted before provisioning finished. Pick a plan below to activate it. You can
+            also make it complimentary if this client shouldn't be charged.
+          </p>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <select value={planId} onChange={(e) => setPlanId(e.target.value)} style={selectStyle} disabled={pending}>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select value={cycle} onChange={(e) => setCycle(e.target.value as any)} style={selectStyle} disabled={pending}>
+              {CYCLES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 13, color: "#666" }}>
+              {priceFor(plans.find((p) => p.id === planId)?.plan_prices ?? [], cycle)}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <button onClick={() => createSubscription(false)} disabled={pending || !planId} style={buttonStyle}>
+              Create subscription
+            </button>
+            <button
+              onClick={() => createSubscription(true)}
+              disabled={pending || !planId}
+              style={{ ...buttonStyle, background: "#0c1730", color: "#e6c66b" }}
+            >
+              Create as complimentary (free)
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -200,7 +259,7 @@ export function ClientEditor({
           onChange={(e) => setDiscountNote(e.target.value)}
           style={{ ...selectStyle, width: "100%", marginTop: 10, boxSizing: "border-box" }}
         />
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           <button onClick={saveDiscount} disabled={pending} style={buttonStyle}>
             {activeDiscount ? "Update discount" : "Apply discount"}
           </button>
@@ -209,7 +268,26 @@ export function ClientEditor({
               Remove discount
             </button>
           )}
+          {activeDiscount?.discount_percent !== 100 && (
+            <button
+              onClick={() => {
+                const note = discountNote || "Complimentary account — no charge";
+                setDiscountPercent("100");
+                setDiscountNote(note);
+                applyDiscount(100, note);
+              }}
+              disabled={pending}
+              style={{ ...buttonStyle, background: "#0c1730", color: "#e6c66b" }}
+            >
+              Make this client free (100% off)
+            </button>
+          )}
         </div>
+        {activeDiscount?.discount_percent === 100 && (
+          <p style={{ fontSize: 12, color: "#1a7f37", marginTop: 8, marginBottom: 0 }}>
+            This client is complimentary — invoices generate at ₱0.
+          </p>
+        )}
       </Card>
 
       <Card title="Subscription status">

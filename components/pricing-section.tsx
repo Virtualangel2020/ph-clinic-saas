@@ -22,13 +22,13 @@ type Promotion = {
   applies_to_plan_id: string | null;
 };
 
-const CYCLES = [
+const ALL_CYCLES = [
   { value: "monthly", label: "Monthly", suffix: "/mo" },
   { value: "yearly", label: "Yearly", suffix: "/yr" },
   { value: "one_time", label: "Lifetime", suffix: " one-time" },
 ] as const;
 
-type Cycle = (typeof CYCLES)[number]["value"];
+type Cycle = (typeof ALL_CYCLES)[number]["value"];
 
 function priceFor(prices: PlanPrice[] | undefined, cycle: string) {
   const p = prices?.find((x) => x.billing_cycle === cycle);
@@ -39,12 +39,17 @@ export function PricingSection({
   plans,
   addons,
   promotions = [],
+  enabledCycles,
 }: {
   plans: Plan[];
   addons: Addon[];
   promotions?: Promotion[];
+  enabledCycles?: { monthly: boolean; yearly: boolean; one_time: boolean };
 }) {
-  const [cycle, setCycle] = useState<Cycle>("monthly");
+  // Which billing cycles are offered is Superadmin-configurable (Settings →
+  // Commerce), not hardcoded — see migration 028_admin_advanced_controls.
+  const CYCLES = ALL_CYCLES.filter((c) => enabledCycles?.[c.value] !== false);
+  const [cycle, setCycle] = useState<Cycle>(CYCLES[0]?.value ?? "monthly");
 
   return (
     <>

@@ -7,7 +7,7 @@ import { WhatsappButton } from "@/components/whatsapp-button";
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ data: plans, error }, { data: addons }, { data: promotions }, { data: faqs }] = await Promise.all([
+  const [{ data: plans, error }, { data: addons }, { data: promotions }, { data: faqs }, { data: commerceSettings }] = await Promise.all([
     supabase
       .from("plans")
       .select("id, name, slug, description, tagline, sort_order, plan_prices(billing_cycle, price_php), plan_features(feature_key, features(label, description))")
@@ -27,7 +27,14 @@ export default async function HomePage() {
       .select("id, question, answer")
       .eq("is_active", true)
       .order("sort_order"),
+    supabase.from("commerce_settings").select("offer_monthly, offer_yearly, offer_one_time").eq("id", true).maybeSingle(),
   ]);
+
+  const enabledCycles = {
+    monthly: commerceSettings?.offer_monthly ?? true,
+    yearly: commerceSettings?.offer_yearly ?? true,
+    one_time: commerceSettings?.offer_one_time ?? true,
+  };
 
   const now = Date.now();
   const validPromotions = (promotions ?? []).filter((p: any) => {
@@ -56,6 +63,7 @@ export default async function HomePage() {
         plans={(plans as any) ?? []}
         addons={(addons as any) ?? []}
         promotions={(validPromotions as any) ?? []}
+        enabledCycles={enabledCycles}
       />
 
       <FaqSection faqs={(faqs as any) ?? []} />

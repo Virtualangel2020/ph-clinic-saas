@@ -267,6 +267,22 @@ export async function setWhatsappSettingsAction(input: { phoneNumber: string; de
   revalidatePath("/");
 }
 
+// Which billing cycles (monthly/yearly/lifetime) are offered to customers —
+// a Superadmin-editable toggle instead of hardcoding it into the pricing
+// page and checkout. See migration 028_admin_advanced_controls.
+export async function setCommerceSettingsAction(input: { offerMonthly: boolean; offerYearly: boolean; offerOneTime: boolean }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_commerce_settings", {
+    p_offer_monthly: input.offerMonthly,
+    p_offer_yearly: input.offerYearly,
+    p_offer_one_time: input.offerOneTime,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/settings");
+  revalidatePath("/");
+  revalidatePath("/get-started");
+}
+
 export async function updateBillingSettingsAction(input: {
   gracePeriodDays: number;
   dataRetentionDays: number;
