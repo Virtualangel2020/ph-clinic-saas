@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RequestAccessForm } from "./request-access-form";
+import Link from "next/link";
 
 type PlanPrice = { billing_cycle: string; price_php: number };
 type Plan = {
@@ -44,12 +44,6 @@ export function PricingSection({
   promotions?: Promotion[];
 }) {
   const [cycle, setCycle] = useState<Cycle>("monthly");
-  const [selection, setSelection] = useState<{ planId: string; cycle: Cycle; token: number } | null>(null);
-
-  function requestPlan(planId: string) {
-    setSelection((prev) => ({ planId, cycle, token: (prev?.token ?? 0) + 1 }));
-    document.getElementById("request-access")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   return (
     <>
@@ -129,23 +123,42 @@ export function PricingSection({
                   <li key={pf.feature_key}>{pf.features?.label}</li>
                 ))}
               </ul>
-              <button
-                onClick={() => requestPlan(plan.id)}
-                disabled={price === null}
-                style={{
-                  marginTop: "auto",
-                  padding: "9px 14px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: price === null ? "#eee" : "#0c1730",
-                  color: price === null ? "#999" : "#e6c66b",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: price === null ? "not-allowed" : "pointer",
-                }}
-              >
-                Request this plan →
-              </button>
+              {price === null ? (
+                <button
+                  disabled
+                  style={{
+                    marginTop: "auto",
+                    padding: "9px 14px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#eee",
+                    color: "#999",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "not-allowed",
+                  }}
+                >
+                  Get started →
+                </button>
+              ) : (
+                <Link
+                  href={`/signup?plan=${plan.id}&cycle=${cycle}`}
+                  style={{
+                    marginTop: "auto",
+                    padding: "9px 14px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#0c1730",
+                    color: "#e6c66b",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  Get started →
+                </Link>
+              )}
             </div>
           );
         })}
@@ -169,8 +182,27 @@ export function PricingSection({
         })}
       </div>
 
-      <div id="request-access">
-        <RequestAccessForm plans={plans as any} addons={addons as any} promotions={promotions as any} selection={selection} />
+      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, textAlign: "center" }}>
+        <h2 style={{ fontSize: 18, marginTop: 0, marginBottom: 6 }}>Ready to get started?</h2>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
+          Create your account, pick your plan above, and pay — your clinic's portal unlocks automatically the moment
+          payment is received, no waiting on approval.
+        </p>
+        <Link
+          href="/signup"
+          style={{
+            display: "inline-block",
+            padding: "10px 20px",
+            borderRadius: 8,
+            background: "#0c1730",
+            color: "#e6c66b",
+            fontWeight: 700,
+            fontSize: 14,
+            textDecoration: "none",
+          }}
+        >
+          Create your account →
+        </Link>
       </div>
     </>
   );

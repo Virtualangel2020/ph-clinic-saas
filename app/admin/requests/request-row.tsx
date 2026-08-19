@@ -36,8 +36,24 @@ export function RequestRow({ request }: { request: any }) {
     });
   }
 
+  // A request that's approved with no resolved_by is one nobody clicked
+  // "Approve" on — it self-provisioned the instant PayMongo confirmed
+  // payment (see provision_tenant_from_paid_request / migration 025).
+  // This is the "admin gets notified" surface for that flow: it's not a
+  // push notification or an email (no email-sending infra is wired up
+  // yet), just a badge that's impossible to miss here and on the
+  // dashboard.
+  const autoProvisioned = localStatus === "approved" && !request.resolved_by && !!request.user_id;
+
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18 }}>
+    <div
+      style={{
+        background: autoProvisioned ? "#fbfff8" : "white",
+        border: `1px solid ${autoProvisioned ? "#bfe3bf" : "#e2e2e5"}`,
+        borderRadius: 12,
+        padding: 18,
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 14 }}>
@@ -55,6 +71,22 @@ export function RequestRow({ request }: { request: any }) {
             >
               {localStatus}
             </span>
+            {autoProvisioned && (
+              <span
+                style={{
+                  marginLeft: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#1a7f37",
+                  background: "#f0f9f0",
+                  border: "1px solid #bfe3bf",
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                }}
+              >
+                ⚡ self-serve, paid — auto-provisioned
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
             {request.type} · {request.contact_email}

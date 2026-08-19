@@ -16,6 +16,7 @@ export default async function AdminDashboard() {
     { count: pendingCount },
     { data: tenants },
     { data: pendingRequests },
+    { data: autoProvisioned },
   ] = await Promise.all([
     // "Total clients" and "Active clinics" deliberately exclude test
     // clients (tenants.is_test) — they're real platform totals, and a
@@ -36,6 +37,19 @@ export default async function AdminDashboard() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(10),
+    // Self-serve signups that paid and provisioned themselves with no
+    // admin click — resolved_by is null exactly when nobody approved it.
+    // This is the "admin gets notified" surface for that flow (there's no
+    // email/push wired up yet): it's the first thing on this page.
+    supabase
+      .from("requests")
+      .select("id, clinic_name, contact_name, contact_email, contact_phone, resolved_at, plans:requested_plan_id(name)")
+      .eq("type", "new_signup")
+      .eq("status", "approved")
+      .is("resolved_by", null)
+      .not("user_id", "is", null)
+      .order("resolved_at", { ascending: false })
+      .limit(10),
   ]);
 
   return (
@@ -51,6 +65,31 @@ export default async function AdminDashboard() {
         <StatCard label="Pending requests" value={pendingCount ?? 0} highlight={(pendingCount ?? 0) > 0} />
         <StatCard label="Test clients (excluded above)" value={testTenantCount ?? 0} />
       </div>
+
+      {autoProvisioned && autoProvisioned.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <h2 style={{ fontSize: 16 }}>⚡ New self-serve signups (paid, auto-provisioned)</h2>
+            <Link href="/admin/requests" style={{ fontSize: 13, color: "#2563eb" }}>View all →</Link>
+          </div>
+          <div style={{ background: "#f0f9f0", border: "1px solid #bfe3bf", borderRadius: 12, overflow: "hidden" }}>
+            <Table
+              headers={["Clinic", "Plan", "Email", "Phone", "Paid & unlocked"]}
+              rows={autoProvisioned.map((r: any) => [
+                r.clinic_name || r.contact_name || "—",
+                r.plans?.name ?? "—",
+                r.contact_email,
+                r.contact_phone ?? "—",
+                new Date(r.resolved_at).toLocaleString(),
+              ])}
+            />
+          </div>
+          <p style={{ fontSize: 12, color: "#888", marginTop: 8 }}>
+            Nobody approved these — the client paid and their portal unlocked automatically. Nothing to do here
+            unless something looks wrong.
+          </p>
+        </div>
+      )}
 
       <Section title="Pending requests" action={<Link href="/admin/requests" style={{ fontSize: 13, color: "#2563eb" }}>View all →</Link>}>
         {pendingRequests && pendingRequests.length > 0 ? (

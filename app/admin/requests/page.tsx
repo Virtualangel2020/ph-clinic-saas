@@ -6,7 +6,7 @@ export default async function RequestsPage() {
 
   const { data: requests } = await supabase
     .from("requests")
-    .select("id, type, status, clinic_name, contact_name, contact_email, contact_phone, requested_plan_id, requested_billing_cycle, notes, created_at, resolved_at, plans:requested_plan_id(name)")
+    .select("id, type, status, clinic_name, contact_name, contact_email, contact_phone, requested_plan_id, requested_billing_cycle, notes, created_at, resolved_at, resolved_by, user_id, plans:requested_plan_id(name)")
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 

@@ -73,6 +73,25 @@ export default async function DashboardPage() {
         </Link>
       )}
 
+      <Link
+        href="/dashboard/billing"
+        style={{
+          display: "inline-block",
+          marginTop: 8,
+          marginLeft: 8,
+          padding: "8px 14px",
+          borderRadius: 8,
+          background: "white",
+          border: "1px solid #0c1730",
+          color: "#0c1730",
+          fontWeight: 700,
+          fontSize: 13,
+          textDecoration: "none",
+        }}
+      >
+        Billing & invoices →
+      </Link>
+
       <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20, marginTop: 24 }}>
         <h2 style={{ fontSize: 16, marginTop: 0 }}>Your profile (RLS-scoped)</h2>
         <pre style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{JSON.stringify(profile, null, 2)}</pre>
