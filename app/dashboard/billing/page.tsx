@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BrandHeader } from "@/components/brand-header";
 import { QrCheckout } from "../qr-checkout";
@@ -24,6 +25,22 @@ export default async function DashboardBillingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/billing");
 
+  // Pre-purchase customers (no tenant yet) have nothing to bill — send them
+  // to /dashboard, which already shows the "choose a plan" next step, rather
+  // than showing them an empty, disconnected "No invoices yet" page here.
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("tenant_id, role")
+    .eq("id", user!.id)
+    .maybeSingle();
+
+  if (profile?.role === "platform_admin") {
+    redirect("/admin");
+  }
+  if (!profile?.tenant_id) {
+    redirect("/dashboard");
+  }
+
   const { data: invoices } = await supabase
     .from("invoices")
     .select("id, description, amount_php, discount_php, status, due_date, created_at")
@@ -39,6 +56,12 @@ export default async function DashboardBillingPage() {
       <div style={{ marginBottom: 24 }}>
         <BrandHeader subtitle="Billing" />
       </div>
+      <Link
+        href="/dashboard"
+        style={{ display: "inline-block", fontSize: 13, color: "#888", textDecoration: "none", marginBottom: 16 }}
+      >
+        ← Dashboard
+      </Link>
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>Your invoices</h1>
       <p style={{ color: "#666", marginBottom: 28, fontSize: 13 }}>
         Every invoice for your clinic. Pay one directly with a QR code — scan it with GCash, Maya, or your banking

@@ -20,6 +20,11 @@ export const metadata: Metadata = {
 // the LOGGED-IN USER'S OWN session (no service-role key anywhere in
 // this app) — if tenant isolation is working, this user can only ever
 // see their own profile and their own tenant, never another clinic's.
+//
+// This is a real customer-facing page now (not just an RLS smoke test —
+// that's what it started as), so it deliberately shows NOTHING raw:
+// no JSON dumps, no internal status/source fields. Every state has a
+// plain-language explanation and a clear next action.
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -35,11 +40,59 @@ export default async function DashboardPage() {
     .from("user_profiles")
     .select("full_name, role, tenant_id, tenants(name, status)")
     .eq("id", user!.id)
-    .single();
+    .maybeSingle();
+
+  // Platform admins have their own dashboard — send them straight there
+  // rather than showing them the customer view.
+  if (profile?.role === "platform_admin") {
+    redirect("/admin");
+  }
+
+  const tenant = (profile as any)?.tenants ?? null;
+
+  // No tenant yet (they signed up but haven't paid/finished checkout) —
+  // show a clear next step, not an empty debug page. If they already
+  // started picking a plan, /get-started resumes it automatically, so
+  // the label just reflects that instead of implying they're starting
+  // from zero.
+  if (!profile?.tenant_id) {
+    const { data: pendingRequest } = await supabase
+      .from("requests")
+      .select("id")
+      .eq("user_id", user!.id)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    return (
+      <main style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px" }}>
+        <div style={{ marginBottom: 24 }}>
+          <BrandHeader />
+        </div>
+        <p style={{ color: "#555", marginBottom: 24 }}>Signed in as {user!.email}</p>
+        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 28, textAlign: "center" }}>
+          <h1 style={{ fontSize: 20, marginTop: 0, marginBottom: 8 }}>
+            {pendingRequest ? "Your AngelClinic system isn't set up yet" : "You haven't activated an AngelClinic system yet"}
+          </h1>
+          <p style={{ color: "#666", fontSize: 14, marginBottom: 20 }}>
+            {pendingRequest
+              ? "You started choosing a plan but haven't completed payment. Pick up right where you left off — nothing you selected was lost."
+              : "Pick a plan and pay, and your clinic's portal unlocks automatically — no waiting on approval."}
+          </p>
+          <Link
+            href="/get-started"
+            style={{ display: "inline-block", padding: "11px 22px", borderRadius: 8, background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
+          >
+            {pendingRequest ? "Continue setting up your system →" : "Choose a Plan →"}
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const { data: entitlements } = await supabase
     .from("tenant_entitlements")
-    .select("feature_key, status, features(label)")
+    .select("feature_key, features(label)")
+    .eq("status", "active")
     .order("feature_key");
 
   return (
@@ -51,57 +104,37 @@ export default async function DashboardPage() {
           style={{ borderColor: "#0c1730", color: "#0c1730" }}
         />
       </div>
-      <h1 style={{ fontSize: 24 }}>Dashboard</h1>
-      <p style={{ color: "#555" }}>Signed in as {user!.email}</p>
+      <h1 style={{ fontSize: 24, marginBottom: 2 }}>{tenant?.name ?? "Your clinic"}</h1>
+      <p style={{ color: "#555", marginBottom: 20 }}>Signed in as {user!.email}</p>
 
-      {profile?.role === "platform_admin" && (
-        <Link
-          href="/admin"
-          style={{
-            display: "inline-block",
-            marginTop: 8,
-            padding: "8px 14px",
-            borderRadius: 8,
-            background: "#0c1730",
-            color: "#e6c66b",
-            fontWeight: 700,
-            fontSize: 13,
-            textDecoration: "none",
-          }}
-        >
-          Go to Super Admin →
-        </Link>
+      {tenant?.status && tenant.status !== "active" && (
+        <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#7a5c12", marginBottom: 20 }}>
+          Your clinic's status is currently <strong>{tenant.status.replace(/_/g, " ")}</strong>. Contact support if this looks wrong.
+        </div>
       )}
 
-      <Link
-        href="/dashboard/billing"
-        style={{
-          display: "inline-block",
-          marginTop: 8,
-          marginLeft: 8,
-          padding: "8px 14px",
-          borderRadius: 8,
-          background: "white",
-          border: "1px solid #0c1730",
-          color: "#0c1730",
-          fontWeight: 700,
-          fontSize: 13,
-          textDecoration: "none",
-        }}
-      >
-        Billing & invoices →
-      </Link>
-
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20, marginTop: 24 }}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Your profile (RLS-scoped)</h2>
-        <pre style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{JSON.stringify(profile, null, 2)}</pre>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <Link
+          href="/dashboard/billing"
+          style={{ display: "inline-block", padding: "8px 14px", borderRadius: 8, background: "white", border: "1px solid #0c1730", color: "#0c1730", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+        >
+          Billing & invoices →
+        </Link>
       </div>
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20, marginTop: 16 }}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Your tenant's active entitlements</h2>
-        <pre style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{JSON.stringify(entitlements, null, 2)}</pre>
-        <p style={{ fontSize: 12, color: "#888" }}>
-          Empty until a tenant + subscription exist for you specifically.
+      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+        <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>What's included in your system</h2>
+        {entitlements && entitlements.length > 0 ? (
+          <ul style={{ fontSize: 14, color: "#333", paddingLeft: 18, margin: 0 }}>
+            {entitlements.map((e: any) => (
+              <li key={e.feature_key} style={{ marginBottom: 4 }}>{e.features?.label ?? e.feature_key}</li>
+            ))}
+          </ul>
+        ) : (
+          <p style={{ color: "#888", fontSize: 13, margin: 0 }}>Nothing active yet — this updates automatically once your plan is confirmed.</p>
+        )}
+        <p style={{ fontSize: 12, color: "#999", marginTop: 14, marginBottom: 0 }}>
+          Want more? You can add features or upgrade your plan anytime as your clinic grows.
         </p>
       </div>
     </main>

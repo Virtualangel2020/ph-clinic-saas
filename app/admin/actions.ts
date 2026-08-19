@@ -431,34 +431,69 @@ export async function inviteStaffAction(input: {
 }) {
   const { supabase } = await requireAdmin();
   const origin = await siteOrigin();
-
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
+
+  const invited = await admin.auth.admin.inviteUserByEmail(input.email, {
     redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
     data: { full_name: input.fullName },
   });
-  if (error) throw new Error(error.message);
-  if (!data.user) throw new Error("Invite did not return a user — please try again.");
 
+  let userId: string;
+  const alreadyExists =
+    !!invited.error && (invited.error.status === 422 || /already.*regist|already exist/i.test(invited.error.message));
+
+  if (invited.error && !alreadyExists) {
+    throw new Error(invited.error.message);
+  }
+
+  if (alreadyExists) {
+    // No hard limit on who can be added — this email already has an
+    // account somewhere (an earlier invite, or someone who self-signed-up
+    // as a customer at /signup). Supabase's invite endpoint refuses to
+    // "invite" an already-registered email, but that shouldn't block
+    // adding them here: look their existing account up and grant them
+    // access to THIS clinic directly, then send a password-set link
+    // instead of a duplicate invite email.
+    const { data: existingId, error: lookupError } = await supabase.rpc("admin_lookup_user_id_by_email", {
+      p_email: input.email,
+    });
+    if (lookupError || !existingId) throw new Error("That email already has an account, but it couldn't be looked up — please try again.");
+    userId = existingId;
+  } else {
+    if (!invited.data?.user) throw new Error("Invite did not return a user — please try again.");
+    userId = invited.data.user.id;
+  }
+
+  // Note: user_profiles.tenant_id is a single value today, so if this
+  // email already had staff access at a DIFFERENT clinic, granting access
+  // here moves them into this one instead of adding a second membership.
   const { error: profileError } = await supabase.rpc("admin_create_staff_profile", {
-    p_user_id: data.user.id,
+    p_user_id: userId,
     p_tenant_id: input.tenantId,
     p_full_name: input.fullName,
     p_role: input.role,
   });
   if (profileError) throw new Error(profileError.message);
 
+  if (alreadyExists) {
+    // They already had an account, so no invite email went out above —
+    // this works whether or not they already know a password: if they
+    // do, they can ignore it and just sign in; if they don't (e.g. an
+    // earlier invite never got completed), this is how they set one.
+    await supabase.auth.resetPasswordForEmail(input.email, {
+      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+    });
+  }
+
   revalidatePath(`/admin/clients/${input.tenantId}`);
 }
 
-// Re-sends a staff invite for someone who never completed it — most
-// commonly because the first email link died on a broken redirect (see
-// components/auth-error-banner.tsx) and their only options otherwise were
-// clicking the same now-dead link again (which fails, invite links are
-// single-use) or you creating a duplicate account by hand. This calls
-// Supabase's inviteUserByEmail again for the SAME existing auth user,
-// which issues a fresh token — admin_create_staff_profile is idempotent
-// (upsert on id), so re-running it is harmless.
+// Re-sends access to someone who already has an account but never
+// completed set-password — most commonly because the first email link
+// died on a broken redirect (see components/auth-error-banner.tsx).
+// Always uses the password-reset flow rather than inviteUserByEmail,
+// since by definition a "resend" target already has an account, and
+// Supabase's invite endpoint refuses already-registered emails.
 export async function resendStaffInviteAction(userId: string, tenantId: string) {
   const { supabase } = await requireAdmin();
   const origin = await siteOrigin();
@@ -474,9 +509,8 @@ export async function resendStaffInviteAction(userId: string, tenantId: string) 
     .single();
   if (profileFetchError || !profile) throw new Error("Couldn't find that person's staff record.");
 
-  const { error } = await admin.auth.admin.inviteUserByEmail(authUser.user.email, {
+  const { error } = await supabase.auth.resetPasswordForEmail(authUser.user.email, {
     redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
-    data: { full_name: profile.full_name },
   });
   if (error) throw new Error(error.message);
 
