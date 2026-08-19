@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/require-admin";
+import { TestToggle } from "./test-toggle";
 
 export default async function ClientsPage() {
   const { supabase } = await requireAdmin();
@@ -22,8 +23,8 @@ export default async function ClientsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#fafafa", textAlign: "left" }}>
-                {["Clinic", "Plan", "Billing", "Status", "Created", ""].map((h) => (
-                  <th key={h} style={{ padding: "10px 16px", fontWeight: 600, color: "#555" }}>{h}</th>
+                {["Clinic", "Plan", "Billing", "Status", "Created", "", ""].map((h, i) => (
+                  <th key={i} style={{ padding: "10px 16px", fontWeight: 600, color: "#555" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -42,6 +43,9 @@ export default async function ClientsPage() {
                   <td style={{ padding: "10px 16px" }}>{t.subscriptions?.[0]?.billing_cycle ?? "—"}</td>
                   <td style={{ padding: "10px 16px" }}>{t.status}</td>
                   <td style={{ padding: "10px 16px" }}>{new Date(t.created_at).toLocaleDateString()}</td>
+                  <td style={{ padding: "10px 16px" }}>
+                    <TestToggle tenantId={t.id} initialIsTest={!!t.is_test} />
+                  </td>
                   <td style={{ padding: "10px 16px" }}>
                     <Link href={`/admin/clients/${t.id}`} style={{ color: "#2563eb" }}>Manage →</Link>
                   </td>
