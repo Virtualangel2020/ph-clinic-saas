@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
 
-// Minimal email/password sign-in. Real invitation-based onboarding
-// (A7.1 in the architecture doc) replaces this before launch — this
-// exists to prove auth + RLS work end to end on the new schema.
-export default function LoginPage() {
+// Minimal email/password sign-in. Honors ?next= so anywhere that bounces
+// someone here (requireAdmin, /dashboard/billing, an "already have an
+// account" prompt mid-signup) can send them back to exactly where they
+// were trying to go instead of always landing on /dashboard.
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/dashboard";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,7 +31,7 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.push("/dashboard");
+    router.push(next);
     router.refresh();
   }
 
@@ -73,5 +76,13 @@ export default function LoginPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

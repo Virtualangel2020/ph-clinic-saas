@@ -24,7 +24,7 @@ function SignupForm() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "already-registered" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
   function nextUrl() {
@@ -72,9 +72,44 @@ function SignupForm() {
       return;
     }
 
+    // Supabase's anti-enumeration behavior: signUp() for an email that's
+    // ALREADY a confirmed account returns success with no error and no
+    // session (identical shape to a genuine new signup) but sends no
+    // email at all — data.user.identities comes back empty specifically
+    // to signal this. Without this check we'd show "check your email"
+    // for an email that will never receive one.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      setStatus("already-registered");
+      return;
+    }
+
     // Email confirmation is required — they'll land on /get-started once
     // they click the link in their inbox.
     setStatus("check-email");
+  }
+
+  if (status === "already-registered") {
+    return (
+      <main style={{ maxWidth: 420, margin: "80px auto", padding: 24 }}>
+        <div style={{ marginBottom: 24 }}>
+          <BrandHeader />
+        </div>
+        <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 12, padding: 24 }}>
+          <h1 style={{ fontSize: 18, marginTop: 0 }}>You already have an account</h1>
+          <p style={{ color: "#333", fontSize: 14, marginBottom: 16 }}>
+            <strong>{email}</strong> already has a portal login — no new email needed. Sign in instead and we'll
+            take you straight to your plan.
+          </p>
+          <a
+            href={`/login?next=${encodeURIComponent(nextUrl())}`}
+            style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+          >
+            Sign in →
+          </a>
+        </div>
+        <WhatsappButton />
+      </main>
+    );
   }
 
   if (status === "check-email") {
