@@ -100,6 +100,9 @@ function SignupForm() {
       <div style={{ marginBottom: 24 }}>
         <BrandHeader />
       </div>
+      <a href="/" style={{ display: "inline-block", fontSize: 13, color: "#888", textDecoration: "none", marginBottom: 12 }}>
+        ← Back to pricing
+      </a>
       <h1 style={{ fontSize: 22 }}>Create your account</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
         Set up your login first. You'll pick a plan and pay on the next screen — your clinic's portal goes live the

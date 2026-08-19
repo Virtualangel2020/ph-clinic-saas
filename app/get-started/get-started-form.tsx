@@ -158,13 +158,17 @@ export function GetStartedForm({
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        proceedToPayment();
-      }}
-      style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}
-    >
+    <div>
+      <a href="/" style={{ display: "inline-block", fontSize: 13, color: "#888", textDecoration: "none", marginBottom: 12 }}>
+        ← Back to pricing
+      </a>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          proceedToPayment();
+        }}
+        style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}
+      >
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         <input required placeholder="Clinic name" value={clinicName} onChange={(e) => setClinicName(e.target.value)} style={input} />
         <input required placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
@@ -276,7 +280,8 @@ export function GetStartedForm({
         You'll pay with a QR code (GCash, Maya, or your banking app). Your clinic's portal unlocks automatically the
         moment payment is confirmed — no waiting on approval.
       </p>
-    </form>
+      </form>
+    </div>
   );
 }
 
