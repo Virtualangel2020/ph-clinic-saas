@@ -13,7 +13,6 @@ export function SiteFooter() {
           <FooterLink href="/features">Features</FooterLink>
           <FooterLink href="/pricing">Pricing</FooterLink>
           <FooterLink href="/security">Security</FooterLink>
-          <FooterLink href="/find-a-doctor">Find a Doctor</FooterLink>
         </div>
         <div>
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: "rgba(244,245,247,0.4)", marginBottom: 10 }}>Company</div>

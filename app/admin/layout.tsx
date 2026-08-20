@@ -24,6 +24,7 @@ const NAV = [
   { href: "/admin/faqs", label: "FAQ" },
   { href: "/admin/site-content", label: "Site Content" },
   { href: "/admin/demo-requests", label: "Demo Requests" },
+  { href: "/admin/providers-directory", label: "Provider Directory" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

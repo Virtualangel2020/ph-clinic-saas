@@ -5,10 +5,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 
+// Find a Doctor is intentionally left out of nav for now — Angel wants it
+// off until there are more providers/the brand is better known (see
+// app/find-a-doctor/page.tsx, which redirects home). The route, the
+// Superadmin Provider Directory tool, and the schema are all still there
+// so this is a one-line add-back later, not a rebuild.
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/features", label: "Features" },
-  { href: "/find-a-doctor", label: "Find a Doctor" },
   { href: "/pricing", label: "Pricing" },
   { href: "/security", label: "Security" },
   { href: "/about", label: "About Us" },

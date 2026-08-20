@@ -521,6 +521,78 @@ export async function setTenantProviderSeatsAction(tenantId: string, seats: numb
   revalidatePath(`/admin/clients/${tenantId}`);
 }
 
+// ── External Providers directory (Find-a-Doctor "Other Providers") ──────
+// Manually curated by Virtual Angel Systems staff — never scraped or
+// auto-generated (see external_providers table comment). This is the tool
+// that actually lets someone here enter a real, verified provider's info.
+
+export async function upsertExternalProviderAction(input: {
+  id: string | null;
+  fullName: string;
+  credentials: string;
+  specialty: string;
+  subspecialty: string;
+  clinicName: string;
+  hospital: string;
+  address: string;
+  city: string;
+  contactNumber: string;
+  photoPath: string | null;
+  scheduleText: string;
+  source: string;
+  sourceUrl: string;
+  verified: boolean;
+  isActive: boolean;
+}) {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.rpc("admin_upsert_external_provider", {
+    p_id: input.id,
+    p_full_name: input.fullName,
+    p_credentials: input.credentials || null,
+    p_specialty: input.specialty || null,
+    p_subspecialty: input.subspecialty || null,
+    p_clinic_name: input.clinicName || null,
+    p_hospital: input.hospital || null,
+    p_address: input.address || null,
+    p_city: input.city || null,
+    p_contact_number: input.contactNumber || null,
+    p_photo_path: input.photoPath,
+    p_schedule_text: input.scheduleText || null,
+    p_source: input.source || null,
+    p_source_url: input.sourceUrl || null,
+    p_verified: input.verified,
+    p_is_active: input.isActive,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/providers-directory");
+  revalidatePath("/find-a-doctor");
+  return data as string;
+}
+
+export async function deleteExternalProviderAction(id: string) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_delete_external_provider", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/providers-directory");
+  revalidatePath("/find-a-doctor");
+}
+
+export async function uploadExternalProviderPhotoAction(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) throw new Error("Choose a photo first.");
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    throw new Error("Photo must be a PNG, JPG, or WEBP image.");
+  }
+  if (file.size > 3 * 1024 * 1024) throw new Error("Photo must be under 3MB.");
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("external-provider-photos").upload(path, file);
+  if (error) throw new Error(error.message);
+  return path;
+}
+
 // Reconstructs this deploy's own origin from the incoming request headers
 // instead of needing a hardcoded site-URL env var — works the same on
 // preview and production Vercel deployments.

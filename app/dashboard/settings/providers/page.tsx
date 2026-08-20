@@ -3,7 +3,11 @@ import { ProviderCredentialsForm } from "./provider-credentials-form";
 import { SignatureManager } from "./signature-manager";
 import { ApprovalQueue } from "./approval-queue";
 import { SeatUsage } from "./seat-usage";
-import { PublicProfileToggle } from "./public-profile-toggle";
+// Public directory listing is turned off for now (Angel wants to focus on
+// the core system until there are more providers / the brand is better
+// known) — see app/find-a-doctor/page.tsx. Re-import and render
+// <PublicProfileToggle /> below to bring it back.
+// import { PublicProfileToggle } from "./public-profile-toggle";
 
 // Parts 21-23: provider credentials + signature, each protected by a
 // Clinic Admin approval step so nothing legally-significant changes
@@ -84,8 +88,6 @@ export default async function ProvidersPage() {
       <ProviderCredentialsForm profile={profile as any} isAdmin={isAdmin} pendingRequests={(credentialRequests ?? []).filter((r) => r.status === "pending")} />
 
       <SignatureManager signatures={signatures ?? []} activeSignatureUrl={activeSignatureUrl} />
-
-      <PublicProfileToggle profile={profile as any} />
 
       {isAdmin && seatUsage && <SeatUsage used={seatUsage.used} total={seatUsage.total} />}
 

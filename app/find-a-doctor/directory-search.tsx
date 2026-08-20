@@ -26,8 +26,11 @@ type ExternalProvider = {
   subspecialty: string | null;
   clinic_name: string | null;
   hospital: string | null;
+  address: string | null;
   city: string | null;
   contact_number: string | null;
+  photo_url: string | null;
+  schedule_text: string | null;
   source: string;
   source_url: string | null;
 };
@@ -155,16 +158,25 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
       {filteredExternal.length > 0 && (
         <div style={{ display: "grid", gap: 12 }}>
           {filteredExternal.map((p) => (
-            <div key={p.id} style={{ background: "#f8f8f6", border: "1px solid #e6e6e2", borderRadius: 12, padding: "18px 20px" }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#333" }}>
-                {p.full_name}
-                {p.credentials && <span style={{ fontWeight: 400, color: "#888" }}> · {p.credentials}</span>}
+            <div key={p.id} style={{ background: "#f8f8f6", border: "1px solid #e6e6e2", borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#eee", flexShrink: 0 }}>
+                {p.photo_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.photo_url} alt={p.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                )}
               </div>
-              <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ")}</div>
-              <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name || p.hospital, p.city].filter(Boolean).join(" · ")}</div>
-              {p.contact_number && <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{p.contact_number}</div>}
-              <div style={{ color: "#aaa", fontSize: 11, marginTop: 8 }}>
-                Externally listed — not an AngelClinic user. Source: {p.source_url ? <a href={p.source_url} target="_blank" rel="noreferrer" style={{ color: "#aaa" }}>{p.source}</a> : p.source}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "#333" }}>
+                  {p.full_name}
+                  {p.credentials && <span style={{ fontWeight: 400, color: "#888" }}> · {p.credentials}</span>}
+                </div>
+                <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ")}</div>
+                <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name || p.hospital, p.address || p.city].filter(Boolean).join(" · ")}</div>
+                {p.contact_number && <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{p.contact_number}</div>}
+                {p.schedule_text && <div style={{ color: "#666", fontSize: 12, marginTop: 6, whiteSpace: "pre-line" }}>{p.schedule_text}</div>}
+                <div style={{ color: "#aaa", fontSize: 11, marginTop: 8 }}>
+                  Externally listed — not an AngelClinic user. Source: {p.source_url ? <a href={p.source_url} target="_blank" rel="noreferrer" style={{ color: "#aaa" }}>{p.source}</a> : p.source}
+                </div>
               </div>
             </div>
           ))}
