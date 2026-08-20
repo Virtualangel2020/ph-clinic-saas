@@ -191,3 +191,100 @@ export async function setUserPermissionAction(userId: string, permissionKey: str
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/settings/users");
 }
+
+// ── Provider seats (Part 44-45) ─────────────────────────────────────────
+// A clinic can invite unlimited staff accounts, but only up to its
+// subscription's provider_seats count can hold the 'doctor' role (enforced
+// server-side in clinic_invite_staff — see migration
+// enforce_provider_seat_limit). This creates a "seat_request" that lands in
+// the Superadmin's Requests queue for approval/billing, same as any other
+// upgrade request.
+export async function requestProviderSeatAction(notes: string) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("clinic_request_provider_seat", { p_notes: notes || null });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/providers");
+}
+
+// ── Public provider directory profile (Part 63-64) ──────────────────────
+// Opt-in only — a provider's info never appears on the public
+// /find-a-doctor page unless they explicitly enable this themselves.
+export async function setPublicProviderProfileAction(input: {
+  enabled: boolean;
+  bio: string;
+  languages: string[];
+  consultationType: string;
+  consultationFeePhp: number | null;
+  bookingMode: string;
+}) {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("set_public_provider_profile", {
+    p_enabled: input.enabled,
+    p_bio: input.bio || null,
+    p_languages: input.languages,
+    p_consultation_type: input.consultationType || null,
+    p_consultation_fee_php: input.consultationFeePhp,
+    p_booking_mode: input.bookingMode,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/providers");
+}
+
+// ── Calendar: appointment types & colors (Part 39-40) ───────────────────
+
+export async function setAppointmentTypeAction(input: {
+  id: string | null;
+  name: string;
+  color: string;
+  durationMinutes: number;
+  description: string;
+  isActive: boolean;
+  sortOrder: number;
+}) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_appointment_type", {
+    p_id: input.id,
+    p_name: input.name,
+    p_color: input.color,
+    p_duration_minutes: input.durationMinutes,
+    p_description: input.description || null,
+    p_is_active: input.isActive,
+    p_sort_order: input.sortOrder,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+}
+
+export async function setCalendarColorsAction(statusColors: Record<string, string>, availabilityColors: Record<string, string>) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_calendar_colors", {
+    p_status_colors: statusColors,
+    p_availability_colors: availabilityColors,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+}
+
+// ── Medical certificate templates (Part 35-38) ───────────────────────────
+// Template builder only — actual certificate issuance is blocked on the
+// patient/encounter chart (Phase 2), which doesn't exist yet. Building the
+// template now means Clinic Admins can set it up ahead of time.
+
+export async function setMedicalCertificateTemplateAction(input: {
+  id: string | null;
+  name: string;
+  basedOn: string;
+  fieldsConfig: any[];
+  isActive: boolean;
+}) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_medical_certificate_template", {
+    p_id: input.id,
+    p_name: input.name,
+    p_based_on: input.basedOn,
+    p_fields_config: input.fieldsConfig,
+    p_is_active: input.isActive,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/medical-certificates");
+}

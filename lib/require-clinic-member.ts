@@ -19,7 +19,9 @@ export async function requireClinicMember() {
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("id, tenant_id, role, full_name, title, specialty, subspecialty, prc_license, ptr_number, tenants(name, status)")
+    .select(
+      "id, tenant_id, role, full_name, title, specialty, subspecialty, prc_license, ptr_number, public_directory_enabled, public_bio, public_languages, public_consultation_type, public_consultation_fee_php, public_booking_mode, tenants(name, status)"
+    )
     .eq("id", user!.id)
     .maybeSingle();
 

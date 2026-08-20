@@ -22,6 +22,8 @@ const NAV = [
   { href: "/admin/promotions", label: "Promotions" },
   { href: "/admin/pricing", label: "Pricing" },
   { href: "/admin/faqs", label: "FAQ" },
+  { href: "/admin/site-content", label: "Site Content" },
+  { href: "/admin/demo-requests", label: "Demo Requests" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

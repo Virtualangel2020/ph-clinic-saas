@@ -12,6 +12,9 @@ type Plan = {
   tagline?: string | null;
   plan_prices: PlanPrice[];
   plan_features?: { feature_key: string; features: { label: string; description: string | null } | null }[];
+  included_provider_seats?: number;
+  additional_seat_price_monthly?: number | null;
+  additional_seat_price_yearly?: number | null;
 };
 type Addon = { id: string; name: string; slug: string; description?: string | null; recommended_for?: string | null; addon_prices: PlanPrice[] };
 type Promotion = {
@@ -20,7 +23,40 @@ type Promotion = {
   label: string;
   discount_percent: number;
   applies_to_plan_id: string | null;
+  discount_type?: string;
+  fixed_amount_php?: number | null;
+  duration_type?: string;
+  duration_value?: number | null;
 };
+
+function applyPromo(price: number, p: Promotion): number {
+  if (p.discount_type === "fixed_amount" && p.fixed_amount_php != null) {
+    return Math.max(0, price - Number(p.fixed_amount_php));
+  }
+  return price * (1 - p.discount_percent / 100);
+}
+
+function promoBadgeText(p: Promotion): string {
+  if (p.discount_type === "fixed_amount" && p.fixed_amount_php != null) {
+    return `₱${Number(p.fixed_amount_php).toLocaleString()} OFF`;
+  }
+  return `${p.discount_percent}% OFF`;
+}
+
+function promoDurationText(p: Promotion): string | null {
+  switch (p.duration_type) {
+    case "billing_cycles":
+      return p.duration_value ? `for your first ${p.duration_value} billing cycle${p.duration_value === 1 ? "" : "s"}` : null;
+    case "months":
+      return p.duration_value ? `for your first ${p.duration_value} month${p.duration_value === 1 ? "" : "s"}` : null;
+    case "one_payment":
+      return "on your first payment";
+    case "until_date":
+      return "for a limited time";
+    default:
+      return null;
+  }
+}
 
 const ALL_CYCLES = [
   { value: "monthly", label: "Monthly", suffix: "/mo" },
@@ -92,14 +128,14 @@ export function PricingSection({
           const promo = promotions.find(
             (p) => !p.code && (p.applies_to_plan_id === null || p.applies_to_plan_id === plan.id)
           );
-          const discounted = price !== null && promo ? price * (1 - promo.discount_percent / 100) : null;
+          const discounted = price !== null && promo ? applyPromo(price, promo) : null;
           const cycleMeta = CYCLES.find((c) => c.value === cycle)!;
 
           return (
             <div key={plan.slug} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20, position: "relative", display: "flex", flexDirection: "column" }}>
               {promo && (
                 <div style={{ position: "absolute", top: -10, right: 14, background: "#e6c66b", color: "#0c1730", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999 }}>
-                  {promo.discount_percent}% OFF
+                  {promoBadgeText(promo)}
                 </div>
               )}
               <h3 style={{ fontSize: 18, marginTop: 0, marginBottom: 4 }}>{plan.name}</h3>
@@ -123,10 +159,27 @@ export function PricingSection({
                   </>
                 )}
               </div>
+              {promo && discounted !== null && promoDurationText(promo) && (
+                <div style={{ fontSize: 11, color: "#c99a2e", fontWeight: 600, marginTop: -6, marginBottom: 10 }}>
+                  {promoDurationText(promo)}
+                </div>
+              )}
               {plan.tagline && (
                 <p style={{ color: "#333", fontSize: 13, fontWeight: 600, margin: "0 0 4px" }}>Best for: {plan.tagline}</p>
               )}
               <p style={{ color: "#666", fontSize: 13 }}>{plan.description}</p>
+              {typeof plan.included_provider_seats === "number" && (
+                <div style={{ background: "#f4f1ea", border: "1px solid #ece5d6", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#555", marginBottom: 14 }}>
+                  Includes <strong>{plan.included_provider_seats} clinical provider{plan.included_provider_seats === 1 ? "" : "s"}</strong> and unlimited staff accounts.
+                  {(cycle === "monthly" ? plan.additional_seat_price_monthly : cycle === "yearly" ? plan.additional_seat_price_yearly : null) != null && (
+                    <>
+                      {" "}Additional providers: <strong>
+                        ₱{Number(cycle === "monthly" ? plan.additional_seat_price_monthly : plan.additional_seat_price_yearly).toLocaleString()}{cycleMeta.suffix}
+                      </strong> each.
+                    </>
+                  )}
+                </div>
+              )}
               <ul style={{ fontSize: 13, color: "#333", paddingLeft: 18, margin: "0 0 16px" }}>
                 {(plan.plan_features ?? []).map((pf) => (
                   <li key={pf.feature_key} style={{ marginBottom: 6 }}>

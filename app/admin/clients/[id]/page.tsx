@@ -22,7 +22,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   ] = await Promise.all([
     supabase
       .from("tenants")
-      .select("id, name, slug, status, is_test, created_at, subscriptions(id, plan_id, billing_cycle, status, current_period_start)")
+      .select("id, name, slug, status, is_test, created_at, subscriptions(id, plan_id, billing_cycle, status, current_period_start, provider_seats)")
       .eq("id", id)
       .single(),
     supabase.from("plans").select("id, name, slug, plan_prices(billing_cycle, price_php)").eq("is_active", true).order("sort_order"),

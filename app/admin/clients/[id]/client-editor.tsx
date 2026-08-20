@@ -8,6 +8,7 @@ import {
   setTenantStatusAction,
   setTenantDiscountAction,
   setTenantTestFlagAction,
+  setTenantProviderSeatsAction,
 } from "@/app/admin/actions";
 
 type Plan = { id: string; name: string; slug: string; plan_prices: { billing_cycle: string; price_php: number }[] };
@@ -43,6 +44,7 @@ export function ClientEditor({
   const [discountPercent, setDiscountPercent] = useState(activeDiscount?.discount_percent?.toString() ?? "");
   const [discountNote, setDiscountNote] = useState("");
   const [isTest, setIsTest] = useState<boolean>(!!tenant.is_test);
+  const [providerSeats, setProviderSeats] = useState<string>((sub?.provider_seats ?? 1).toString());
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -110,6 +112,22 @@ export function ClientEditor({
         }
         setMessage(complimentary ? "Subscription created — this client is complimentary (free)." : "Subscription created.");
         router.refresh();
+      } catch (e: any) {
+        setMessage(`Error: ${e.message}`);
+      }
+    });
+  }
+
+  function saveProviderSeats() {
+    const value = Number(providerSeats);
+    if (isNaN(value) || value < 1) {
+      setMessage("Error: provider seats must be a whole number of at least 1.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await setTenantProviderSeatsAction(tenant.id, value);
+        setMessage(`Provider seats set to ${value}.`);
       } catch (e: any) {
         setMessage(`Error: ${e.message}`);
       }
@@ -230,6 +248,23 @@ export function ClientEditor({
             {priceFor(plans.find((p) => p.id === planId)?.plan_prices ?? [], cycle)}
           </span>
           <button onClick={savePlan} disabled={pending} style={buttonStyle}>Save plan</button>
+        </div>
+      </Card>
+
+      <Card title="Clinical provider seats">
+        <p style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>
+          How many staff can hold the "doctor" role and sign notes/prescriptions. Overrides here bypass this
+          tenant's plan-included seat count and any purchased add-on seats — use it for one-off arrangements.
+        </p>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            type="number"
+            min={1}
+            value={providerSeats}
+            onChange={(e) => setProviderSeats(e.target.value)}
+            style={{ ...selectStyle, width: 90 }}
+          />
+          <button onClick={saveProviderSeats} disabled={pending} style={buttonStyle}>Save seats</button>
         </div>
       </Card>
 

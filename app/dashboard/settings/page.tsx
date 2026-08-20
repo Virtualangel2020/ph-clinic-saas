@@ -11,6 +11,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
     items: [
       { href: "/dashboard/settings/clinic-profile", label: "Clinic Profile & Branding", desc: "Name, logo, address, contact — auto-applied to every document." },
       { href: "/dashboard/settings/schedules", label: "Schedules", desc: "Provider working hours and availability." },
+      { href: "/dashboard/settings/calendar", label: "Calendar", desc: "Appointment types, colors, and availability colors." },
     ],
   },
   {
@@ -24,6 +25,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
     title: "Clinical setup",
     items: [
       { href: "/dashboard/settings/note-templates", label: "Progress Note Templates", desc: "SOAP, Expanded, or your own custom note format." },
+      { href: "/dashboard/settings/medical-certificates", label: "Medical Certificates", desc: "Template builder for your clinic's medical certificate." },
       { href: "/dashboard/settings/forms", label: "Forms & Registration", desc: "Patient intake forms and consent/acknowledgement templates." },
       { href: "/dashboard/settings/referral-directory", label: "Referral Directory Profile", desc: "How your clinic appears to other AngelClinic providers." },
     ],

@@ -2,6 +2,8 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 import { ProviderCredentialsForm } from "./provider-credentials-form";
 import { SignatureManager } from "./signature-manager";
 import { ApprovalQueue } from "./approval-queue";
+import { SeatUsage } from "./seat-usage";
+import { PublicProfileToggle } from "./public-profile-toggle";
 
 // Parts 21-23: provider credentials + signature, each protected by a
 // Clinic Admin approval step so nothing legally-significant changes
@@ -42,6 +44,15 @@ export default async function ProvidersPage() {
 
   const [{ data: pendingSignatures }, { data: pendingCredentials }] = adminQueues as any;
 
+  let seatUsage: { used: number; total: number } | null = null;
+  if (isAdmin) {
+    const [{ count: doctorCount }, { data: subscription }] = await Promise.all([
+      supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("role", "doctor"),
+      supabase.from("subscriptions").select("provider_seats").eq("tenant_id", profile.tenant_id).maybeSingle(),
+    ]);
+    seatUsage = { used: doctorCount ?? 0, total: subscription?.provider_seats ?? 1 };
+  }
+
   let activeSignatureUrl: string | null = null;
   const activeSignature = (signatures ?? []).find((s) => s.status === "approved");
   if (activeSignature) {
@@ -73,6 +84,10 @@ export default async function ProvidersPage() {
       <ProviderCredentialsForm profile={profile as any} isAdmin={isAdmin} pendingRequests={(credentialRequests ?? []).filter((r) => r.status === "pending")} />
 
       <SignatureManager signatures={signatures ?? []} activeSignatureUrl={activeSignatureUrl} />
+
+      <PublicProfileToggle profile={profile as any} />
+
+      {isAdmin && seatUsage && <SeatUsage used={seatUsage.used} total={seatUsage.total} />}
 
       {isAdmin && (
         <ApprovalQueue

@@ -425,6 +425,102 @@ export async function recordRefundAction(input: {
   revalidatePath(`/admin/clients/${input.tenantId}`);
 }
 
+// ── Public site content (Part 68-70) ────────────────────────────────────
+// A lightweight CMS for the public marketing site's editable copy — hero,
+// warm welcome, promo banner (tied to a real active Promotion, never a
+// standalone claim), demo CTA, About, and Security intro. See migration
+// public_site_and_commercial_v2 for the site_content singleton table.
+
+export async function setSiteContentAction(input: {
+  heroHeading: string;
+  heroSubheading: string;
+  welcomeHeading: string;
+  welcomeBody: string;
+  promoBannerEnabled: boolean;
+  promoBannerText: string;
+  promoBannerCtaLabel: string;
+  promoBannerPromotionId: string | null;
+  demoCtaHeading: string;
+  demoCtaBody: string;
+  aboutBody: string;
+  securityIntro: string;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_site_content", {
+    p_hero_heading: input.heroHeading,
+    p_hero_subheading: input.heroSubheading,
+    p_welcome_heading: input.welcomeHeading,
+    p_welcome_body: input.welcomeBody,
+    p_promo_banner_enabled: input.promoBannerEnabled,
+    p_promo_banner_text: input.promoBannerText,
+    p_promo_banner_cta_label: input.promoBannerCtaLabel,
+    p_promo_banner_promotion_id: input.promoBannerPromotionId,
+    p_demo_cta_heading: input.demoCtaHeading,
+    p_demo_cta_body: input.demoCtaBody,
+    p_about_body: input.aboutBody,
+    p_security_intro: input.securityIntro,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/site-content");
+  revalidatePath("/");
+  revalidatePath("/about");
+  revalidatePath("/security");
+}
+
+// ── Demo request leads (Part 46) ────────────────────────────────────────
+
+export async function setDemoRequestStatusAction(id: string, status: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_demo_request_status", { p_id: id, p_status: status });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/demo-requests");
+}
+
+// ── Targeted / special-offer promotions (Part 41-43) ────────────────────
+
+export async function createTargetedPromotionAction(input: {
+  label: string;
+  description: string;
+  discountType: "percent" | "fixed_amount";
+  discountPercent: number;
+  fixedAmountPhp: number | null;
+  durationType: "one_payment" | "billing_cycles" | "months" | "until_date" | "ongoing";
+  durationValue: number | null;
+  appliesToSeats: boolean;
+  appliesToAddonIds: string[];
+  billingCycleScope: string | null;
+  applyToFutureAdditions: boolean;
+  targetTenantId: string | null;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_targeted_promotion", {
+    p_label: input.label,
+    p_description: input.description || null,
+    p_discount_type: input.discountType,
+    p_discount_percent: input.discountPercent,
+    p_fixed_amount_php: input.fixedAmountPhp,
+    p_duration_type: input.durationType,
+    p_duration_value: input.durationValue,
+    p_applies_to_seats: input.appliesToSeats,
+    p_applies_to_addon_ids: input.appliesToAddonIds,
+    p_billing_cycle_scope: input.billingCycleScope,
+    p_apply_to_future_additions: input.applyToFutureAdditions,
+    p_target_tenant_id: input.targetTenantId,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/promotions");
+  if (input.targetTenantId) revalidatePath(`/admin/clients/${input.targetTenantId}`);
+}
+
+// ── Provider seats (Part 44-45) ─────────────────────────────────────────
+
+export async function setTenantProviderSeatsAction(tenantId: string, seats: number) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_tenant_provider_seats", { p_tenant_id: tenantId, p_seats: seats });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/clients/${tenantId}`);
+}
+
 // Reconstructs this deploy's own origin from the incoming request headers
 // instead of needing a hardcoded site-URL env var — works the same on
 // preview and production Vercel deployments.
