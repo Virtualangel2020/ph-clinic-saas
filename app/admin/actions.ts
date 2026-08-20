@@ -593,6 +593,43 @@ export async function uploadExternalProviderPhotoAction(formData: FormData) {
   return path;
 }
 
+// ── Deleting a client (Superadmin only, irreversible) ────────────────────
+// tenants(id) cascades to every dependent table (subscriptions, invoices,
+// payments, entitlements, discounts, user_profiles, etc. — verified against
+// the actual FK constraints before writing this), so deleting the tenant
+// row cleans up everything EXCEPT the staff's auth.users login records,
+// since those aren't reachable via cascade (user_profiles.id references
+// auth.users, not the other way around). We grab their ids first, delete
+// the tenant, then remove each login with the service-role admin client so
+// no orphaned "no tenant" accounts are left behind.
+export async function deleteTenantAction(tenantId: string) {
+  const { supabase, profile } = await requireAdmin();
+
+  const { data: staff } = await supabase.from("user_profiles").select("id").eq("tenant_id", tenantId);
+  const staffIds = (staff ?? []).map((s) => s.id);
+
+  const { error } = await supabase.from("tenants").delete().eq("id", tenantId);
+  if (error) throw new Error(error.message);
+
+  const admin = createAdminClient();
+  for (const id of staffIds) {
+    // Best-effort: the tenant is already gone at this point regardless of
+    // whether a given login cleanup succeeds, so one failure here doesn't
+    // roll anything back — just log-and-continue rather than throw.
+    await admin.auth.admin.deleteUser(id).catch(() => {});
+  }
+
+  await supabase.from("audit_logs").insert({
+    actor_user_id: profile.id,
+    action: "tenant_deleted",
+    entity_type: "tenants",
+    entity_id: tenantId,
+  });
+
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin");
+}
+
 // Reconstructs this deploy's own origin from the incoming request headers
 // instead of needing a hardcoded site-URL env var — works the same on
 // preview and production Vercel deployments.
@@ -815,4 +852,22 @@ export async function createPaymentLinkAction(invoiceId: string): Promise<{ test
 
   revalidatePath(`/admin/clients/${invoice.tenant_id}`);
   return { testMode: false, checkoutUrl };
+}
+
+// ── Customer Care (persistent per-clinic support thread) ────────────────
+
+export async function adminSendSupportMessageAction(tenantId: string, body: string) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_send_support_message", { p_tenant_id: tenantId, p_body: body });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/customer-care/${tenantId}`);
+  revalidatePath("/admin/customer-care");
+}
+
+export async function adminMarkSupportReadAction(tenantId: string) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_mark_support_read", { p_tenant_id: tenantId });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/customer-care/${tenantId}`);
+  revalidatePath("/admin/customer-care");
 }

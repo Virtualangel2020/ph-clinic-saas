@@ -1,4 +1,5 @@
 import { requireClinicAdmin } from "@/lib/require-clinic-admin";
+import { BackLink } from "@/components/back-link";
 import { AppointmentTypesManager } from "./appointment-types-manager";
 import { CalendarColorsForm } from "./calendar-colors-form";
 
@@ -29,6 +30,7 @@ export default async function CalendarSettingsPage() {
   return (
     <div style={{ maxWidth: 760, display: "grid", gap: 24 }}>
       <div>
+        <BackLink href="/dashboard/settings" label="Settings" />
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Calendar</h1>
         <p style={{ color: "#666", fontSize: 13 }}>
           Set up appointment types and colors now — the scheduling calendar itself is coming in a later phase, but

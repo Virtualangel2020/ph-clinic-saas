@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/require-admin";
 import { TestToggle } from "./test-toggle";
+import { DeleteTenantButton } from "./delete-tenant-button";
 
 export default async function ClientsPage() {
   const { supabase } = await requireAdmin();
@@ -23,7 +24,7 @@ export default async function ClientsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#fafafa", textAlign: "left" }}>
-                {["Clinic", "Plan", "Billing", "Status", "Created", "", ""].map((h, i) => (
+                {["Clinic", "Plan", "Billing", "Status", "Created", "", "", ""].map((h, i) => (
                   <th key={i} style={{ padding: "10px 16px", fontWeight: 600, color: "#555" }}>{h}</th>
                 ))}
               </tr>
@@ -48,6 +49,9 @@ export default async function ClientsPage() {
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <Link href={`/admin/clients/${t.id}`} style={{ color: "#2563eb" }}>Manage →</Link>
+                  </td>
+                  <td style={{ padding: "10px 16px" }}>
+                    <DeleteTenantButton tenantId={t.id} tenantName={t.name} compact />
                   </td>
                 </tr>
               ))}

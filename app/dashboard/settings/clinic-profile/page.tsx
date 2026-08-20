@@ -1,4 +1,5 @@
 import { requireClinicAdmin } from "@/lib/require-clinic-admin";
+import { BackLink } from "@/components/back-link";
 import { ClinicProfileForm } from "./clinic-profile-form";
 
 // Part 19: ONE clinic profile as the source of truth. Every generated
@@ -20,6 +21,7 @@ export default async function ClinicProfilePage() {
 
   return (
     <div style={{ maxWidth: 640 }}>
+      <BackLink href="/dashboard/settings" label="Settings" />
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Clinic Profile & Branding</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
         This is the one source of truth for your clinic's official details. Once documents (prescriptions,

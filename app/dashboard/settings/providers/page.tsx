@@ -1,4 +1,5 @@
 import { requireClinicMember } from "@/lib/require-clinic-member";
+import { BackLink } from "@/components/back-link";
 import { ProviderCredentialsForm } from "./provider-credentials-form";
 import { SignatureManager } from "./signature-manager";
 import { ApprovalQueue } from "./approval-queue";
@@ -78,6 +79,7 @@ export default async function ProvidersPage() {
   return (
     <div style={{ maxWidth: 720, display: "grid", gap: 24 }}>
       <div>
+        <BackLink href="/dashboard/settings" label="Settings" />
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Providers & Credentials</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
           Your professional details and signature auto-populate every document once they're approved — no

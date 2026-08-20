@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/require-admin";
+import { BackLink } from "@/components/back-link";
 import { ClientEditor } from "./client-editor";
 import { BillingPanel } from "./billing-panel";
 import { StaffPanel } from "./staff-panel";
+import { DeleteTenantButton } from "../delete-tenant-button";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -60,6 +62,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div>
+      <BackLink href="/admin/clients" label="Clients" />
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>{tenant.name}</h1>
       <p style={{ color: "#666", marginBottom: 24, fontSize: 13 }}>
         {tenant.slug} · created {new Date(tenant.created_at).toLocaleDateString()}
@@ -88,6 +91,20 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           invoices={(invoices as any) ?? []}
           payments={(payments as any) ?? []}
         />
+      </div>
+
+      <div style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 12, color: "#a12a2a" }}>Danger zone</h2>
+        <div style={{ background: "#fff5f5", border: "1px solid #f3c6c6", borderRadius: 12, padding: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Delete this client</div>
+            <p style={{ color: "#7a2a2a", fontSize: 12.5, margin: 0, maxWidth: 480 }}>
+              Permanently removes {tenant.name}'s subscription, invoices, payments, staff accounts, and all other
+              data. This can't be undone.
+            </p>
+          </div>
+          <DeleteTenantButton tenantId={tenant.id} tenantName={tenant.name} redirectTo="/admin/clients" />
+        </div>
       </div>
     </div>
   );

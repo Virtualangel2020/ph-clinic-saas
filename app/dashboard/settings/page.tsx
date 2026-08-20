@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { requireClinicMember } from "@/lib/require-clinic-member";
+import { UnreadBadge } from "@/components/unread-badge";
 
 // Organized settings categories (Part 76) rather than one giant page.
 // Each links to its own dedicated page — built ones are real, the rest are
 // clearly-labeled placeholders (see /dashboard/settings/<x>) until their
 // phase ships.
 const SECTIONS: { title: string; items: { href: string; label: string; desc: string }[] }[] = [
+  // Customer Care is inserted into "Account" below at render time (it needs
+  // a live unread-message count, unlike the static entries here).
   {
     title: "Clinic",
     items: [
@@ -34,6 +37,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
     title: "Account",
     items: [
       { href: "/dashboard/billing", label: "Subscription & Billing", desc: "Your plan, add-ons, and invoices." },
+      { href: "/dashboard/settings/customer-care", label: "Customer Care", desc: "Message the Virtual Angel Systems support team." },
       { href: "/dashboard/settings/notifications", label: "Notifications", desc: "Which events raise an alert." },
       { href: "/dashboard/settings/appearance", label: "Appearance", desc: "Light, dark, or system theme." },
       { href: "/dashboard/settings/language", label: "Language", desc: "Interface language." },
@@ -43,7 +47,17 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
 ];
 
 export default async function SettingsHubPage() {
-  await requireClinicMember();
+  const { supabase, profile } = await requireClinicMember();
+
+  // Only shows a count when Customer Care is actually entitled — an
+  // unentitled tenant has no support_messages rows to begin with, so this
+  // naturally comes back 0/empty for them.
+  const { count: unreadCount } = await supabase
+    .from("support_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", profile.tenant_id)
+    .eq("sender_type", "platform")
+    .is("read_at", null);
 
   return (
     <div style={{ maxWidth: 880 }}>
@@ -58,8 +72,9 @@ export default async function SettingsHubPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                style={{ display: "block", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, textDecoration: "none" }}
+                style={{ display: "block", position: "relative", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, textDecoration: "none" }}
               >
+                {item.href === "/dashboard/settings/customer-care" && <UnreadBadge count={unreadCount ?? 0} />}
                 <div style={{ fontWeight: 700, fontSize: 14, color: "#0c1730", marginBottom: 4 }}>{item.label}</div>
                 <div style={{ fontSize: 12, color: "#888" }}>{item.desc}</div>
               </Link>

@@ -288,3 +288,22 @@ export async function setMedicalCertificateTemplateAction(input: {
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/settings/medical-certificates");
 }
+
+// ── Customer Care (persistent per-clinic support thread) ────────────────
+// One ongoing thread per tenant, Messenger-style — no tickets/sessions.
+// Writes go through RPCs so the entitlement check and sender identity stay
+// server-enforced (see migration customer_care_support_messages).
+
+export async function sendClinicSupportMessageAction(body: string) {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("clinic_send_support_message", { p_body: body });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/customer-care");
+}
+
+export async function markClinicSupportReadAction() {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("clinic_mark_support_read");
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/customer-care");
+}

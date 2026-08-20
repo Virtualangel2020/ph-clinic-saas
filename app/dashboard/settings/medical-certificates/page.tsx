@@ -1,4 +1,5 @@
 import { requireClinicAdmin } from "@/lib/require-clinic-admin";
+import { BackLink } from "@/components/back-link";
 import { MedicalCertificateTemplateForm } from "./medical-certificate-template-form";
 
 // Part 35-38: Medical Certificate is CORE (not an add-on). This is the
@@ -18,6 +19,7 @@ export default async function MedicalCertificatesSettingsPage() {
 
   return (
     <div style={{ maxWidth: 720 }}>
+      <BackLink href="/dashboard/settings" label="Settings" />
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Medical Certificates</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
         Set up your certificate template now. Clinic branding and the issuing provider's credentials/signature will

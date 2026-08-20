@@ -1,4 +1,5 @@
 import { requireClinicAdmin } from "@/lib/require-clinic-admin";
+import { BackLink } from "@/components/back-link";
 import { StaffInviteForm } from "./staff-invite-form";
 import { PermissionsGrid } from "./permissions-grid";
 
@@ -25,6 +26,7 @@ export default async function UsersPage() {
   return (
     <div style={{ maxWidth: 880, display: "grid", gap: 24 }}>
       <div>
+        <BackLink href="/dashboard/settings" label="Settings" />
         <h1 style={{ fontSize: 22, marginBottom: 4 }}>Users & Permissions</h1>
         <p style={{ color: "#666", fontSize: 13 }}>
           Invite staff directly — no need to go through Virtual Angel Systems for every hire. Reception can never

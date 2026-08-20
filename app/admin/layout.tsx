@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrandHeader } from "@/components/brand-header";
 import { InstallPwaButton } from "@/components/install-pwa-button";
+import { UnreadBadge } from "@/components/unread-badge";
 import { requireAdmin } from "@/lib/require-admin";
 
 // Overrides the root manifest so /admin installs as its own app ("Angel
@@ -25,11 +26,18 @@ const NAV = [
   { href: "/admin/site-content", label: "Site Content" },
   { href: "/admin/demo-requests", label: "Demo Requests" },
   { href: "/admin/providers-directory", label: "Provider Directory" },
+  { href: "/admin/customer-care", label: "Customer Care" },
   { href: "/admin/settings", label: "Settings" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { profile } = await requireAdmin();
+  const { supabase, profile } = await requireAdmin();
+
+  const { count: unreadSupportCount } = await supabase
+    .from("support_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("sender_type", "clinic")
+    .is("read_at", null);
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -51,8 +59,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <nav style={{ display: "flex", gap: 14, flexWrap: "wrap", rowGap: 6 }}>
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} style={{ color: "#e6c66b", fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
+              <Link key={n.href} href={n.href} style={{ position: "relative", color: "#e6c66b", fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
                 {n.label}
+                {n.href === "/admin/customer-care" && (
+                  <UnreadBadge count={unreadSupportCount ?? 0} style={{ top: -8, right: -14 }} />
+                )}
               </Link>
             ))}
           </nav>
