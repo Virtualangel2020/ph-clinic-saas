@@ -53,7 +53,7 @@ export default async function SettingsHubPage() {
       {SECTIONS.map((section) => (
         <div key={section.title} style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 13, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>{section.title}</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
             {section.items.map((item) => (
               <Link
                 key={item.href}

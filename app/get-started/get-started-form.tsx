@@ -177,7 +177,7 @@ export function GetStartedForm({
         }}
         style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}
       >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 16 }}>
         <input required placeholder="Clinic name" value={clinicName} onChange={(e) => setClinicName(e.target.value)} style={input} />
         <input required placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
       </div>

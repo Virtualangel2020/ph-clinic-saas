@@ -96,20 +96,20 @@ export function ClinicProfileForm({ settings, logoUrl }: { settings: Settings; l
       </div>
 
       <Field label="Clinic name" value={clinicName} onChange={setClinicName} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
         <Field label="Address line 1" value={addressLine1} onChange={setAddressLine1} />
         <Field label="Address line 2 (optional)" value={addressLine2} onChange={setAddressLine2} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
         <Field label="City" value={city} onChange={setCity} />
         <Field label="Province" value={province} onChange={setProvince} />
         <Field label="Postal code" value={postalCode} onChange={setPostalCode} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
         <Field label="Phone" value={phone} onChange={setPhone} />
         <Field label="Mobile" value={mobile} onChange={setMobile} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
         <Field label="Email" value={email} onChange={setEmail} />
         <Field label="Website (optional)" value={website} onChange={setWebsite} />
       </div>

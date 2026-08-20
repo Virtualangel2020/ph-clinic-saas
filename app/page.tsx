@@ -130,7 +130,7 @@ export default async function HomePage() {
             </div>
             <h2 style={{ fontSize: 28, margin: 0 }}>Everything Your Clinic Needs to Work Smarter</h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px 28px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px 28px" }}>
             {CORE_INCLUDES.map((f) => (
               <div key={f} style={{ fontSize: 13.5, color: "rgba(244,245,247,0.85)", display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <span style={{ color: GOLD }}>✓</span> {f}
@@ -177,7 +177,7 @@ function ExperienceRow({
   eyebrow, title, body, bullets, reverse,
 }: { eyebrow: string; title: string; body: string; bullets: string[]; reverse?: boolean }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 40, alignItems: "center", padding: "36px 0", borderBottom: "1px solid #eee" }}>
+    <div className="experience-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 40, alignItems: "center", padding: "36px 0", borderBottom: "1px solid #eee" }}>
       <div style={{ order: reverse ? 2 : 1 }}>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "#c99a2e", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>{eyebrow}</div>
         <h3 style={{ fontSize: 24, color: NAVY, margin: "0 0 12px" }}>{title}</h3>

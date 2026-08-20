@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
@@ -23,7 +24,8 @@ export function SiteNav() {
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(12,23,48,0.96)", backdropFilter: "blur(6px)", borderBottom: "1px solid rgba(230,198,107,0.2)" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "baseline", gap: 6, textDecoration: "none" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
+          <Image src="/logo-64.png" alt="AngelClinic logo" width={30} height={30} style={{ borderRadius: 7 }} priority />
           <span style={{ fontWeight: 800, fontSize: 18, color: "#e6c66b", letterSpacing: 0.3 }}>AngelClinic</span>
         </Link>
 

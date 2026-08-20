@@ -60,7 +60,7 @@ export function RequestDemoForm() {
 
   return (
     <form onSubmit={submit} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 14, padding: 28, display: "grid", gap: 14 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
         <div>
           <label style={labelStyle}>Your name *</label>
           <input style={inputStyle} required value={form.fullName} onChange={(e) => set("fullName", e.target.value)} />
@@ -70,7 +70,7 @@ export function RequestDemoForm() {
           <input style={inputStyle} required value={form.clinicName} onChange={(e) => set("clinicName", e.target.value)} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
         <div>
           <label style={labelStyle}>Email *</label>
           <input style={inputStyle} required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
@@ -80,7 +80,7 @@ export function RequestDemoForm() {
           <input style={inputStyle} value={form.phone} onChange={(e) => set("phone", e.target.value)} />
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
         <div>
           <label style={labelStyle}>City / location</label>
           <input style={inputStyle} value={form.location} onChange={(e) => set("location", e.target.value)} />

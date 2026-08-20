@@ -29,7 +29,7 @@ const CONTROLS = [
   },
   {
     title: "Encrypted in transit",
-    body: "All traffic to AngelClinic is served over HTTPS/TLS, provided by our hosting infrastructure (Vercel) and database provider (Supabase).",
+    body: "All traffic to AngelClinic is served over HTTPS/TLS, provided by our cloud hosting and database infrastructure.",
   },
   {
     title: "Private document storage",
@@ -37,7 +37,7 @@ const CONTROLS = [
   },
   {
     title: "Account authentication",
-    body: "Sign-in is handled by Supabase Auth with hashed, salted password storage — AngelClinic never stores or has access to a plain-text password.",
+    body: "Sign-in is handled by a dedicated authentication service with hashed, salted password storage — AngelClinic never stores or has access to a plain-text password.",
   },
 ];
 

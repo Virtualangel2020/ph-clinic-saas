@@ -19,8 +19,15 @@ export const metadata: Metadata = {
   },
 };
 
+// Explicit width/initialScale — without these, some mobile browsers fall
+// back to rendering the page at a desktop-width virtual viewport (~980px)
+// and zooming it out to fit the screen, which is what made the logo and
+// other elements look tiny/cut-off on phones rather than laid out for
+// their actual screen width.
 export const viewport: Viewport = {
   themeColor: "#0c1730",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -36,6 +43,8 @@ export default function RootLayout({
           margin: 0,
           background: "#f7f7f8",
           color: "#1a1a1a",
+          overflowX: "hidden",
+          maxWidth: "100vw",
         }}
       >
         <AuthErrorBanner />

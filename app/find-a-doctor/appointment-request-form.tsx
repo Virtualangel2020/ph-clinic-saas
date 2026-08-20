@@ -61,7 +61,7 @@ export function AppointmentRequestForm({ provider, onClose }: { provider: { id: 
                 <label style={labelStyle}>Email</label>
                 <input type="email" style={inputStyle} value={form.patientEmail} onChange={(e) => set("patientEmail", e.target.value)} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
                 <div>
                   <label style={labelStyle}>Preferred date</label>
                   <input type="date" style={inputStyle} value={form.preferredDate} onChange={(e) => set("preferredDate", e.target.value)} />

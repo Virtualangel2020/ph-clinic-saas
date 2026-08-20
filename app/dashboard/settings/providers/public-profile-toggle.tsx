@@ -66,7 +66,7 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
             onChange={(e) => setLanguages(e.target.value)}
             style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}
           />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
             <select value={consultationType} onChange={(e) => setConsultationType(e.target.value)} style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}>
               <option value="in_person">In-person</option>
               <option value="telehealth">Telehealth</option>
