@@ -287,6 +287,31 @@ export async function setAllowDoubleBookingAction(enabled: boolean) {
   revalidatePath("/dashboard/calendar");
 }
 
+// Provider working hours (Phase 2) — one weekly template per provider,
+// saved as all 7 days at once so a "configured" provider always has a
+// complete set of rows (see app/dashboard/calendar/availability.ts for why
+// that matters — an unconfigured provider gets no shading at all, an
+// explicitly-configured one gets a real day-off default for days left
+// unchecked).
+export async function setProviderWeekScheduleAction(
+  providerId: string,
+  days: { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }[]
+) {
+  const { supabase } = await requireClinicAdmin();
+  for (const d of days) {
+    const { error } = await supabase.rpc("set_provider_schedule", {
+      p_provider_id: providerId,
+      p_day_of_week: d.dayOfWeek,
+      p_start_time: d.startTime,
+      p_end_time: d.endTime,
+      p_is_active: d.isActive,
+    });
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath("/dashboard/settings/calendar");
+  revalidatePath("/dashboard/calendar");
+}
+
 // ── Medical certificate templates (Part 35-38) ───────────────────────────
 // Template builder only — actual certificate issuance is blocked on the
 // patient/encounter chart (Phase 2), which doesn't exist yet. Building the

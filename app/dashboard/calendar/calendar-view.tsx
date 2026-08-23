@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppointmentForm } from "./appointment-form";
 import { addDays, formatDayLabel, formatMonthLabel, formatTime, monthGridStart, startOfMonth, startOfWeek, todayPh } from "./date-utils";
 import { STATUS_GLYPH, STATUS_LABEL, statusColor } from "./status-constants";
 import { GRID_HEIGHT, GridLines, PX_PER_MIN, TimeAxis, layoutEvents, minutesOfDayPh, nowMinutesPh, useScrollToHour, yToTime } from "./time-grid";
+import type { DayAvailability } from "./availability";
+import { addProviderTimeBlockAction, removeProviderTimeBlockAction } from "./actions";
 
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string; color: string; default_duration_minutes: number };
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; mobile_phone: string | null };
 type CancellationReason = { id: string; label: string };
+type TimeBlockDisplay = { id: string; provider_id: string; providerName: string; block_date: string; start_time: string; end_time: string; reason: string | null };
 
 type Appointment = {
   id: string;
@@ -21,7 +25,7 @@ type Appointment = {
   end_at: string;
   status: string;
   notes: string | null;
-  patients: { first_name: string; last_name: string } | null;
+  patients: { first_name: string; last_name: string; mobile_phone: string | null } | null;
   user_profiles: { full_name: string } | null;
   appointment_types: { name: string; color: string } | null;
 };
@@ -36,6 +40,9 @@ export function CalendarView({
   statusColors,
   allowDoubleBooking,
   cancellationReasons,
+  availabilityColors,
+  availability,
+  timeBlocks,
 }: {
   view: "day" | "week" | "month";
   anchor: string;
@@ -46,8 +53,12 @@ export function CalendarView({
   statusColors: Record<string, string>;
   allowDoubleBooking: boolean;
   cancellationReasons: CancellationReason[];
+  availabilityColors: Record<string, string>;
+  availability: Record<string, Record<string, DayAvailability>>;
+  timeBlocks: TimeBlockDisplay[];
 }) {
   const [formState, setFormState] = useState<{ open: boolean; date: string; time: string; editingId: string | null }>({ open: false, date: anchor, time: "09:00", editingId: null });
+  const [hiddenProviderIds, setHiddenProviderIds] = useState<Set<string>>(new Set());
 
   function openNew(date: string, time: string = "09:00") {
     setFormState({ open: true, date, time, editingId: null });
@@ -94,8 +105,12 @@ export function CalendarView({
   }
   todayHref = href(view, todayPh());
 
+  const visibleProviders = providers.filter((p) => !hiddenProviderIds.has(p.id));
+  const visibleAppointments = appointments.filter((a) => !a.provider_id || !hiddenProviderIds.has(a.provider_id));
+
   return (
-    <div>
+    <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+    <div style={{ flex: "1 1 640px", minWidth: 0 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <NavButton href={prevHref}>‹</NavButton>
@@ -152,12 +167,239 @@ export function CalendarView({
         </div>
       )}
 
-      {view === "day" && <DayView date={anchor} providers={providers} appointments={appointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} />}
-      {view === "week" && <WeekView weekStart={startOfWeek(anchor)} appointments={appointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} />}
-      {view === "month" && <MonthView anchor={anchor} appointments={appointments} />}
+      {view === "day" && (
+        <DayView
+          date={anchor}
+          providers={visibleProviders}
+          appointments={visibleAppointments}
+          statusColors={statusColors}
+          availabilityColors={availabilityColors}
+          availability={availability}
+          onOpen={openEdit}
+          onAddAt={openNew}
+        />
+      )}
+      {view === "week" && <WeekView weekStart={startOfWeek(anchor)} appointments={visibleAppointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} />}
+      {view === "month" && <MonthView anchor={anchor} appointments={visibleAppointments} />}
+    </div>
+
+    <CalendarSidebar
+      anchor={anchor}
+      view={view}
+      providers={providers}
+      hiddenProviderIds={hiddenProviderIds}
+      onToggleProvider={(id) =>
+        setHiddenProviderIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        })
+      }
+      timeBlocks={timeBlocks}
+    />
     </div>
   );
 }
+
+// Right-side sidebar: a mini month calendar for quick date-jumping, a
+// provider show/hide filter, and a blocked-time (day off / lunch / holiday)
+// manager. Put on the right rather than the left (per user direction) —
+// keeps the grid itself, the thing actually being worked in, on the left
+// where reading starts.
+function CalendarSidebar({
+  anchor,
+  view,
+  providers,
+  hiddenProviderIds,
+  onToggleProvider,
+  timeBlocks,
+}: {
+  anchor: string;
+  view: "day" | "week" | "month";
+  providers: Provider[];
+  hiddenProviderIds: Set<string>;
+  onToggleProvider: (id: string) => void;
+  timeBlocks: TimeBlockDisplay[];
+}) {
+  const [miniMonth, setMiniMonth] = useState(anchor.slice(0, 7) + "-01");
+  const [blockFormOpen, setBlockFormOpen] = useState(false);
+
+  const gridStart = monthGridStart(miniMonth);
+  const miniDays = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+  const today = todayPh();
+
+  return (
+    <div style={{ flex: "0 0 260px", width: 260, display: "grid", gap: 14 }}>
+      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <button onClick={() => setMiniMonth(addDays(startOfMonth(miniMonth), -1).slice(0, 7) + "-01")} style={miniNavBtn}>
+            ‹
+          </button>
+          <div style={{ fontWeight: 700, fontSize: 12.5 }}>{formatMonthLabel(miniMonth)}</div>
+          <button onClick={() => setMiniMonth(addDays(startOfMonth(miniMonth), 32).slice(0, 7) + "-01")} style={miniNavBtn}>
+            ›
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
+          {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+            <div key={i} style={{ fontSize: 9.5, color: "#aaa", textAlign: "center" }}>
+              {d}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {miniDays.map((d) => {
+            const inMonth = d.slice(0, 7) === miniMonth.slice(0, 7);
+            const isToday = d === today;
+            const isSelected = d === anchor;
+            return (
+              <Link
+                key={d}
+                href={`/dashboard/calendar?view=${view === "month" ? "day" : view}&date=${d}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 24,
+                  borderRadius: 6,
+                  fontSize: 11,
+                  textDecoration: "none",
+                  color: isSelected ? "white" : isToday ? "#0c1730" : inMonth ? "#333" : "#ccc",
+                  background: isSelected ? "#0c1730" : isToday ? "#f0f4ff" : "transparent",
+                  fontWeight: isToday || isSelected ? 700 : 400,
+                }}
+              >
+                {Number(d.slice(8, 10))}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 8 }}>Providers</div>
+        {providers.length === 0 ? (
+          <p style={{ color: "#aaa", fontSize: 11.5 }}>None yet.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 6 }}>
+            {providers.map((p) => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={!hiddenProviderIds.has(p.id)} onChange={() => onToggleProvider(p.id)} />
+                {p.title ? `${p.title} ` : ""}
+                {p.full_name}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 12.5 }}>Blocked time</div>
+          <button onClick={() => setBlockFormOpen((v) => !v)} style={{ background: "none", border: "none", color: "#0c1730", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+            {blockFormOpen ? "Cancel" : "+ Block"}
+          </button>
+        </div>
+
+        {blockFormOpen && <BlockTimeForm providers={providers} defaultDate={anchor} onDone={() => setBlockFormOpen(false)} />}
+
+        {timeBlocks.length === 0 ? (
+          <p style={{ color: "#aaa", fontSize: 11.5 }}>No blocks in this range.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 6, marginTop: blockFormOpen ? 10 : 0 }}>
+            {timeBlocks.map((b) => (
+              <BlockTimeRow key={b.id} block={b} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const miniNavBtn: React.CSSProperties = { background: "none", border: "1px solid #ddd", borderRadius: 6, width: 22, height: 22, cursor: "pointer", fontSize: 12, color: "#555" };
+
+function BlockTimeRow({ block }: { block: TimeBlockDisplay }) {
+  const [pending, setPending] = useState(false);
+  const router = useRouter();
+  return (
+    <div style={{ fontSize: 11, border: "1px solid #eee", borderRadius: 6, padding: "6px 8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+        <div>
+          <div style={{ fontWeight: 700, color: "#333" }}>{block.providerName}</div>
+          <div style={{ color: "#888" }}>
+            {block.block_date.slice(5)} · {block.start_time.slice(0, 5)}–{block.end_time.slice(0, 5)}
+          </div>
+          {block.reason && <div style={{ color: "#aaa" }}>{block.reason}</div>}
+        </div>
+        <button
+          onClick={() => {
+            setPending(true);
+            removeProviderTimeBlockAction(block.id)
+              .then(() => router.refresh())
+              .catch(() => setPending(false));
+          }}
+          disabled={pending}
+          style={{ background: "none", border: "none", color: "#a12a2a", cursor: "pointer", fontSize: 13, lineHeight: 1 }}
+          title="Remove block"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BlockTimeForm({ providers, defaultDate, onDone }: { providers: Provider[]; defaultDate: string; onDone: () => void }) {
+  const router = useRouter();
+  const [providerId, setProviderId] = useState(providers[0]?.id ?? "");
+  const [date, setDate] = useState(defaultDate);
+  const [start, setStart] = useState("12:00");
+  const [end, setEnd] = useState("13:00");
+  const [reason, setReason] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function submit() {
+    if (!providerId) return setError("Select a provider.");
+    setError(null);
+    setPending(true);
+    addProviderTimeBlockAction({ providerId, blockDate: date, startTime: start, endTime: end, reason })
+      .then(() => {
+        router.refresh();
+        onDone();
+      })
+      .catch((e: any) => {
+        setError(e.message);
+        setPending(false);
+      });
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 6, marginBottom: 10, fontSize: 11.5 }}>
+      <select value={providerId} onChange={(e) => setProviderId(e.target.value)} style={miniFieldStyle}>
+        {providers.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.full_name}
+          </option>
+        ))}
+      </select>
+      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={miniFieldStyle} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <input type="time" value={start} onChange={(e) => setStart(e.target.value)} style={{ ...miniFieldStyle, flex: 1 }} />
+        <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} style={{ ...miniFieldStyle, flex: 1 }} />
+      </div>
+      <input placeholder="Reason (e.g. Lunch, Leave)" value={reason} onChange={(e) => setReason(e.target.value)} style={miniFieldStyle} />
+      {error && <div style={{ color: "crimson" }}>{error}</div>}
+      <button onClick={submit} disabled={pending} style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 11.5, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer" }}>
+        {pending ? "Saving…" : "Add block"}
+      </button>
+    </div>
+  );
+}
+
+const miniFieldStyle: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 6, padding: "5px 7px", fontSize: 11.5, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -225,8 +467,12 @@ function GridEventBlock({
       <div style={{ fontWeight: 700, color: "#0c1730", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {formatTime(a.start_at)} {who}
       </div>
-      {height > 30 && a.appointment_types && (
-        <div style={{ color: "#777", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.appointment_types.name}</div>
+      {height > 30 && (a.appointment_types || a.patients?.mobile_phone) && (
+        <div style={{ color: "#777", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {a.appointment_types?.name}
+          {a.appointment_types && a.patients?.mobile_phone ? " · " : ""}
+          {a.patients?.mobile_phone ?? ""}
+        </div>
       )}
       {/* Status is shown via glyph + text, not color alone, so it reads for colorblind users too. */}
       <div style={{ color: sColor, fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -237,17 +483,70 @@ function GridEventBlock({
   );
 }
 
+// Background shading behind a provider's grid column — light where they're
+// working, dark outside that (and for one-off blocked ranges layered back
+// on top of the light band, e.g. a lunch break). Only rendered once a
+// provider has actual working hours configured (see availability.ts) —
+// unconfigured providers get no shading at all rather than a false "fully
+// unavailable" read.
+function AvailabilityShading({ avail, availabilityColors }: { avail: DayAvailability | undefined; availabilityColors: Record<string, string> }) {
+  if (!avail || !avail.configured) return null;
+  const availColor = availabilityColors.available ?? "#e5e7eb";
+  const unavailColor = availabilityColors.unavailable ?? "#4b5563";
+  return (
+    <>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: GRID_HEIGHT, background: unavailColor, opacity: 0.16, zIndex: 0, pointerEvents: "none" }} />
+      {!avail.isDayOff && avail.rangeStartMin != null && avail.rangeEndMin != null && (
+        <div
+          style={{
+            position: "absolute",
+            top: avail.rangeStartMin * PX_PER_MIN,
+            left: 0,
+            right: 0,
+            height: (avail.rangeEndMin - avail.rangeStartMin) * PX_PER_MIN,
+            background: availColor,
+            opacity: 0.4,
+            zIndex: 0,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      {avail.blocks.map((b) => (
+        <div
+          key={b.id}
+          title={b.reason ?? "Blocked"}
+          style={{
+            position: "absolute",
+            top: b.startMin * PX_PER_MIN,
+            left: 0,
+            right: 0,
+            height: Math.max(4, (b.endMin - b.startMin) * PX_PER_MIN),
+            background: unavailColor,
+            opacity: 0.4,
+            zIndex: 1,
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 // One scrollable 24h column (a provider's day, or a day-of-week) — click
 // empty space to add an appointment at that time, overlapping appointments
 // split into side-by-side sub-columns via layoutEvents.
 function GridColumn({
   appointments,
   statusColors,
+  availabilityColors,
+  avail,
   onOpen,
   onEmptyClick,
 }: {
   appointments: Appointment[];
   statusColors: Record<string, string>;
+  availabilityColors?: Record<string, string>;
+  avail?: DayAvailability;
   onOpen: (a: Appointment) => void;
   onEmptyClick: (time: string) => void;
 }) {
@@ -269,6 +568,7 @@ function GridColumn({
       }}
       style={{ position: "relative", height: GRID_HEIGHT, cursor: "pointer" }}
     >
+      {availabilityColors && <AvailabilityShading avail={avail} availabilityColors={availabilityColors} />}
       <GridLines />
       {laidOut.map(({ event, col, colCount }) => {
         const a = byId.get(event.id)!;
@@ -292,6 +592,8 @@ function DayView({
   providers,
   appointments,
   statusColors,
+  availabilityColors,
+  availability,
   onOpen,
   onAddAt,
 }: {
@@ -299,6 +601,8 @@ function DayView({
   providers: Provider[];
   appointments: Appointment[];
   statusColors: Record<string, string>;
+  availabilityColors: Record<string, string>;
+  availability: Record<string, Record<string, DayAvailability>>;
   onOpen: (a: Appointment) => void;
   onAddAt: (date: string, time: string) => void;
 }) {
@@ -331,7 +635,14 @@ function DayView({
           <TimeAxis />
           {providers.map((p) => (
             <div key={p.id} style={{ flex: 1, minWidth: colWidth, borderLeft: "1px solid #eee" }}>
-              <GridColumn appointments={appointments.filter((a) => a.provider_id === p.id)} statusColors={statusColors} onOpen={onOpen} onEmptyClick={(t) => onAddAt(date, t)} />
+              <GridColumn
+                appointments={appointments.filter((a) => a.provider_id === p.id)}
+                statusColors={statusColors}
+                availabilityColors={availabilityColors}
+                avail={availability[p.id]?.[date]}
+                onOpen={onOpen}
+                onEmptyClick={(t) => onAddAt(date, t)}
+              />
             </div>
           ))}
           {showUnassignedCol && (

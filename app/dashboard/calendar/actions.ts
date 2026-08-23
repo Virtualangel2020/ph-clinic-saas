@@ -61,6 +61,34 @@ export async function setAppointmentStatusAction(id: string, status: string, can
   revalidatePath("/dashboard/calendar");
 }
 
+// ── Provider time blocks (day off / lunch / holiday exceptions) ─────────
+// The weekly working-hours template itself is set up in Settings (clinic
+// admin only); a one-off block on top of it is a day-to-day scheduling
+// action any staff with scheduling.manage can do straight from the
+// calendar's sidebar.
+
+export async function addProviderTimeBlockAction(input: { providerId: string; blockDate: string; startTime: string; endTime: string; reason: string }) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_provider_time_block", {
+    p_provider_id: input.providerId,
+    p_block_date: input.blockDate,
+    p_start_time: input.startTime,
+    p_end_time: input.endTime,
+    p_reason: input.reason || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function removeProviderTimeBlockAction(id: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_provider_time_block", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/calendar");
+}
+
 export type AppointmentConflict = {
   id: string;
   patient_first_name: string;
