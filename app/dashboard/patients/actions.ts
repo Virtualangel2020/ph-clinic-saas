@@ -1,8 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireClinicMember } from "@/lib/require-clinic-member";
+import { sendPortalEmail, sendPortalSms } from "@/lib/patient-portal/send";
+
+async function siteOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  return `${proto}://${host}`;
+}
 
 // Part 2 (Phase 2, patient chart foundation). Every write here just calls
 // a SECURITY DEFINER Postgres function (see migration
@@ -241,7 +250,8 @@ export async function addProgressNoteAction(
   objective: string,
   assessment: string,
   plan: string,
-  vitals?: VitalsInput
+  vitals?: VitalsInput,
+  encounterId?: string | null
 ) {
   await requireClinicMember();
   const supabase = await createClient();
@@ -261,15 +271,66 @@ export async function addProgressNoteAction(
     p_temperature_c: numOrNull(vitals?.temperatureC),
     p_weight_kg: numOrNull(vitals?.weightKg),
     p_height_cm: numOrNull(vitals?.heightCm),
+    p_encounter_id: encounterId || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
+  if (encounterId) revalidatePath(`/dashboard/encounters/${encounterId}`);
 }
 
 export async function removeProgressNoteAction(id: string, patientId: string) {
   await requireClinicMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_progress_note", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// ── Patient Portal invites ──────────────────────────────────────────────
+// The RPC (session-scoped, re-checks tenant + entitlement + a live
+// platform provider) generates the secret and returns it once, raw, only
+// to this server action — never to the browser. Sending the actual
+// email/SMS happens right here using the service-role-backed helpers in
+// lib/patient-portal/send.ts.
+export async function invitePatientToPortalAction(patientId: string, channel: "email" | "sms" | "manual"): Promise<{ code?: string }> {
+  const { supabase, profile } = await requireClinicMember();
+  const origin = await siteOrigin();
+
+  const { data: invite, error } = await supabase.rpc("invite_patient_to_portal", {
+    p_patient_id: patientId,
+    p_channel: channel,
+  });
+  if (error) throw new Error(error.message);
+
+  const { data: clinic } = await supabase.from("clinic_settings").select("clinic_name").eq("tenant_id", profile.tenant_id).maybeSingle();
+  const clinicName = clinic?.clinic_name || "AngelClinic";
+
+  if (channel === "email") {
+    const link = `${origin}/portal/activate?token=${invite.raw_token}`;
+    await sendPortalEmail({
+      toEmail: invite.contact_value,
+      toName: invite.patient_name,
+      subject: `Activate your ${clinicName} Patient Portal access`,
+      html: `<p>Hi ${invite.patient_name},</p><p>${clinicName} has invited you to access your Patient Portal, where you can review and authorize record requests.</p><p><a href="${link}">Activate your account</a></p><p>This link expires in 24 hours. If you weren't expecting this, you can ignore this email.</p>`,
+    });
+  } else if (channel === "sms") {
+    const link = `${origin}/portal/verify?a=${invite.account_id}`;
+    await sendPortalSms({
+      toPhone: invite.contact_value,
+      message: `${clinicName}: Your Patient Portal code is ${invite.otp}. Activate here: ${link} (expires in 10 min)`,
+    });
+  }
+  // "manual" sends nothing — the raw code is handed back below for staff
+  // to show/read to the patient directly. No provider, no add-on needed.
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return channel === "manual" ? { code: invite.raw_token } : {};
+}
+
+export async function revokePatientPortalAccessAction(id: string, patientId: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("revoke_patient_portal_access", { p_id: id });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
 }

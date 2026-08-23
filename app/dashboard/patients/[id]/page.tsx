@@ -7,6 +7,7 @@ import { AllergiesSection } from "./allergies-section";
 import { MedicationsSection } from "./medications-section";
 import { DocumentsSection } from "./documents-section";
 import { ProgressNotesSection } from "./progress-notes-section";
+import { PortalSection } from "./portal-section";
 
 function age(dob: string) {
   const b = new Date(dob);
@@ -30,7 +31,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   if (!patient) notFound();
 
-  const [{ data: allergies }, { data: medications }, { data: documents }, { data: notes }] = await Promise.all([
+  const [{ data: allergies }, { data: medications }, { data: documents }, { data: notes }, { data: encounters }] = await Promise.all([
     supabase.from("patient_allergies").select("id, allergen, reaction, severity, noted_at").eq("patient_id", id).order("noted_at", { ascending: false }),
     supabase.from("patient_medications").select("id, medication_name, dosage, frequency, started_at, is_active, notes").eq("patient_id", id).order("created_at", { ascending: false }),
     supabase
@@ -43,6 +44,21 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, bp_systolic, bp_diastolic, pulse_rate, respiratory_rate, oxygen_saturation, temperature_c, weight_kg, height_cm, created_at, user_profiles(full_name)")
       .eq("patient_id", id)
       .order("note_date", { ascending: false }),
+    supabase
+      .from("encounters")
+      .select("id, encounter_date, encounter_type, chief_complaint, status, user_profiles(full_name)")
+      .eq("patient_id", id)
+      .order("encounter_date", { ascending: false })
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const [{ data: portalChannels }, { data: portalAccount }] = await Promise.all([
+    supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: profile.tenant_id }),
+    supabase
+      .from("patient_portal_accounts")
+      .select("id, channel, contact_value, status, invited_at, activated_at, revoked_at")
+      .eq("patient_id", id)
+      .maybeSingle(),
   ]);
 
   const fullName = `${patient.last_name}, ${patient.first_name}${patient.middle_name ? " " + patient.middle_name : ""}${patient.suffix ? " " + patient.suffix : ""}`;
@@ -105,13 +121,42 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       <MedicationsSection patientId={patient.id} medications={(medications as any) ?? []} />
       <ProgressNotesSection patientId={patient.id} notes={(notes as any) ?? []} />
       <DocumentsSection patientId={patient.id} documents={(documents as any) ?? []} />
+      <PortalSection
+        patientId={patient.id}
+        patientEmail={patient.email}
+        patientMobile={patient.mobile_phone}
+        channels={(portalChannels as any) ?? { email: false, sms: false }}
+        account={(portalAccount as any) ?? null}
+      />
 
       <div style={{ marginTop: 28 }}>
-        <h2 style={{ fontSize: 15, marginBottom: 8 }}>Visit history</h2>
-        <div style={{ background: "#f7f7f9", border: "1px dashed #ccc", borderRadius: 10, padding: 16, color: "#888", fontSize: 12.5 }}>
-          A full visit timeline (encounters, vitals, prescriptions issued, orders placed) ships with the Encounters
-          module in a later phase — not part of the patient chart foundation yet.
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <h2 style={{ fontSize: 15 }}>Encounters</h2>
+          <Link href={`/dashboard/encounters?patient=${patient.id}`} style={{ fontSize: 12.5, color: "#0c1730", fontWeight: 600, textDecoration: "none" }}>
+            + New encounter
+          </Link>
         </div>
+        {!encounters || encounters.length === 0 ? (
+          <p style={{ color: "#999", fontSize: 12.5 }}>No visits recorded yet.</p>
+        ) : (
+          <div style={{ display: "grid", gap: 8 }}>
+            {(encounters as any[]).map((e) => (
+              <Link
+                key={e.id}
+                href={`/dashboard/encounters/${e.id}`}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "11px 14px", textDecoration: "none", fontSize: 13 }}
+              >
+                <div>
+                  <span style={{ fontWeight: 700, color: "#0c1730" }}>{new Date(e.encounter_date).toLocaleDateString()}</span>
+                  {e.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px" }}>{e.encounter_type}</span>}
+                  {e.chief_complaint && <span style={{ color: "#666", marginLeft: 8 }}>— {e.chief_complaint}</span>}
+                  {e.user_profiles && <span style={{ color: "#999", marginLeft: 8, fontSize: 12 }}>· {e.user_profiles.full_name}</span>}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: e.status === "closed" ? "#1a7f37" : "#8a6100" }}>{e.status === "closed" ? "Closed" : "Open"}</div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

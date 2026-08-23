@@ -57,7 +57,7 @@ function hasAnyVital(n: Note) {
   );
 }
 
-export function ProgressNotesSection({ patientId, notes }: { patientId: string; notes: Note[] }) {
+export function ProgressNotesSection({ patientId, notes, encounterId }: { patientId: string; notes: Note[]; encounterId?: string }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [tab, setTab] = useState<"notes" | "vitals">("notes");
@@ -67,16 +67,26 @@ export function ProgressNotesSection({ patientId, notes }: { patientId: string; 
   function save() {
     if (!draft.chiefComplaint.trim() && !draft.assessment.trim() && !draft.bpSystolic && !draft.pulseRate) return;
     startTransition(async () => {
-      await addProgressNoteAction(patientId, draft.noteDate, draft.chiefComplaint, draft.subjective, draft.objective, draft.assessment, draft.plan, {
-        bpSystolic: draft.bpSystolic,
-        bpDiastolic: draft.bpDiastolic,
-        pulseRate: draft.pulseRate,
-        respiratoryRate: draft.respiratoryRate,
-        oxygenSaturation: draft.oxygenSaturation,
-        temperatureC: draft.temperatureC,
-        weightKg: draft.weightKg,
-        heightCm: draft.heightCm,
-      });
+      await addProgressNoteAction(
+        patientId,
+        draft.noteDate,
+        draft.chiefComplaint,
+        draft.subjective,
+        draft.objective,
+        draft.assessment,
+        draft.plan,
+        {
+          bpSystolic: draft.bpSystolic,
+          bpDiastolic: draft.bpDiastolic,
+          pulseRate: draft.pulseRate,
+          respiratoryRate: draft.respiratoryRate,
+          oxygenSaturation: draft.oxygenSaturation,
+          temperatureC: draft.temperatureC,
+          weightKg: draft.weightKg,
+          heightCm: draft.heightCm,
+        },
+        encounterId
+      );
       setDraft(EMPTY_DRAFT);
       setTab("notes");
       setAdding(false);
