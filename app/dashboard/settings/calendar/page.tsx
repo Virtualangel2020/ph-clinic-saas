@@ -5,7 +5,9 @@ import { CalendarColorsForm } from "./calendar-colors-form";
 import { CancellationReasonsManager } from "./cancellation-reasons-manager";
 import { DoubleBookingToggle } from "./double-booking-toggle";
 import { ProviderSchedulesManager } from "./provider-schedules-manager";
+import { FlexibleAvailabilityManager } from "./flexible-availability-manager";
 import { DEFAULT_AVAILABILITY_COLORS, DEFAULT_STATUS_COLORS } from "../../calendar/status-constants";
+import { addDays, todayPh } from "../../calendar/date-utils";
 
 // Part 39-40 + Phase 1 (scheduling upgrade): Clinic-Admin-configurable
 // appointment-type colors, status colors, cancellation reasons, and the
@@ -14,7 +16,7 @@ import { DEFAULT_AVAILABILITY_COLORS, DEFAULT_STATUS_COLORS } from "../../calend
 export default async function CalendarSettingsPage() {
   const { supabase, profile } = await requireClinicAdmin();
 
-  const [{ data: appointmentTypes }, { data: clinicSettings }, { data: cancellationReasons }, { data: providers }, { data: schedules }] = await Promise.all([
+  const [{ data: appointmentTypes }, { data: clinicSettings }, { data: cancellationReasons }, { data: providers }, { data: schedules }, { data: dateAvailability }] = await Promise.all([
     supabase
       .from("appointment_types")
       .select("id, name, color, default_duration_minutes, description, is_active, sort_order")
@@ -35,8 +37,15 @@ export default async function CalendarSettingsPage() {
       .order("full_name"),
     supabase
       .from("provider_schedules")
-      .select("provider_id, day_of_week, start_time, end_time, is_active")
+      .select("id, provider_id, day_of_week, start_time, end_time, patient_bookable")
       .eq("tenant_id", profile.tenant_id),
+    supabase
+      .from("provider_date_availability")
+      .select("id, provider_id, avail_date, start_time, end_time, patient_bookable")
+      .eq("tenant_id", profile.tenant_id)
+      .gte("avail_date", todayPh())
+      .lt("avail_date", addDays(todayPh(), 60))
+      .order("avail_date"),
   ]);
 
   return (
@@ -61,6 +70,8 @@ export default async function CalendarSettingsPage() {
       <DoubleBookingToggle initialEnabled={clinicSettings?.allow_double_booking ?? true} />
 
       <ProviderSchedulesManager providers={(providers as any) ?? []} schedules={(schedules as any) ?? []} />
+
+      <FlexibleAvailabilityManager providers={(providers as any) ?? []} entries={(dateAvailability as any) ?? []} />
     </div>
   );
 }

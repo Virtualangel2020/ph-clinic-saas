@@ -287,27 +287,72 @@ export async function setAllowDoubleBookingAction(enabled: boolean) {
   revalidatePath("/dashboard/calendar");
 }
 
-// Provider working hours (Phase 2) — one weekly template per provider,
-// saved as all 7 days at once so a "configured" provider always has a
-// complete set of rows (see app/dashboard/calendar/availability.ts for why
-// that matters — an unconfigured provider gets no shading at all, an
-// explicitly-configured one gets a real day-off default for days left
-// unchecked).
-export async function setProviderWeekScheduleAction(
-  providerId: string,
-  days: { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }[]
-) {
+// Provider working hours (Phase 2, extended for patient-bookable
+// availability). Multiple ranges per day of week are allowed — e.g. a
+// lunch break splits Monday into "8-12" and "1-5" as two separate rows —
+// and each range independently carries whether patients may self-book it.
+// "Provider is working" and "patients can book this" are deliberately NOT
+// the same flag: a range can be internal-only (patient_bookable=false).
+export async function setProviderScheduleRangeAction(input: {
+  id: string | null;
+  providerId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  patientBookable: boolean;
+}) {
   const { supabase } = await requireClinicAdmin();
-  for (const d of days) {
-    const { error } = await supabase.rpc("set_provider_schedule", {
-      p_provider_id: providerId,
-      p_day_of_week: d.dayOfWeek,
-      p_start_time: d.startTime,
-      p_end_time: d.endTime,
-      p_is_active: d.isActive,
-    });
-    if (error) throw new Error(error.message);
-  }
+  const { error } = await supabase.rpc("set_provider_schedule_range", {
+    p_id: input.id,
+    p_provider_id: input.providerId,
+    p_day_of_week: input.dayOfWeek,
+    p_start_time: input.startTime,
+    p_end_time: input.endTime,
+    p_patient_bookable: input.patientBookable,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function deleteProviderScheduleRangeAction(id: string) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("delete_provider_schedule_range", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+  revalidatePath("/dashboard/calendar");
+}
+
+// Flexible / one-off availability for a specific date (spec section 7) —
+// for providers without a fixed weekly schedule, or a one-time addition on
+// top of one. Distinct from a provider_time_blocks block, which subtracts
+// time instead of adding it.
+export async function setProviderDateAvailabilityAction(input: {
+  id: string | null;
+  providerId: string;
+  availDate: string;
+  startTime: string;
+  endTime: string;
+  patientBookable: boolean;
+}) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_provider_date_availability", {
+    p_id: input.id,
+    p_provider_id: input.providerId,
+    p_avail_date: input.availDate,
+    p_start_time: input.startTime,
+    p_end_time: input.endTime,
+    p_patient_bookable: input.patientBookable,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+  revalidatePath("/dashboard/calendar");
+}
+
+export async function deleteProviderDateAvailabilityAction(id: string) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("delete_provider_date_availability", { p_id: id });
+  if (error) throw new Error(error.message);
   revalidatePath("/dashboard/settings/calendar");
   revalidatePath("/dashboard/calendar");
 }

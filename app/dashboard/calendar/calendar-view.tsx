@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppointmentForm } from "./appointment-form";
-import { addDays, formatDayLabel, formatMonthLabel, formatTime, monthGridStart, startOfMonth, startOfWeek, todayPh } from "./date-utils";
-import { STATUS_GLYPH, STATUS_LABEL, statusColor } from "./status-constants";
+import { addDays, formatDayLabel, formatMonthLabel, formatTime, monthGridStart, startOfMonth, startOfWeek, toIsoInstant, todayPh } from "./date-utils";
+import { STATUS_GLYPH, STATUS_LABEL, TERMINAL_STATUSES, statusColor } from "./status-constants";
 import { GRID_HEIGHT, GridLines, PX_PER_MIN, TimeAxis, layoutEvents, minutesOfDayPh, nowMinutesPh, useScrollToHour, yToTime } from "./time-grid";
 import type { DayAvailability } from "./availability";
-import { addProviderTimeBlockAction, removeProviderTimeBlockAction } from "./actions";
+import { addProviderTimeBlockAction, checkAppointmentConflictsAction, removeProviderTimeBlockAction, saveAppointmentAction, type AppointmentConflict } from "./actions";
 
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string; color: string; default_duration_minutes: number };
@@ -59,6 +59,85 @@ export function CalendarView({
 }) {
   const [formState, setFormState] = useState<{ open: boolean; date: string; time: string; editingId: string | null }>({ open: false, date: anchor, time: "09:00", editingId: null });
   const [hiddenProviderIds, setHiddenProviderIds] = useState<Set<string>>(new Set());
+  const router = useRouter();
+
+  // Drag-to-reschedule: dropping an appointment block on a new time/column
+  // never saves immediately — per this app's standing "warn, don't silently
+  // act" principle (same one behind the double-booking preflight and the
+  // availability-change warnings), the drop is staged as a pending move the
+  // user must confirm, showing any conflicts it would create first.
+  const [pendingMove, setPendingMove] = useState<{
+    apptId: string;
+    label: string;
+    fromLabel: string;
+    toLabel: string;
+    newStart: string;
+    newEnd: string;
+    providerId: string | null;
+    conflicts: AppointmentConflict[];
+  } | null>(null);
+  const [moveBusy, setMoveBusy] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
+  async function requestMove(apptId: string, newDate: string, newTime: string, newProviderId: string | null | undefined) {
+    const appt = appointments.find((a) => a.id === apptId);
+    if (!appt) return;
+    if (TERMINAL_STATUSES.has(appt.status)) return; // don't drag a finished/cancelled visit
+    const durationMs = Math.max(15 * 60000, new Date(appt.end_at).getTime() - new Date(appt.start_at).getTime());
+    const newStart = toIsoInstant(newDate, newTime);
+    const newEnd = new Date(new Date(newStart).getTime() + durationMs).toISOString();
+    if (newStart === appt.start_at && (newProviderId === undefined || newProviderId === appt.provider_id)) return; // dropped back in place
+    const providerId = newProviderId === undefined ? appt.provider_id : newProviderId;
+    setMoveError(null);
+    let conflicts: AppointmentConflict[] = [];
+    try {
+      conflicts = await checkAppointmentConflictsAction(providerId, newStart, newEnd, appt.id);
+    } catch {
+      // if the preflight check itself fails, still let the user decide — the
+      // save RPC re-checks server-side regardless
+    }
+    const who = appt.patients ? `${appt.patients.last_name}, ${appt.patients.first_name}` : "this patient";
+    setPendingMove({
+      apptId,
+      label: who,
+      fromLabel: `${formatDayLabel(appt.start_at.slice(0, 10))} · ${formatTime(appt.start_at)}`,
+      toLabel: `${formatDayLabel(newDate)} · ${formatTime(newStart)}`,
+      newStart,
+      newEnd,
+      providerId,
+      conflicts,
+    });
+  }
+
+  function cancelMove() {
+    setPendingMove(null);
+    setMoveError(null);
+  }
+
+  function confirmMove() {
+    if (!pendingMove) return;
+    const appt = appointments.find((a) => a.id === pendingMove.apptId);
+    if (!appt) return;
+    setMoveBusy(true);
+    saveAppointmentAction({
+      id: appt.id,
+      patientId: appt.patient_id,
+      providerId: pendingMove.providerId ?? "",
+      appointmentTypeId: appt.appointment_type_id ?? "",
+      startAt: pendingMove.newStart,
+      endAt: pendingMove.newEnd,
+      notes: appt.notes ?? "",
+    })
+      .then(() => {
+        setPendingMove(null);
+        setMoveBusy(false);
+        router.refresh();
+      })
+      .catch((e: any) => {
+        setMoveError(e.message);
+        setMoveBusy(false);
+      });
+  }
 
   function openNew(date: string, time: string = "09:00") {
     setFormState({ open: true, date, time, editingId: null });
@@ -138,6 +217,12 @@ export function CalendarView({
               </Link>
             ))}
           </div>
+          <Link
+            href="/dashboard/calendar/patient-booking"
+            style={{ fontSize: 12, fontWeight: 600, color: "#0c1730", textDecoration: "none", border: "1px solid #ddd", borderRadius: 8, padding: "8px 12px" }}
+          >
+            Patient booking preview
+          </Link>
           <button
             onClick={() => openNew(anchor)}
             style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
@@ -146,6 +231,43 @@ export function CalendarView({
           </button>
         </div>
       </div>
+
+      {pendingMove && (
+        <div style={{ background: "#fff8e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 12.5, color: "#5a4600" }}>
+            <div style={{ fontWeight: 700, marginBottom: 2 }}>
+              Move {pendingMove.label}: {pendingMove.fromLabel} → {pendingMove.toLabel}?
+            </div>
+            {pendingMove.conflicts.length > 0 && (
+              <div style={{ color: "#a12a2a" }}>
+                Conflicts with {pendingMove.conflicts.length} other appointment{pendingMove.conflicts.length > 1 ? "s" : ""} for this provider at that time.
+              </div>
+            )}
+            {moveError && <div style={{ color: "crimson" }}>{moveError}</div>}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={cancelMove} disabled={moveBusy} style={{ background: "white", border: "1px solid #ddd", borderRadius: 7, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              Cancel
+            </button>
+            <button
+              onClick={confirmMove}
+              disabled={moveBusy}
+              style={{
+                background: pendingMove.conflicts.length > 0 ? "#a12a2a" : "#0c1730",
+                color: pendingMove.conflicts.length > 0 ? "white" : "#e6c66b",
+                border: "none",
+                borderRadius: 7,
+                padding: "7px 14px",
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {moveBusy ? "Moving…" : pendingMove.conflicts.length > 0 ? "Move anyway" : "Confirm move"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {formState.open && (
         <AppointmentForm
@@ -177,9 +299,12 @@ export function CalendarView({
           availability={availability}
           onOpen={openEdit}
           onAddAt={openNew}
+          onMove={requestMove}
         />
       )}
-      {view === "week" && <WeekView weekStart={startOfWeek(anchor)} appointments={visibleAppointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} />}
+      {view === "week" && (
+        <WeekView weekStart={startOfWeek(anchor)} appointments={visibleAppointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} onMove={requestMove} />
+      )}
       {view === "month" && <MonthView anchor={anchor} appointments={visibleAppointments} />}
     </div>
 
@@ -435,6 +560,7 @@ function GridEventBlock({
   const typeColor = a.appointment_types?.color ?? "#888";
   const sColor = statusColor(statusColors, a.status);
   const isMuted = a.status === "cancelled" || a.status === "no_show" || a.status === "late_cancellation";
+  const draggable = !TERMINAL_STATUSES.has(a.status);
   const who = a.patients ? `${a.patients.last_name}, ${a.patients.first_name}` : "Unknown patient";
 
   return (
@@ -443,7 +569,13 @@ function GridEventBlock({
         e.stopPropagation();
         onClick();
       }}
-      title={`${formatTime(a.start_at)}–${formatTime(a.end_at)} · ${who}${a.appointment_types ? ` · ${a.appointment_types.name}` : ""} · ${STATUS_LABEL[a.status] ?? a.status}`}
+      draggable={draggable}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        e.dataTransfer.setData("text/plain", a.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      title={`${formatTime(a.start_at)}–${formatTime(a.end_at)} · ${who}${a.appointment_types ? ` · ${a.appointment_types.name}` : ""} · ${STATUS_LABEL[a.status] ?? a.status}${draggable ? " · drag to reschedule" : ""}`}
       style={{
         position: "absolute",
         top,
@@ -458,7 +590,7 @@ function GridEventBlock({
         fontSize: 10.5,
         lineHeight: 1.25,
         overflow: "hidden",
-        cursor: "pointer",
+        cursor: draggable ? "grab" : "pointer",
         opacity: isMuted ? 0.55 : 1,
         boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
         zIndex: 2,
@@ -496,21 +628,22 @@ function AvailabilityShading({ avail, availabilityColors }: { avail: DayAvailabi
   return (
     <>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: GRID_HEIGHT, background: unavailColor, opacity: 0.16, zIndex: 0, pointerEvents: "none" }} />
-      {!avail.isDayOff && avail.rangeStartMin != null && avail.rangeEndMin != null && (
+      {avail.ranges.map((r, i) => (
         <div
+          key={i}
           style={{
             position: "absolute",
-            top: avail.rangeStartMin * PX_PER_MIN,
+            top: r.startMin * PX_PER_MIN,
             left: 0,
             right: 0,
-            height: (avail.rangeEndMin - avail.rangeStartMin) * PX_PER_MIN,
+            height: (r.endMin - r.startMin) * PX_PER_MIN,
             background: availColor,
             opacity: 0.4,
             zIndex: 0,
             pointerEvents: "none",
           }}
         />
-      )}
+      ))}
       {avail.blocks.map((b) => (
         <div
           key={b.id}
@@ -540,15 +673,25 @@ function GridColumn({
   statusColors,
   availabilityColors,
   avail,
+  date,
+  providerId,
   onOpen,
   onEmptyClick,
+  onDropAppt,
 }: {
   appointments: Appointment[];
   statusColors: Record<string, string>;
   availabilityColors?: Record<string, string>;
   avail?: DayAvailability;
+  // date this column represents, and which provider a drop here should be
+  // attributed to — undefined providerId means "keep the appointment's
+  // existing provider" (week view, one column per day, provider unchanged);
+  // null means "explicitly unassigned" (the Day view's Unassigned column).
+  date?: string;
+  providerId?: string | null;
   onOpen: (a: Appointment) => void;
   onEmptyClick: (time: string) => void;
+  onDropAppt?: (apptId: string, date: string, time: string, providerId: string | null | undefined) => void;
 }) {
   const byId = new Map(appointments.map((a) => [a.id, a]));
   const laidOut = layoutEvents(
@@ -559,6 +702,7 @@ function GridColumn({
       return { id: a.id, startMin, endMin };
     })
   );
+  const [dragOver, setDragOver] = useState(false);
 
   return (
     <div
@@ -566,7 +710,24 @@ function GridColumn({
         const rect = e.currentTarget.getBoundingClientRect();
         onEmptyClick(yToTime(e.clientY - rect.top));
       }}
-      style={{ position: "relative", height: GRID_HEIGHT, cursor: "pointer" }}
+      onDragOver={(e) => {
+        if (!onDropAppt || !date) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (!dragOver) setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        if (!onDropAppt || !date) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDragOver(false);
+        const apptId = e.dataTransfer.getData("text/plain");
+        if (!apptId) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        onDropAppt(apptId, date, yToTime(e.clientY - rect.top), providerId);
+      }}
+      style={{ position: "relative", height: GRID_HEIGHT, cursor: "pointer", outline: dragOver ? "2px dashed #0c1730" : "none", outlineOffset: -2 }}
     >
       {availabilityColors && <AvailabilityShading avail={avail} availabilityColors={availabilityColors} />}
       <GridLines />
@@ -596,6 +757,7 @@ function DayView({
   availability,
   onOpen,
   onAddAt,
+  onMove,
 }: {
   date: string;
   providers: Provider[];
@@ -605,6 +767,7 @@ function DayView({
   availability: Record<string, Record<string, DayAvailability>>;
   onOpen: (a: Appointment) => void;
   onAddAt: (date: string, time: string) => void;
+  onMove: (apptId: string, date: string, time: string, providerId: string | null | undefined) => void;
 }) {
   const scrollRef = useScrollToHour<HTMLDivElement>();
   const isToday = date === todayPh();
@@ -640,14 +803,25 @@ function DayView({
                 statusColors={statusColors}
                 availabilityColors={availabilityColors}
                 avail={availability[p.id]?.[date]}
+                date={date}
+                providerId={p.id}
                 onOpen={onOpen}
                 onEmptyClick={(t) => onAddAt(date, t)}
+                onDropAppt={onMove}
               />
             </div>
           ))}
           {showUnassignedCol && (
             <div style={{ flex: 1, minWidth: colWidth, borderLeft: "1px solid #eee" }}>
-              <GridColumn appointments={providers.length === 0 ? appointments : unassigned} statusColors={statusColors} onOpen={onOpen} onEmptyClick={(t) => onAddAt(date, t)} />
+              <GridColumn
+                appointments={providers.length === 0 ? appointments : unassigned}
+                statusColors={statusColors}
+                date={date}
+                providerId={providers.length === 0 ? undefined : null}
+                onOpen={onOpen}
+                onEmptyClick={(t) => onAddAt(date, t)}
+                onDropAppt={onMove}
+              />
             </div>
           )}
           {isToday && <NowLineOverlay />}
@@ -663,12 +837,14 @@ function WeekView({
   statusColors,
   onOpen,
   onAddAt,
+  onMove,
 }: {
   weekStart: string;
   appointments: Appointment[];
   statusColors: Record<string, string>;
   onOpen: (a: Appointment) => void;
   onAddAt: (date: string, time: string) => void;
+  onMove: (apptId: string, date: string, time: string, providerId: string | null | undefined) => void;
 }) {
   const scrollRef = useScrollToHour<HTMLDivElement>();
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -699,7 +875,14 @@ function WeekView({
           <TimeAxis />
           {days.map((d) => (
             <div key={d} style={{ flex: 1, minWidth: colWidth, borderLeft: "1px solid #eee" }}>
-              <GridColumn appointments={appointments.filter((a) => isSamePhDay(a.start_at, d))} statusColors={statusColors} onOpen={onOpen} onEmptyClick={(t) => onAddAt(d, t)} />
+              <GridColumn
+                appointments={appointments.filter((a) => isSamePhDay(a.start_at, d))}
+                statusColors={statusColors}
+                date={d}
+                onOpen={onOpen}
+                onEmptyClick={(t) => onAddAt(d, t)}
+                onDropAppt={onMove}
+              />
             </div>
           ))}
           {todayIndex >= 0 && <NowLineOverlay />}

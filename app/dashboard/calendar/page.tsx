@@ -27,6 +27,7 @@ export default async function CalendarPage({
     { data: clinicSettings },
     { data: cancellationReasons },
     { data: schedules },
+    { data: dateAvailabilityRaw },
     { data: timeBlocksRaw },
   ] = await Promise.all([
     supabase
@@ -66,7 +67,14 @@ export default async function CalendarPage({
     // Weekly working-hours templates — small table, fetched whole (not
     // range-scoped, there's nothing to range-scope: it's a recurring
     // template, not dated rows).
-    supabase.from("provider_schedules").select("provider_id, day_of_week, start_time, end_time, is_active").eq("tenant_id", profile.tenant_id),
+    supabase.from("provider_schedules").select("id, provider_id, day_of_week, start_time, end_time, patient_bookable").eq("tenant_id", profile.tenant_id),
+    // Flexible one-off availability IS dated, so range-scoped like appointments.
+    supabase
+      .from("provider_date_availability")
+      .select("id, provider_id, avail_date, start_time, end_time, patient_bookable")
+      .eq("tenant_id", profile.tenant_id)
+      .gte("avail_date", rangeStart)
+      .lt("avail_date", rangeEndExclusive),
     // One-off exceptions ARE dated, so these stay range-scoped like
     // appointments — no full-history loads.
     supabase
@@ -84,7 +92,7 @@ export default async function CalendarPage({
   const visibleDates: string[] =
     view === "day" ? [anchor] : view === "week" ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i)) : [];
   const providerIds = ((providers as any) ?? []).map((p: any) => p.id);
-  const availability = buildAvailability(providerIds, visibleDates, (schedules as any) ?? [], (timeBlocksRaw as any) ?? []);
+  const availability = buildAvailability(providerIds, visibleDates, (schedules as any) ?? [], (dateAvailabilityRaw as any) ?? [], (timeBlocksRaw as any) ?? []);
   const timeBlocks = ((timeBlocksRaw as any) ?? []).map((b: any) => ({
     id: b.id,
     provider_id: b.provider_id,
