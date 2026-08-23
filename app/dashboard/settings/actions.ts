@@ -265,6 +265,28 @@ export async function setCalendarColorsAction(statusColors: Record<string, strin
   revalidatePath("/dashboard/settings/calendar");
 }
 
+// ── Scheduling & Calendar settings (Phase 1) ─────────────────────────────
+
+export async function setCancellationReasonAction(input: { id: string | null; label: string; isActive: boolean; sortOrder: number }) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_cancellation_reason", {
+    p_id: input.id,
+    p_label: input.label,
+    p_is_active: input.isActive,
+    p_sort_order: input.sortOrder,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+}
+
+export async function setAllowDoubleBookingAction(enabled: boolean) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_allow_double_booking", { p_enabled: enabled });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/calendar");
+  revalidatePath("/dashboard/calendar");
+}
+
 // ── Medical certificate templates (Part 35-38) ───────────────────────────
 // Template builder only — actual certificate issuance is blocked on the
 // patient/encounter chart (Phase 2), which doesn't exist yet. Building the

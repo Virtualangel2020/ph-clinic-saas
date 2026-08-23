@@ -4,10 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { AppointmentForm } from "./appointment-form";
 import { addDays, formatDayLabel, formatMonthLabel, formatTime, monthGridStart, startOfMonth, startOfWeek, todayPh } from "./date-utils";
+import { STATUS_GLYPH, STATUS_LABEL, statusColor } from "./status-constants";
+import { GRID_HEIGHT, GridLines, PX_PER_MIN, TimeAxis, layoutEvents, minutesOfDayPh, nowMinutesPh, useScrollToHour, yToTime } from "./time-grid";
 
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string; color: string; default_duration_minutes: number };
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; mobile_phone: string | null };
+type CancellationReason = { id: string; label: string };
 
 type Appointment = {
   id: string;
@@ -23,23 +26,6 @@ type Appointment = {
   appointment_types: { name: string; color: string } | null;
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  scheduled: "Scheduled",
-  confirmed: "Confirmed",
-  checked_in: "Checked in",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No-show",
-};
-const STATUS_COLOR: Record<string, string> = {
-  scheduled: "#666",
-  confirmed: "#1a6fc4",
-  checked_in: "#8a6100",
-  completed: "#1a7f37",
-  cancelled: "#a12a2a",
-  no_show: "#a12a2a",
-};
-
 export function CalendarView({
   view,
   anchor,
@@ -47,6 +33,9 @@ export function CalendarView({
   appointmentTypes,
   patients,
   appointments,
+  statusColors,
+  allowDoubleBooking,
+  cancellationReasons,
 }: {
   view: "day" | "week" | "month";
   anchor: string;
@@ -54,14 +43,17 @@ export function CalendarView({
   appointmentTypes: ApptType[];
   patients: Patient[];
   appointments: Appointment[];
+  statusColors: Record<string, string>;
+  allowDoubleBooking: boolean;
+  cancellationReasons: CancellationReason[];
 }) {
-  const [formState, setFormState] = useState<{ open: boolean; date: string; editingId: string | null }>({ open: false, date: anchor, editingId: null });
+  const [formState, setFormState] = useState<{ open: boolean; date: string; time: string; editingId: string | null }>({ open: false, date: anchor, time: "09:00", editingId: null });
 
-  function openNew(date: string) {
-    setFormState({ open: true, date, editingId: null });
+  function openNew(date: string, time: string = "09:00") {
+    setFormState({ open: true, date, time, editingId: null });
   }
   function openEdit(a: Appointment) {
-    setFormState({ open: true, date: anchor, editingId: a.id });
+    setFormState({ open: true, date: anchor, time: "09:00", editingId: a.id });
   }
   function close() {
     setFormState((s) => ({ ...s, open: false, editingId: null }));
@@ -143,10 +135,13 @@ export function CalendarView({
       {formState.open && (
         <AppointmentForm
           defaultDate={formState.date}
+          defaultTime={formState.time}
           editing={editingForForm}
           providers={providers}
           appointmentTypes={appointmentTypes}
           patients={patients}
+          allowDoubleBooking={allowDoubleBooking}
+          cancellationReasons={cancellationReasons}
           onClose={close}
         />
       )}
@@ -157,8 +152,8 @@ export function CalendarView({
         </div>
       )}
 
-      {view === "day" && <DayView providers={providers} appointments={appointments} onOpen={openEdit} />}
-      {view === "week" && <WeekView weekStart={startOfWeek(anchor)} appointments={appointments} onOpen={openEdit} onAddFor={openNew} />}
+      {view === "day" && <DayView date={anchor} providers={providers} appointments={appointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} />}
+      {view === "week" && <WeekView weekStart={startOfWeek(anchor)} appointments={appointments} statusColors={statusColors} onOpen={openEdit} onAddAt={openNew} />}
       {view === "month" && <MonthView anchor={anchor} appointments={appointments} />}
     </div>
   );
@@ -175,81 +170,178 @@ function NavButton({ href, children }: { href: string; children: React.ReactNode
   );
 }
 
-function AppointmentChip({ a, onClick }: { a: Appointment; onClick: () => void }) {
-  const color = a.appointment_types?.color ?? "#888";
+// One absolutely-positioned appointment block inside a time-grid column
+// (Google Calendar / ECW style) — replaces the old flat agenda-list chip.
+function GridEventBlock({
+  a,
+  col,
+  colCount,
+  statusColors,
+  onClick,
+}: {
+  a: Appointment;
+  col: number;
+  colCount: number;
+  statusColors: Record<string, string>;
+  onClick: () => void;
+}) {
+  const startMin = minutesOfDayPh(a.start_at);
+  let endMin = minutesOfDayPh(a.end_at);
+  if (endMin <= startMin) endMin = startMin + 15;
+  const top = startMin * PX_PER_MIN;
+  const height = Math.max(16, (endMin - startMin) * PX_PER_MIN);
+  const typeColor = a.appointment_types?.color ?? "#888";
+  const sColor = statusColor(statusColors, a.status);
+  const isMuted = a.status === "cancelled" || a.status === "no_show" || a.status === "late_cancellation";
+  const who = a.patients ? `${a.patients.last_name}, ${a.patients.first_name}` : "Unknown patient";
+
   return (
     <div
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      title={`${formatTime(a.start_at)}–${formatTime(a.end_at)} · ${who}${a.appointment_types ? ` · ${a.appointment_types.name}` : ""} · ${STATUS_LABEL[a.status] ?? a.status}`}
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
+        position: "absolute",
+        top,
+        height,
+        left: `calc(${(col / colCount) * 100}% + 2px)`,
+        width: `calc(${100 / colCount}% - 4px)`,
         background: "white",
-        border: `1px solid #e2e2e5`,
-        borderLeft: `4px solid ${color}`,
-        borderRadius: 6,
-        padding: "6px 9px",
-        fontSize: 12.5,
+        border: "1px solid #e2e2e5",
+        borderLeft: `4px solid ${typeColor}`,
+        borderRadius: 5,
+        padding: "2px 5px",
+        fontSize: 10.5,
+        lineHeight: 1.25,
+        overflow: "hidden",
         cursor: "pointer",
-        marginBottom: 5,
-        opacity: a.status === "cancelled" || a.status === "no_show" ? 0.55 : 1,
+        opacity: isMuted ? 0.55 : 1,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+        zIndex: 2,
       }}
     >
-      <div style={{ fontWeight: 700, color: "#0c1730", whiteSpace: "nowrap" }}>{formatTime(a.start_at)}</div>
-      <div style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {a.patients ? `${a.patients.last_name}, ${a.patients.first_name}` : "Unknown patient"}
-        {a.appointment_types && <span style={{ color: "#999" }}> · {a.appointment_types.name}</span>}
+      <div style={{ fontWeight: 700, color: "#0c1730", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {formatTime(a.start_at)} {who}
       </div>
-      <div style={{ fontSize: 10.5, fontWeight: 700, color: STATUS_COLOR[a.status] ?? "#666", whiteSpace: "nowrap" }}>{STATUS_LABEL[a.status] ?? a.status}</div>
+      {height > 30 && a.appointment_types && (
+        <div style={{ color: "#777", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.appointment_types.name}</div>
+      )}
+      {/* Status is shown via glyph + text, not color alone, so it reads for colorblind users too. */}
+      <div style={{ color: sColor, fontWeight: 700, whiteSpace: "nowrap" }}>
+        {STATUS_GLYPH[a.status] ?? ""}
+        {height > 42 ? ` ${STATUS_LABEL[a.status] ?? a.status}` : ""}
+      </div>
+    </div>
+  );
+}
+
+// One scrollable 24h column (a provider's day, or a day-of-week) — click
+// empty space to add an appointment at that time, overlapping appointments
+// split into side-by-side sub-columns via layoutEvents.
+function GridColumn({
+  appointments,
+  statusColors,
+  onOpen,
+  onEmptyClick,
+}: {
+  appointments: Appointment[];
+  statusColors: Record<string, string>;
+  onOpen: (a: Appointment) => void;
+  onEmptyClick: (time: string) => void;
+}) {
+  const byId = new Map(appointments.map((a) => [a.id, a]));
+  const laidOut = layoutEvents(
+    appointments.map((a) => {
+      const startMin = minutesOfDayPh(a.start_at);
+      let endMin = minutesOfDayPh(a.end_at);
+      if (endMin <= startMin) endMin = startMin + 15;
+      return { id: a.id, startMin, endMin };
+    })
+  );
+
+  return (
+    <div
+      onClick={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        onEmptyClick(yToTime(e.clientY - rect.top));
+      }}
+      style={{ position: "relative", height: GRID_HEIGHT, cursor: "pointer" }}
+    >
+      <GridLines />
+      {laidOut.map(({ event, col, colCount }) => {
+        const a = byId.get(event.id)!;
+        return <GridEventBlock key={a.id} a={a} col={col} colCount={colCount} statusColors={statusColors} onClick={() => onOpen(a)} />;
+      })}
+    </div>
+  );
+}
+
+function NowLineOverlay() {
+  return (
+    <div style={{ position: "absolute", top: nowMinutesPh() * PX_PER_MIN, left: 52, right: 0, zIndex: 4, pointerEvents: "none", display: "flex", alignItems: "center" }}>
+      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e53935", marginLeft: -4 }} />
+      <div style={{ flex: 1, height: 2, background: "#e53935" }} />
     </div>
   );
 }
 
 function DayView({
+  date,
   providers,
   appointments,
+  statusColors,
   onOpen,
+  onAddAt,
 }: {
+  date: string;
   providers: Provider[];
   appointments: Appointment[];
+  statusColors: Record<string, string>;
   onOpen: (a: Appointment) => void;
+  onAddAt: (date: string, time: string) => void;
 }) {
+  const scrollRef = useScrollToHour<HTMLDivElement>();
+  const isToday = date === todayPh();
   const unassigned = appointments.filter((a) => !a.provider_id);
+  const showUnassignedCol = providers.length === 0 || unassigned.length > 0;
+  const colWidth = 160;
+  const minWidth = 52 + Math.max(1, providers.length + (showUnassignedCol ? 1 : 0)) * colWidth;
+
   return (
-    <div style={{ display: "grid", gap: 14, gridTemplateColumns: providers.length > 1 ? "repeat(auto-fit, minmax(240px, 1fr))" : "1fr" }}>
-      {providers.map((p) => {
-        const mine = appointments.filter((a) => a.provider_id === p.id);
-        return (
-          <div key={p.id} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730", marginBottom: 8 }}>
+    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, overflow: "auto" }}>
+      <div style={{ minWidth }}>
+        <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5", position: "sticky", top: 0, background: "white", zIndex: 5 }}>
+          <div style={{ width: 52, flexShrink: 0 }} />
+          {providers.map((p) => (
+            <div key={p.id} style={{ flex: 1, minWidth: colWidth, padding: "8px 10px", fontWeight: 700, fontSize: 12.5, color: "#0c1730", borderLeft: "1px solid #eee", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {p.title ? `${p.title} ` : ""}
               {p.full_name}
             </div>
-            {mine.length === 0 ? (
-              <p style={{ color: "#999", fontSize: 12 }}>No appointments.</p>
-            ) : (
-              mine.map((a) => <AppointmentChip key={a.id} a={a} onClick={() => onOpen(a)} />)
-            )}
-          </div>
-        );
-      })}
-
-      {unassigned.length > 0 && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730", marginBottom: 8 }}>Unassigned</div>
-          {unassigned.map((a) => (
-            <AppointmentChip key={a.id} a={a} onClick={() => onOpen(a)} />
           ))}
+          {showUnassignedCol && (
+            <div style={{ flex: 1, minWidth: colWidth, padding: "8px 10px", fontWeight: 700, fontSize: 12.5, color: "#666", borderLeft: "1px solid #eee" }}>
+              {providers.length === 0 ? "All appointments" : "Unassigned"}
+            </div>
+          )}
         </div>
-      )}
 
-      {providers.length === 0 && appointments.length > 0 && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
-          {appointments.map((a) => (
-            <AppointmentChip key={a.id} a={a} onClick={() => onOpen(a)} />
+        <div ref={scrollRef} style={{ display: "flex", position: "relative", maxHeight: 640, overflowY: "auto" }}>
+          <TimeAxis />
+          {providers.map((p) => (
+            <div key={p.id} style={{ flex: 1, minWidth: colWidth, borderLeft: "1px solid #eee" }}>
+              <GridColumn appointments={appointments.filter((a) => a.provider_id === p.id)} statusColors={statusColors} onOpen={onOpen} onEmptyClick={(t) => onAddAt(date, t)} />
+            </div>
           ))}
+          {showUnassignedCol && (
+            <div style={{ flex: 1, minWidth: colWidth, borderLeft: "1px solid #eee" }}>
+              <GridColumn appointments={providers.length === 0 ? appointments : unassigned} statusColors={statusColors} onOpen={onOpen} onEmptyClick={(t) => onAddAt(date, t)} />
+            </div>
+          )}
+          {isToday && <NowLineOverlay />}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -257,36 +349,51 @@ function DayView({
 function WeekView({
   weekStart,
   appointments,
+  statusColors,
   onOpen,
-  onAddFor,
+  onAddAt,
 }: {
   weekStart: string;
   appointments: Appointment[];
+  statusColors: Record<string, string>;
   onOpen: (a: Appointment) => void;
-  onAddFor: (date: string) => void;
+  onAddAt: (date: string, time: string) => void;
 }) {
+  const scrollRef = useScrollToHour<HTMLDivElement>();
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const today = todayPh();
+  const todayIndex = days.indexOf(today);
+  const colWidth = 130;
+  const minWidth = 52 + 7 * colWidth;
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
-      {days.map((d) => {
-        const dayAppts = appointments.filter((a) => isSamePhDay(a.start_at, d));
-        const isToday = d === todayPh();
-        return (
-          <div key={d} style={{ background: "white", border: `1px solid ${isToday ? "#0c1730" : "#e2e2e5"}`, borderRadius: 10, padding: 10, minHeight: 120 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontWeight: 700, fontSize: 12.5, color: isToday ? "#0c1730" : "#555" }}>{formatDayLabel(d)}</div>
-              <button onClick={() => onAddFor(d)} title="Add appointment" style={{ background: "none", border: "none", color: "#0c1730", cursor: "pointer", fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
-                +
-              </button>
+    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, overflow: "auto" }}>
+      <div style={{ minWidth }}>
+        <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5", position: "sticky", top: 0, background: "white", zIndex: 5 }}>
+          <div style={{ width: 52, flexShrink: 0 }} />
+          {days.map((d) => {
+            const isToday = d === today;
+            return (
+              <div key={d} style={{ flex: 1, minWidth: colWidth, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderLeft: "1px solid #eee", background: isToday ? "#f0f4ff" : "white" }}>
+                <span style={{ fontWeight: 700, fontSize: 12.5, color: isToday ? "#0c1730" : "#555" }}>{formatDayLabel(d)}</span>
+                <button onClick={() => onAddAt(d, "09:00")} title="Add appointment" style={{ background: "none", border: "none", color: "#0c1730", cursor: "pointer", fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
+                  +
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div ref={scrollRef} style={{ display: "flex", position: "relative", maxHeight: 640, overflowY: "auto" }}>
+          <TimeAxis />
+          {days.map((d) => (
+            <div key={d} style={{ flex: 1, minWidth: colWidth, borderLeft: "1px solid #eee" }}>
+              <GridColumn appointments={appointments.filter((a) => isSamePhDay(a.start_at, d))} statusColors={statusColors} onOpen={onOpen} onEmptyClick={(t) => onAddAt(d, t)} />
             </div>
-            {dayAppts.length === 0 ? (
-              <p style={{ color: "#bbb", fontSize: 11.5 }}>—</p>
-            ) : (
-              dayAppts.map((a) => <AppointmentChip key={a.id} a={a} onClick={() => onOpen(a)} />)
-            )}
-          </div>
-        );
-      })}
+          ))}
+          {todayIndex >= 0 && <NowLineOverlay />}
+        </div>
+      </div>
     </div>
   );
 }

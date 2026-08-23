@@ -23,8 +23,8 @@ function age(dob: string) {
   return a;
 }
 
-export function PatientList({ patients }: { patients: Patient[] }) {
-  const [q, setQ] = useState("");
+export function PatientList({ patients, initialQuery }: { patients: Patient[]; initialQuery?: string }) {
+  const [q, setQ] = useState(initialQuery ?? "");
   const [showArchived, setShowArchived] = useState(false);
 
   const filtered = useMemo(() => {

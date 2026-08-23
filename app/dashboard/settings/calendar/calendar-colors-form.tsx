@@ -2,12 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { setCalendarColorsAction } from "../actions";
+import { STATUS_LABEL as STATUS_LABELS } from "../../calendar/status-constants";
 
-const STATUS_LABELS: Record<string, string> = {
-  scheduled: "Scheduled", confirmed: "Confirmed", checked_in: "Checked In", waiting: "Waiting",
-  with_provider: "With Provider", completed: "Completed", cancelled: "Cancelled", no_show: "No Show",
-  walk_in: "Walk-In", late_cancellation: "Late Cancellation",
-};
 const AVAILABILITY_LABELS: Record<string, string> = { available: "Available", unavailable: "Unavailable" };
 
 export function CalendarColorsForm({ statusColors, availabilityColors }: { statusColors: Record<string, string>; availabilityColors: Record<string, string> }) {
@@ -30,7 +26,9 @@ export function CalendarColorsForm({ statusColors, availabilityColors }: { statu
   return (
     <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Appointment status colors</h2>
-      <p style={{ color: "#888", fontSize: 12, marginBottom: 14 }}>Used on the calendar once scheduling ships, to show status at a glance.</p>
+      <p style={{ color: "#888", fontSize: 12, marginBottom: 14 }}>
+        Shown on the calendar as a color dot plus a text label — status is never conveyed by color alone.
+      </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10, marginBottom: 20 }}>
         {Object.entries(STATUS_LABELS).map(([key, label]) => (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 8 }}>

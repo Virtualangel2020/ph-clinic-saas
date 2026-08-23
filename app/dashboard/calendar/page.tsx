@@ -1,6 +1,7 @@
 import { requireClinicMember } from "@/lib/require-clinic-member";
 import { CalendarView } from "./calendar-view";
 import { addDays, monthGridEnd, monthGridStart, phDayStart, startOfWeek, todayPh } from "./date-utils";
+import { DEFAULT_STATUS_COLORS } from "./status-constants";
 
 type View = "day" | "week" | "month";
 
@@ -17,7 +18,7 @@ export default async function CalendarPage({
   const rangeStart = view === "day" ? anchor : view === "week" ? startOfWeek(anchor) : monthGridStart(anchor);
   const rangeEndExclusive = view === "day" ? addDays(anchor, 1) : view === "week" ? addDays(startOfWeek(anchor), 7) : monthGridEnd(anchor);
 
-  const [{ data: providers }, { data: appointmentTypes }, { data: patients }, { data: appointments }] = await Promise.all([
+  const [{ data: providers }, { data: appointmentTypes }, { data: patients }, { data: appointments }, { data: clinicSettings }, { data: cancellationReasons }] = await Promise.all([
     supabase
       .from("user_profiles")
       .select("id, full_name, title")
@@ -45,7 +46,17 @@ export default async function CalendarPage({
       .gte("start_at", phDayStart(rangeStart))
       .lt("start_at", phDayStart(rangeEndExclusive))
       .order("start_at"),
+    supabase.from("clinic_settings").select("appointment_status_colors, allow_double_booking").eq("tenant_id", profile.tenant_id).maybeSingle(),
+    supabase
+      .from("cancellation_reasons")
+      .select("id, label")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("is_active", true)
+      .order("sort_order"),
   ]);
+
+  const statusColors = { ...DEFAULT_STATUS_COLORS, ...(clinicSettings?.appointment_status_colors ?? {}) };
+  const allowDoubleBooking = clinicSettings?.allow_double_booking ?? true;
 
   return (
     <div>
@@ -62,6 +73,9 @@ export default async function CalendarPage({
         appointmentTypes={(appointmentTypes as any) ?? []}
         patients={(patients as any) ?? []}
         appointments={(appointments as any) ?? []}
+        statusColors={statusColors}
+        allowDoubleBooking={allowDoubleBooking}
+        cancellationReasons={(cancellationReasons as any) ?? []}
       />
     </div>
   );

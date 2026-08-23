@@ -6,7 +6,7 @@ import { PatientList } from "./patient-list";
 // emergency contact, guardian, allergies, current medications, documents,
 // and a lightweight progress note per patient. Visit history/timeline
 // proper depends on Encounters (not built yet — see /dashboard/encounters).
-export default async function PatientsPage() {
+export default async function PatientsPage({ searchParams }: { searchParams: { q?: string } }) {
   const { supabase, profile } = await requireClinicMember();
 
   const { data: patients } = await supabase
@@ -32,7 +32,7 @@ export default async function PatientsPage() {
         history/timeline ships with Encounters in a later phase.
       </p>
 
-      <PatientList patients={(patients as any) ?? []} />
+      <PatientList patients={(patients as any) ?? []} initialQuery={searchParams.q} />
     </div>
   );
 }

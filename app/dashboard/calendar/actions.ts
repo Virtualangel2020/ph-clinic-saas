@@ -60,3 +60,35 @@ export async function setAppointmentStatusAction(id: string, status: string, can
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/calendar");
 }
+
+export type AppointmentConflict = {
+  id: string;
+  patient_first_name: string;
+  patient_last_name: string;
+  start_at: string;
+  end_at: string;
+};
+
+// Pre-flight check, called by the booking form before submit so a
+// double-booking is a warning the user confirms ("Book anyway?") rather
+// than a silent overwrite or a surprise server error. add_appointment /
+// update_appointment re-check this themselves server-side too — this call
+// only decides what the FORM shows before it submits.
+export async function checkAppointmentConflictsAction(
+  providerId: string | null,
+  startAt: string,
+  endAt: string,
+  excludeId: string | null
+): Promise<AppointmentConflict[]> {
+  await requireClinicMember();
+  if (!providerId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("find_appointment_conflicts", {
+    p_provider_id: providerId,
+    p_start_at: startAt,
+    p_end_at: endAt,
+    p_exclude_id: excludeId,
+  });
+  if (error) throw new Error(error.message);
+  return (data as any) ?? [];
+}

@@ -2,39 +2,38 @@ import { requireClinicAdmin } from "@/lib/require-clinic-admin";
 import { BackLink } from "@/components/back-link";
 import { AppointmentTypesManager } from "./appointment-types-manager";
 import { CalendarColorsForm } from "./calendar-colors-form";
+import { CancellationReasonsManager } from "./cancellation-reasons-manager";
+import { DoubleBookingToggle } from "./double-booking-toggle";
+import { DEFAULT_AVAILABILITY_COLORS, DEFAULT_STATUS_COLORS } from "../../calendar/status-constants";
 
-const DEFAULT_STATUS_COLORS: Record<string, string> = {
-  scheduled: "#8ea9db", confirmed: "#4a86e8", checked_in: "#93c47d", waiting: "#f6b26b",
-  with_provider: "#c27ba0", completed: "#6aa84f", cancelled: "#999999", no_show: "#cc0000",
-  walk_in: "#a64d79", late_cancellation: "#e69138",
-};
-const DEFAULT_AVAILABILITY_COLORS: Record<string, string> = { unavailable: "#4b5563", available: "#e5e7eb" };
-
-// Part 39-40: Clinic-Admin-configurable appointment-type colors + calendar
-// availability colors. The actual calendar view that CONSUMES these colors
-// is Phase 3 (scheduling module) — not built yet, see /dashboard/calendar
-// placeholder. This page only lets a clinic set up its color system ahead
-// of time, same reasoning as the medical certificate template builder.
+// Part 39-40 + Phase 1 (scheduling upgrade): Clinic-Admin-configurable
+// appointment-type colors, status colors, cancellation reasons, and the
+// double-booking policy — the single "Scheduling & Calendar" settings home
+// the calendar module (app/dashboard/calendar) reads from.
 export default async function CalendarSettingsPage() {
   const { supabase, profile } = await requireClinicAdmin();
 
-  const [{ data: appointmentTypes }, { data: clinicSettings }] = await Promise.all([
+  const [{ data: appointmentTypes }, { data: clinicSettings }, { data: cancellationReasons }] = await Promise.all([
     supabase
       .from("appointment_types")
       .select("id, name, color, default_duration_minutes, description, is_active, sort_order")
       .eq("tenant_id", profile.tenant_id)
       .order("sort_order"),
-    supabase.from("clinic_settings").select("appointment_status_colors, availability_colors").eq("tenant_id", profile.tenant_id).maybeSingle(),
+    supabase.from("clinic_settings").select("appointment_status_colors, availability_colors, allow_double_booking").eq("tenant_id", profile.tenant_id).maybeSingle(),
+    supabase
+      .from("cancellation_reasons")
+      .select("id, label, is_active, sort_order")
+      .eq("tenant_id", profile.tenant_id)
+      .order("sort_order"),
   ]);
 
   return (
     <div style={{ maxWidth: 760, display: "grid", gap: 24 }}>
       <div>
         <BackLink href="/dashboard/settings" label="Settings" />
-        <h1 style={{ fontSize: 22, marginBottom: 4 }}>Calendar</h1>
+        <h1 style={{ fontSize: 22, marginBottom: 4 }}>Scheduling &amp; Calendar</h1>
         <p style={{ color: "#666", fontSize: 13 }}>
-          Set up appointment types and colors now — the scheduling calendar itself is coming in a later phase, but
-          your setup will already be in place when it ships.
+          Appointment types, status colors, cancellation reasons, and booking rules for your calendar.
         </p>
       </div>
 
@@ -44,6 +43,10 @@ export default async function CalendarSettingsPage() {
         statusColors={{ ...DEFAULT_STATUS_COLORS, ...(clinicSettings?.appointment_status_colors ?? {}) }}
         availabilityColors={{ ...DEFAULT_AVAILABILITY_COLORS, ...(clinicSettings?.availability_colors ?? {}) }}
       />
+
+      <CancellationReasonsManager initialReasons={(cancellationReasons as any) ?? []} />
+
+      <DoubleBookingToggle initialEnabled={clinicSettings?.allow_double_booking ?? true} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GlobalSearch } from "./global-search";
 
 type NavItem = { href: string; label: string; short: string };
 
@@ -35,7 +36,7 @@ const JELLYBEANS = [
   { key: "M", label: "Provider messages", href: "/dashboard/communications?tab=messages" },
   { key: "P", label: "Patient messages", href: "/dashboard/patient-portal?tab=messages" },
   { key: "T", label: "Telephone encounters", href: "/dashboard/communications?tab=calls" },
-  { key: "A", label: "Alerts", href: "/dashboard/alerts" },
+  { key: "A", label: "Appointment requests", href: "/dashboard/appointment-requests" },
   { key: "D", label: "Documents/results to review", href: "/dashboard/results?tab=unreviewed" },
 ] as const;
 
@@ -211,23 +212,7 @@ export function EmrShell({
             <Image src="/logo-64.png" alt="AngelClinic logo" width={26} height={26} style={{ borderRadius: 6, flexShrink: 0 }} />
           </>
         )}
-        {!isMobile && (
-          <input
-            placeholder="Search patients by name, MRN, DOB, or phone…"
-            disabled
-            title="Turns on once Patient Management ships"
-            style={{
-              flex: 1,
-              maxWidth: 420,
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              fontSize: 13,
-              background: "#f7f7f8",
-              color: "#999",
-            }}
-          />
-        )}
+        {!isMobile && <GlobalSearch />}
         <div style={{ display: "flex", gap: 6, marginLeft: isMobile ? 0 : "auto", overflowX: "auto", flex: isMobile ? "1 1 auto" : "0 0 auto" }}>
           {JELLYBEANS.map((jb) => (
             <Link

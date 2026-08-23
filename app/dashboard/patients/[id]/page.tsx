@@ -8,6 +8,7 @@ import { MedicationsSection } from "./medications-section";
 import { DocumentsSection } from "./documents-section";
 import { ProgressNotesSection } from "./progress-notes-section";
 import { PortalSection } from "./portal-section";
+import { PatientAlertsBanner } from "./patient-alerts-banner";
 
 function age(dob: string) {
   const b = new Date(dob);
@@ -52,13 +53,19 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .order("created_at", { ascending: false }),
   ]);
 
-  const [{ data: portalChannels }, { data: portalAccount }] = await Promise.all([
+  const [{ data: portalChannels }, { data: portalAccount }, { data: alerts }] = await Promise.all([
     supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: profile.tenant_id }),
     supabase
       .from("patient_portal_accounts")
       .select("id, channel, contact_value, status, invited_at, activated_at, revoked_at")
       .eq("patient_id", id)
       .maybeSingle(),
+    supabase
+      .from("patient_alerts")
+      .select("id, category, message, created_at")
+      .eq("patient_id", id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false }),
   ]);
 
   const fullName = `${patient.last_name}, ${patient.first_name}${patient.middle_name ? " " + patient.middle_name : ""}${patient.suffix ? " " + patient.suffix : ""}`;
@@ -86,6 +93,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           </Link>
           <ArchiveButton patientId={patient.id} isActive={patient.is_active} />
         </div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <PatientAlertsBanner patientId={patient.id} alerts={(alerts as any) ?? []} />
       </div>
 
       <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18, marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, fontSize: 13 }}>

@@ -2,12 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { saveAppointmentAction, setAppointmentStatusAction } from "./actions";
+import { checkAppointmentConflictsAction, saveAppointmentAction, setAppointmentStatusAction, type AppointmentConflict } from "./actions";
 import { isoToPhDateTime, toIsoInstant } from "./date-utils";
+import { STATUS_FLOW, TERMINAL_STATUSES } from "./status-constants";
 
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; mobile_phone: string | null };
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string; color: string; default_duration_minutes: number };
+type CancellationReason = { id: string; label: string };
 
 type EditingAppointment = {
   id: string;
@@ -22,33 +24,38 @@ type EditingAppointment = {
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
-const STATUS_FLOW: { key: string; label: string }[] = [
-  { key: "scheduled", label: "Scheduled" },
-  { key: "confirmed", label: "Confirmed" },
-  { key: "checked_in", label: "Checked in" },
-  { key: "completed", label: "Completed" },
-];
-
 export function AppointmentForm({
   defaultDate,
+  defaultTime,
   editing,
   providers,
   appointmentTypes,
   patients,
+  allowDoubleBooking,
+  cancellationReasons,
   onClose,
 }: {
   defaultDate: string;
+  defaultTime?: string;
   editing: EditingAppointment | null;
   providers: Provider[];
   appointmentTypes: ApptType[];
   patients: Patient[];
+  allowDoubleBooking: boolean;
+  cancellationReasons: CancellationReason[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<AppointmentConflict[] | null>(null);
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
+  // Which status the "cancel / late-cancellation" reason picker is currently
+  // open for — null when it's not showing.
+  const [reasonPromptFor, setReasonPromptFor] = useState<string | null>(null);
+  const [reasonChoice, setReasonChoice] = useState("");
 
-  const initialDt = editing ? isoToPhDateTime(editing.start_at) : { date: defaultDate, time: "09:00" };
+  const initialDt = editing ? isoToPhDateTime(editing.start_at) : { date: defaultDate, time: defaultTime ?? "09:00" };
   const [patientId, setPatientId] = useState(editing?.patient_id ?? "");
   const [patientQuery, setPatientQuery] = useState(() => {
     if (!editing) return "";
@@ -78,12 +85,7 @@ export function AppointmentForm({
     if (t) setDuration(t.default_duration_minutes);
   }
 
-  function save() {
-    setError(null);
-    if (!patientId) return setError("Select a patient.");
-    if (!date || !time) return setError("Set a date and time.");
-    const startAt = toIsoInstant(date, time);
-    const endAt = new Date(new Date(startAt).getTime() + duration * 60000).toISOString();
+  function doSave(startAt: string, endAt: string) {
     startTransition(async () => {
       try {
         await saveAppointmentAction({
@@ -103,22 +105,69 @@ export function AppointmentForm({
     });
   }
 
-  function changeStatus(status: string) {
+  // Pre-flight: check for a same-provider overlap before submitting, so a
+  // double-booking is a warning the user confirms rather than a silent
+  // overwrite or a surprise server-side rejection. Server RPCs re-check
+  // this themselves regardless (hard block when double-booking is off).
+  function save() {
+    setError(null);
+    setConflicts(null);
+    if (!patientId) return setError("Select a patient.");
+    if (!date || !time) return setError("Set a date and time.");
+    const startAt = toIsoInstant(date, time);
+    const endAt = new Date(new Date(startAt).getTime() + duration * 60000).toISOString();
+
+    if (!providerId) return doSave(startAt, endAt);
+
+    setCheckingConflicts(true);
+    checkAppointmentConflictsAction(providerId, startAt, endAt, editing?.id ?? null)
+      .then((found) => {
+        setCheckingConflicts(false);
+        if (found.length > 0) {
+          setConflicts(found);
+        } else {
+          doSave(startAt, endAt);
+        }
+      })
+      .catch((e: any) => {
+        setCheckingConflicts(false);
+        setError(e.message);
+      });
+  }
+
+  function bookAnyway() {
+    const startAt = toIsoInstant(date, time);
+    const endAt = new Date(new Date(startAt).getTime() + duration * 60000).toISOString();
+    setConflicts(null);
+    doSave(startAt, endAt);
+  }
+
+  function changeStatus(status: string, reason?: string) {
     if (!editing) return;
     startTransition(async () => {
       try {
-        if (status === "cancelled") {
-          const reason = window.prompt("Reason for cancelling (optional):") ?? "";
-          await setAppointmentStatusAction(editing.id, "cancelled", reason);
-        } else {
-          await setAppointmentStatusAction(editing.id, status);
-        }
+        await setAppointmentStatusAction(editing.id, status, reason);
+        setReasonPromptFor(null);
+        setReasonChoice("");
         router.refresh();
         onClose();
       } catch (e: any) {
         setError(e.message);
       }
     });
+  }
+
+  // Cancel / late-cancellation always route through the structured reasons
+  // dropdown (Settings > Scheduling & Calendar) instead of a free-text
+  // browser prompt, so cancellation data stays reportable.
+  function requestStatusWithReason(status: string) {
+    setReasonChoice(cancellationReasons[0]?.label ?? "");
+    setReasonPromptFor(status);
+  }
+
+  function confirmReasonAndChangeStatus() {
+    if (!reasonPromptFor) return;
+    changeStatus(reasonPromptFor, reasonChoice || undefined);
   }
 
   return (
@@ -217,12 +266,69 @@ export function AppointmentForm({
 
         {error && <div style={{ fontSize: 12.5, color: "crimson" }}>{error}</div>}
 
+        {conflicts && conflicts.length > 0 && (
+          <div style={{ background: "#fff6e6", border: "1px solid #f0d998", borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: "#8a6100" }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+              {allowDoubleBooking ? "This provider is already booked at that time." : "Scheduling conflict — double-booking is off for this clinic."}
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              {conflicts.map((c) => (
+                <div key={c.id}>
+                  {c.patient_last_name}, {c.patient_first_name} — already scheduled then.
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {allowDoubleBooking && (
+                <button onClick={bookAnyway} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                  Book anyway
+                </button>
+              )}
+              <button onClick={() => setConflicts(null)} disabled={pending} style={{ background: "white", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                Choose a different time
+              </button>
+            </div>
+          </div>
+        )}
+
+        {reasonPromptFor && (
+          <div style={{ background: "#fdecec", border: "1px solid #f3c2c2", borderRadius: 8, padding: "10px 12px", fontSize: 12.5 }}>
+            <div style={{ fontWeight: 700, color: "#a12a2a", marginBottom: 6 }}>
+              Reason for {reasonPromptFor === "late_cancellation" ? "late cancellation" : "cancelling"}
+            </div>
+            {cancellationReasons.length > 0 ? (
+              <select value={reasonChoice} onChange={(e) => setReasonChoice(e.target.value)} style={{ ...FIELD_STYLE, marginBottom: 8 }}>
+                {cancellationReasons.map((r) => (
+                  <option key={r.id} value={r.label}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={reasonChoice}
+                onChange={(e) => setReasonChoice(e.target.value)}
+                placeholder="Reason (optional)"
+                style={{ ...FIELD_STYLE, marginBottom: 8 }}
+              />
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={confirmReasonAndChangeStatus} disabled={pending} style={{ background: "#a12a2a", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                Confirm
+              </button>
+              <button onClick={() => setReasonPromptFor(null)} disabled={pending} style={{ background: "white", color: "#666", border: "1px solid #ddd", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
-            {editing ? "Save changes" : "Book appointment"}
+          <button onClick={save} disabled={pending || checkingConflicts} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+            {checkingConflicts ? "Checking…" : editing ? "Save changes" : "Book appointment"}
           </button>
 
-          {editing && editing.status !== "cancelled" && editing.status !== "no_show" && editing.status !== "completed" && (
+          {editing && !TERMINAL_STATUSES.has(editing.status) && (
             <>
               {STATUS_FLOW.filter((s) => s.key !== editing.status).map((s) => (
                 <button
@@ -237,7 +343,10 @@ export function AppointmentForm({
               <button onClick={() => changeStatus("no_show")} disabled={pending} style={{ background: "#fff6e6", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}>
                 No-show
               </button>
-              <button onClick={() => changeStatus("cancelled")} disabled={pending} style={{ background: "#fdecec", color: "#a12a2a", border: "1px solid #f3c2c2", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}>
+              <button onClick={() => requestStatusWithReason("late_cancellation")} disabled={pending} style={{ background: "#fff6e6", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}>
+                Late cancellation
+              </button>
+              <button onClick={() => requestStatusWithReason("cancelled")} disabled={pending} style={{ background: "#fdecec", color: "#a12a2a", border: "1px solid #f3c2c2", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}>
                 Cancel appointment
               </button>
             </>

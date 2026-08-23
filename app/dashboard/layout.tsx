@@ -37,8 +37,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Jellybean counts: every underlying queue (referrals, messages, alerts,
   // etc.) ships in a later phase — these are honestly 0 today, not
   // placeholder fake numbers, and each will start querying its real table
-  // the moment that module lands.
-  const jellybeanCounts = { R: 0, M: 0, P: 0, T: 0, A: 0, D: 0 };
+  // the moment that module lands. "A" (Appointment Requests) has a real
+  // table now (patient_appointment_requests, Phase 1) even though nothing
+  // writes to it yet — the full patient-portal request workflow is Phase 7.
+  const { count: pendingApptRequests } = await supabase
+    .from("patient_appointment_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  const jellybeanCounts = { R: 0, M: 0, P: 0, T: 0, A: pendingApptRequests ?? 0, D: 0 };
 
   return (
     <EmrShell

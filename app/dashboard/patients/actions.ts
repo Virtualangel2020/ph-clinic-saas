@@ -19,6 +19,38 @@ async function siteOrigin() {
 // itself — this file carries no elevated privilege of its own, same
 // pattern as app/dashboard/settings/actions.ts.
 
+export type PatientSearchResult = {
+  id: string;
+  first_name: string;
+  middle_name: string | null;
+  last_name: string;
+  date_of_birth: string;
+  mobile_phone: string | null;
+  is_active: boolean;
+};
+
+// Backs the global search box in the top nav (components/emr/emr-shell.tsx
+// -> global-search.tsx). A plain .select() scoped by tenant_id, same as
+// every other list read in this app — RLS is the backstop, this filter is
+// just for relevance. PostgREST's .or() filter string treats "," and ")"
+// as syntax, so those are stripped from the raw query before building it.
+export async function searchPatientsAction(query: string): Promise<PatientSearchResult[]> {
+  const { supabase, profile } = await requireClinicMember();
+  const q = query.trim().replace(/[,()]/g, "").slice(0, 60);
+  if (!q) return [];
+
+  const { data, error } = await supabase
+    .from("patients")
+    .select("id, first_name, middle_name, last_name, date_of_birth, mobile_phone, is_active")
+    .eq("tenant_id", profile.tenant_id)
+    .or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%,mobile_phone.ilike.%${q}%`)
+    .order("last_name")
+    .limit(8);
+
+  if (error) throw new Error(error.message);
+  return (data as any) ?? [];
+}
+
 export type PatientInput = {
   id: string | null;
   firstName: string;
@@ -331,6 +363,33 @@ export async function revokePatientPortalAccessAction(id: string, patientId: str
   await requireClinicMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_patient_portal_access", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// ── Patient-chart alerts (ECW-style sticky notes) ────────────────────────
+// Created and managed from within the patient's own chart, never a global
+// list — see migration patient_alerts_and_appointment_requests_shell.
+// Dismissing one (the X) is handled entirely client-side in
+// patient-alerts-banner.tsx and never calls this action; only "Remove"
+// (deactivate) does.
+
+export async function addPatientAlertAction(patientId: string, category: "red" | "yellow" | "blue", message: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_patient_alert", {
+    p_patient_id: patientId,
+    p_category: category,
+    p_message: message,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function deactivatePatientAlertAction(id: string, patientId: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("deactivate_patient_alert", { p_id: id });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
