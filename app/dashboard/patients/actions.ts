@@ -212,6 +212,27 @@ export async function setDocumentStatusAction(id: string, patientId: string, sta
   revalidatePath("/dashboard/documents");
 }
 
+export type VitalsInput = {
+  bpSystolic: string;
+  bpDiastolic: string;
+  pulseRate: string;
+  respiratoryRate: string;
+  oxygenSaturation: string;
+  temperatureC: string;
+  weightKg: string;
+  heightCm: string;
+};
+
+// Empty-string form inputs -> null (not 0), so an unfilled vital field
+// doesn't get recorded as a real reading.
+function numOrNull(v: string | undefined | null) {
+  if (v === undefined || v === null) return null;
+  const t = v.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function addProgressNoteAction(
   patientId: string,
   noteDate: string,
@@ -219,7 +240,8 @@ export async function addProgressNoteAction(
   subjective: string,
   objective: string,
   assessment: string,
-  plan: string
+  plan: string,
+  vitals?: VitalsInput
 ) {
   await requireClinicMember();
   const supabase = await createClient();
@@ -231,6 +253,14 @@ export async function addProgressNoteAction(
     p_objective: objective || null,
     p_assessment: assessment || null,
     p_plan: plan || null,
+    p_bp_systolic: numOrNull(vitals?.bpSystolic),
+    p_bp_diastolic: numOrNull(vitals?.bpDiastolic),
+    p_pulse_rate: numOrNull(vitals?.pulseRate),
+    p_respiratory_rate: numOrNull(vitals?.respiratoryRate),
+    p_oxygen_saturation: numOrNull(vitals?.oxygenSaturation),
+    p_temperature_c: numOrNull(vitals?.temperatureC),
+    p_weight_kg: numOrNull(vitals?.weightKg),
+    p_height_cm: numOrNull(vitals?.heightCm),
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);

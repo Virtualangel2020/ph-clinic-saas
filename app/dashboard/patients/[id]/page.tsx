@@ -40,7 +40,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .order("created_at", { ascending: false }),
     supabase
       .from("patient_progress_notes")
-      .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, created_at, user_profiles(full_name)")
+      .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, bp_systolic, bp_diastolic, pulse_rate, respiratory_rate, oxygen_saturation, temperature_c, weight_kg, height_cm, created_at, user_profiles(full_name)")
       .eq("patient_id", id)
       .order("note_date", { ascending: false }),
   ]);
