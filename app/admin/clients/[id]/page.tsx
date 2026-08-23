@@ -5,6 +5,7 @@ import { ClientEditor } from "./client-editor";
 import { BillingPanel } from "./billing-panel";
 import { StaffPanel } from "./staff-panel";
 import { DeleteTenantButton } from "../delete-tenant-button";
+import { ResetDemoButton } from "../reset-demo-button";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -92,6 +93,22 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           payments={(payments as any) ?? []}
         />
       </div>
+
+      {tenant.is_test && (
+        <div style={{ marginTop: 32 }}>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>Demo account</h2>
+          <div style={{ background: "#f0f4ff", border: "1px solid #c7d4f5", borderRadius: 12, padding: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Reset demo data</div>
+              <p style={{ color: "#3a4a7a", fontSize: 12.5, margin: 0, maxWidth: 480 }}>
+                Wipes whatever you added/changed during a walkthrough and restores the original 3 demo patients, 3
+                demo doctors' credentials, appointment types, and certificate template — ready for the next demo.
+              </p>
+            </div>
+            <ResetDemoButton tenantId={tenant.id} tenantName={tenant.name} />
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: 32 }}>
         <h2 style={{ fontSize: 18, marginBottom: 12, color: "#a12a2a" }}>Danger zone</h2>

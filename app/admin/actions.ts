@@ -871,3 +871,57 @@ export async function adminMarkSupportReadAction(tenantId: string) {
   revalidatePath(`/admin/customer-care/${tenantId}`);
   revalidatePath("/admin/customer-care");
 }
+
+// Wipes and re-seeds a TEST tenant's demo content (patients, appointment
+// types, cert template, clinic branding, demo doctors' credentials, one
+// pending credential request) back to a fixed baseline — see migration
+// admin_reset_demo_tenant. The RPC itself refuses to run against any
+// tenant that isn't flagged is_test, so this can't touch a real clinic.
+export async function resetDemoTenantAction(tenantId: string) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_reset_demo_tenant", { p_tenant_id: tenantId });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/clients/${tenantId}`);
+}
+
+// ── Communication provider integrations (the "activation spot") ─────────
+// Plugging in a real email/SMS provider here is what turns the
+// email_communications/sms_messaging add-ons from an entitlement flag
+// into something that actually sends. A blank apiKey means "leave the
+// currently-saved key as-is" — the form never round-trips the real value.
+
+export async function setEmailProviderSettingsAction(input: {
+  provider: string;
+  apiKey: string;
+  fromEmail: string;
+  fromName: string;
+  isEnabled: boolean;
+}) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_set_email_provider_settings", {
+    p_provider: input.provider,
+    p_api_key: input.apiKey || null,
+    p_from_email: input.fromEmail,
+    p_from_name: input.fromName,
+    p_is_enabled: input.isEnabled,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/settings");
+}
+
+export async function setSmsProviderSettingsAction(input: {
+  provider: string;
+  apiKey: string;
+  senderId: string;
+  isEnabled: boolean;
+}) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.rpc("admin_set_sms_provider_settings", {
+    p_provider: input.provider,
+    p_api_key: input.apiKey || null,
+    p_sender_id: input.senderId,
+    p_is_enabled: input.isEnabled,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/settings");
+}
