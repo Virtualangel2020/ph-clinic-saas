@@ -9,6 +9,13 @@ import { DocumentsSection } from "./documents-section";
 import { ProgressNotesSection } from "./progress-notes-section";
 import { PortalSection } from "./portal-section";
 import { PatientAlertsBanner } from "./patient-alerts-banner";
+import { AppointmentHistorySection, type AppointmentRow } from "./appointment-history-section";
+import { EncounterHistorySection } from "./encounter-history-section";
+import { formatDayLabel, formatTime } from "../../calendar/date-utils";
+
+const ENCOUNTER_PAGE_SIZE = 20;
+const PAST_APPT_LIMIT = 10;
+const UPCOMING_APPT_LIMIT = 5;
 
 function age(dob: string) {
   const b = new Date(dob);
@@ -32,7 +39,18 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   if (!patient) notFound();
 
-  const [{ data: allergies }, { data: medications }, { data: documents }, { data: notes }, { data: encounters }] = await Promise.all([
+  const nowIso = new Date().toISOString();
+
+  const [
+    { data: allergies },
+    { data: medications },
+    { data: documents },
+    { data: notes },
+    { data: encountersPage },
+    { count: totalEncounters },
+    { data: pastApptsRaw },
+    { data: upcomingApptsRaw },
+  ] = await Promise.all([
     supabase.from("patient_allergies").select("id, allergen, reaction, severity, noted_at").eq("patient_id", id).order("noted_at", { ascending: false }),
     supabase.from("patient_medications").select("id, medication_name, dosage, frequency, started_at, is_active, notes").eq("patient_id", id).order("created_at", { ascending: false }),
     supabase
@@ -45,15 +63,42 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, bp_systolic, bp_diastolic, pulse_rate, respiratory_rate, oxygen_saturation, temperature_c, weight_kg, height_cm, created_at, user_profiles(full_name)")
       .eq("patient_id", id)
       .order("note_date", { ascending: false }),
+    // Patient-chart Encounters: most recent first, ONE bounded page up
+    // front — see searchPatientEncountersAction for how "Load more" fetches
+    // the rest. Never pull a patient's whole encounter history just to
+    // open their chart (spec's own performance requirement).
     supabase
       .from("encounters")
       .select("id, encounter_date, encounter_type, chief_complaint, status, user_profiles(full_name)")
+      .eq("tenant_id", profile.tenant_id)
       .eq("patient_id", id)
       .order("encounter_date", { ascending: false })
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .range(0, ENCOUNTER_PAGE_SIZE - 1),
+    supabase.from("encounters").select("id", { count: "exact", head: true }).eq("tenant_id", profile.tenant_id).eq("patient_id", id),
+    // Past/upcoming appointments — THIS clinic's own records only (tenant_id
+    // scoped), a small bounded window each rather than the patient's whole
+    // appointment history.
+    supabase
+      .from("appointments")
+      .select("id, start_at, status, notes, provider_id, user_profiles(full_name), appointment_types(name)")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("patient_id", id)
+      .lt("start_at", nowIso)
+      .order("start_at", { ascending: false })
+      .limit(PAST_APPT_LIMIT),
+    supabase
+      .from("appointments")
+      .select("id, start_at, status, notes, provider_id, user_profiles(full_name), appointment_types(name)")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("patient_id", id)
+      .gte("start_at", nowIso)
+      .neq("status", "cancelled")
+      .order("start_at", { ascending: true })
+      .limit(UPCOMING_APPT_LIMIT),
   ]);
 
-  const [{ data: portalChannels }, { data: portalAccount }, { data: alerts }] = await Promise.all([
+  const [{ data: portalChannels }, { data: portalAccount }, { data: alerts }, { data: providers }, { data: appointmentTypes }] = await Promise.all([
     supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: profile.tenant_id }),
     supabase
       .from("patient_portal_accounts")
@@ -66,7 +111,43 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .eq("patient_id", id)
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
+    // Filter option lists for the chart's own Encounter History section.
+    supabase.from("user_profiles").select("id, full_name, title").eq("tenant_id", profile.tenant_id).eq("role", "doctor").eq("is_active", true).order("full_name"),
+    supabase.from("appointment_types").select("id, name").eq("tenant_id", profile.tenant_id).eq("is_active", true).order("sort_order"),
   ]);
+
+  // Which of the appointments we just fetched already have a documented
+  // encounter behind them — scoped to just those appointment IDs, not the
+  // patient's whole history, so this stays cheap regardless of how many
+  // years of records exist.
+  const apptIds = [...((pastApptsRaw as any[]) ?? []), ...((upcomingApptsRaw as any[]) ?? [])].map((a) => a.id);
+  const { data: linkedEncounters } =
+    apptIds.length > 0
+      ? await supabase.from("encounters").select("id, appointment_id").eq("tenant_id", profile.tenant_id).in("appointment_id", apptIds)
+      : { data: [] as any[] };
+  const encounterIdByAppt = new Map<string, string>();
+  for (const e of (linkedEncounters as any[]) ?? []) {
+    if (e.appointment_id) encounterIdByAppt.set(e.appointment_id, e.id);
+  }
+
+  function toApptRow(a: any): AppointmentRow {
+    return {
+      id: a.id,
+      start_at: a.start_at,
+      status: a.status,
+      notes: a.notes,
+      provider_name: a.user_profiles?.full_name ?? null,
+      appointment_type_name: a.appointment_types?.name ?? null,
+      encounter_id: encounterIdByAppt.get(a.id) ?? null,
+    };
+  }
+  const pastAppts: AppointmentRow[] = ((pastApptsRaw as any[]) ?? []).map(toApptRow);
+  const upcomingAppts: AppointmentRow[] = ((upcomingApptsRaw as any[]) ?? []).map(toApptRow);
+
+  const encounters = (encountersPage as any[]) ?? [];
+  const lastEncounter = encounters[0] ?? null;
+  const nextAppt = upcomingAppts[0] ?? null;
+  const initialEncounterHasMore = (totalEncounters ?? 0) > encounters.length;
 
   const fullName = `${patient.last_name}, ${patient.first_name}${patient.middle_name ? " " + patient.middle_name : ""}${patient.suffix ? " " + patient.suffix : ""}`;
 
@@ -128,6 +209,41 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
+      {/* Compact overview strip — answers "when was this patient last
+          seen / who by / when do they come back / how many visits with
+          us" without leaving the chart. Everything here is derived from
+          THIS clinic's own records only (every query above is tenant_id
+          scoped) — a patient shared across multiple AngelClinic clinics
+          never bleeds another clinic's history into this number. */}
+      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18, marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, fontSize: 13 }}>
+        <div>
+          <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Last seen</div>
+          <div style={{ fontWeight: 700, color: "#0c1730" }}>{lastEncounter ? formatDayLabel(lastEncounter.encounter_date) : "—"}</div>
+        </div>
+        <div>
+          <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Last provider</div>
+          <div style={{ fontWeight: 700, color: "#0c1730" }}>{lastEncounter?.user_profiles?.full_name ?? "—"}</div>
+        </div>
+        <div>
+          <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Next appointment</div>
+          <div style={{ fontWeight: 700, color: "#0c1730" }}>
+            {nextAppt ? (
+              <>
+                {formatDayLabel(nextAppt.start_at.slice(0, 10))} · {formatTime(nextAppt.start_at)}
+              </>
+            ) : (
+              "—"
+            )}
+          </div>
+        </div>
+        <div>
+          <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Total encounters with this clinic</div>
+          <div style={{ fontWeight: 700, color: "#0c1730" }}>{totalEncounters ?? 0}</div>
+        </div>
+      </div>
+
+      <AppointmentHistorySection past={pastAppts} upcoming={upcomingAppts} />
+
       <AllergiesSection patientId={patient.id} allergies={(allergies as any) ?? []} />
       <MedicationsSection patientId={patient.id} medications={(medications as any) ?? []} />
       <ProgressNotesSection patientId={patient.id} notes={(notes as any) ?? []} />
@@ -140,35 +256,20 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         account={(portalAccount as any) ?? null}
       />
 
-      <div style={{ marginTop: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <h2 style={{ fontSize: 15 }}>Encounters</h2>
-          <Link href={`/dashboard/encounters?patient=${patient.id}`} style={{ fontSize: 12.5, color: "#0c1730", fontWeight: 600, textDecoration: "none" }}>
-            + New encounter
-          </Link>
-        </div>
-        {!encounters || encounters.length === 0 ? (
-          <p style={{ color: "#999", fontSize: 12.5 }}>No visits recorded yet.</p>
-        ) : (
-          <div style={{ display: "grid", gap: 8 }}>
-            {(encounters as any[]).map((e) => (
-              <Link
-                key={e.id}
-                href={`/dashboard/encounters/${e.id}`}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "11px 14px", textDecoration: "none", fontSize: 13 }}
-              >
-                <div>
-                  <span style={{ fontWeight: 700, color: "#0c1730" }}>{new Date(e.encounter_date).toLocaleDateString()}</span>
-                  {e.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px" }}>{e.encounter_type}</span>}
-                  {e.chief_complaint && <span style={{ color: "#666", marginLeft: 8 }}>— {e.chief_complaint}</span>}
-                  {e.user_profiles && <span style={{ color: "#999", marginLeft: 8, fontSize: 12 }}>· {e.user_profiles.full_name}</span>}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: e.status === "closed" ? "#1a7f37" : "#8a6100" }}>{e.status === "closed" ? "Closed" : "Open"}</div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <EncounterHistorySection
+        patientId={patient.id}
+        initialRows={encounters.map((e: any) => ({
+          id: e.id,
+          encounter_date: e.encounter_date,
+          encounter_type: e.encounter_type,
+          chief_complaint: e.chief_complaint,
+          status: e.status,
+          provider_name: e.user_profiles?.full_name ?? null,
+        }))}
+        initialHasMore={initialEncounterHasMore}
+        providers={(providers as any) ?? []}
+        appointmentTypes={(appointmentTypes as any) ?? []}
+      />
     </div>
   );
 }

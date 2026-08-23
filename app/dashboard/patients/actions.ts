@@ -393,3 +393,65 @@ export async function deactivatePatientAlertAction(id: string, patientId: string
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
+
+// ── Patient chart > Encounter History (paginated) ───────────────────────
+// The chart's own encounter list is patient-specific and chronological
+// (most recent first), separate from the main date-organized Encounters
+// module. Deliberately NOT "select *, no limit" — a clinic with years of
+// history for one patient shouldn't pull every encounter just to open
+// their chart. Page size is small and the client asks for more on demand.
+
+export type EncounterHistoryFilter = {
+  patientId: string;
+  rangeKey: "all" | "30d" | "3m" | "6m" | "1y";
+  providerId: string; // "" = all providers
+  encounterType: string; // "" = all types
+  offset: number;
+  limit: number;
+};
+
+export type EncounterHistoryRow = {
+  id: string;
+  encounter_date: string;
+  encounter_type: string | null;
+  chief_complaint: string | null;
+  status: string;
+  provider_name: string | null;
+};
+
+const RANGE_DAYS: Record<string, number> = { "30d": 30, "3m": 90, "6m": 180, "1y": 365 };
+
+export async function searchPatientEncountersAction(filter: EncounterHistoryFilter): Promise<{ rows: EncounterHistoryRow[]; hasMore: boolean }> {
+  const { supabase, profile } = await requireClinicMember();
+
+  let query = supabase
+    .from("encounters")
+    .select("id, encounter_date, encounter_type, chief_complaint, status, provider_id, user_profiles(full_name)", { count: "exact" })
+    .eq("tenant_id", profile.tenant_id)
+    .eq("patient_id", filter.patientId)
+    .order("encounter_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(filter.offset, filter.offset + filter.limit - 1);
+
+  if (filter.providerId) query = query.eq("provider_id", filter.providerId);
+  if (filter.encounterType) query = query.eq("encounter_type", filter.encounterType);
+  if (filter.rangeKey !== "all") {
+    const days = RANGE_DAYS[filter.rangeKey] ?? 0;
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    query = query.gte("encounter_date", cutoff);
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows: EncounterHistoryRow[] = ((data as any[]) ?? []).map((e) => ({
+    id: e.id,
+    encounter_date: e.encounter_date,
+    encounter_type: e.encounter_type,
+    chief_complaint: e.chief_complaint,
+    status: e.status,
+    provider_name: e.user_profiles?.full_name ?? null,
+  }));
+  const hasMore = filter.offset + rows.length < (count ?? 0);
+  return { rows, hasMore };
+}
