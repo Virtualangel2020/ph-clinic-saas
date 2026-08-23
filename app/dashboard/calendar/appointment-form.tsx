@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { checkAppointmentConflictsAction, saveAppointmentAction, setAppointmentStatusAction, type AppointmentConflict } from "./actions";
 import { isoToPhDateTime, toIsoInstant } from "./date-utils";
 import { STATUS_FLOW, TERMINAL_STATUSES } from "./status-constants";
+import { savePatientAction, type PatientInput } from "../patients/actions";
 
-type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; mobile_phone: string | null };
+type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; date_of_birth: string; mobile_phone: string | null };
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string; color: string; default_duration_minutes: number };
 type CancellationReason = { id: string; label: string };
@@ -63,6 +64,113 @@ export function AppointmentForm({
     return p ? `${p.last_name}, ${p.first_name}` : "";
   });
   const [showPatientList, setShowPatientList] = useState(false);
+
+  // Inline "+ Add New Patient" (spec: receptionist shouldn't have to leave
+  // the calendar to register someone new). Reuses the SAME patient table/
+  // action as Patients > New — no separate "calendar patient" record.
+  // Before actually saving, name matches already in the loaded patient list
+  // are surfaced as "possible existing patient" so staff don't double-enter
+  // someone who's already in the system under a slightly different search term.
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddForm, setQuickAddForm] = useState({ firstName: "", middleName: "", lastName: "", dateOfBirth: "", sex: "female", mobilePhone: "", email: "" });
+  const [possibleDuplicates, setPossibleDuplicates] = useState<Patient[] | null>(null);
+  const [quickAddPending, setQuickAddPending] = useState(false);
+  const [quickAddError, setQuickAddError] = useState<string | null>(null);
+
+  function openQuickAdd() {
+    setShowPatientList(false);
+    setPossibleDuplicates(null);
+    setQuickAddError(null);
+    // Best-effort split of whatever was already typed into the search box
+    // ("Last, First" or "First Last") so the receptionist doesn't retype it.
+    const q = patientQuery.trim();
+    let firstName = "";
+    let lastName = "";
+    if (q.includes(",")) {
+      const [last, first] = q.split(",").map((s) => s.trim());
+      lastName = last ?? "";
+      firstName = first ?? "";
+    } else if (q) {
+      const parts = q.split(/\s+/);
+      lastName = parts.pop() ?? "";
+      firstName = parts.join(" ");
+    }
+    setQuickAddForm({ firstName, middleName: "", lastName, dateOfBirth: "", sex: "female", mobilePhone: "", email: "" });
+    setQuickAddOpen(true);
+  }
+
+  function closeQuickAdd() {
+    setQuickAddOpen(false);
+    setPossibleDuplicates(null);
+    setQuickAddError(null);
+  }
+
+  function useExistingPatient(p: Patient) {
+    setPatientId(p.id);
+    setPatientQuery(`${p.last_name}, ${p.first_name}`);
+    closeQuickAdd();
+  }
+
+  function reviewOrCreatePatient() {
+    const f = quickAddForm;
+    if (!f.firstName.trim() || !f.lastName.trim() || !f.dateOfBirth) {
+      setQuickAddError("First name, last name, and date of birth are required.");
+      return;
+    }
+    setQuickAddError(null);
+    if (!possibleDuplicates) {
+      const matches = patients.filter(
+        (p) => p.first_name.trim().toLowerCase() === f.firstName.trim().toLowerCase() && p.last_name.trim().toLowerCase() === f.lastName.trim().toLowerCase()
+      );
+      if (matches.length > 0) {
+        setPossibleDuplicates(matches);
+        return;
+      }
+    }
+    createPatient();
+  }
+
+  function createPatient() {
+    const f = quickAddForm;
+    const input: PatientInput = {
+      id: null,
+      firstName: f.firstName.trim(),
+      middleName: f.middleName.trim(),
+      lastName: f.lastName.trim(),
+      suffix: "",
+      dateOfBirth: f.dateOfBirth,
+      sex: f.sex,
+      civilStatus: "",
+      bloodType: "",
+      mobilePhone: f.mobilePhone.trim(),
+      email: f.email.trim(),
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      province: "",
+      postalCode: "",
+      emergencyContactName: "",
+      emergencyContactRelationship: "",
+      emergencyContactPhone: "",
+      guardianName: "",
+      guardianRelationship: "",
+      guardianPhone: "",
+      notes: "",
+    };
+    setQuickAddPending(true);
+    savePatientAction(input)
+      .then((newId) => {
+        setQuickAddPending(false);
+        setPatientId(newId);
+        setPatientQuery(`${input.lastName}, ${input.firstName}`);
+        closeQuickAdd();
+        router.refresh(); // picks up the new patient in the list for next time
+      })
+      .catch((e: any) => {
+        setQuickAddPending(false);
+        setQuickAddError(e.message || "Couldn't save this patient — please try again.");
+      });
+  }
   const [providerId, setProviderId] = useState(editing?.provider_id ?? providers[0]?.id ?? "");
   const [typeId, setTypeId] = useState(editing?.appointment_type_id ?? appointmentTypes[0]?.id ?? "");
   const [date, setDate] = useState(initialDt.date);
@@ -195,7 +303,7 @@ export function AppointmentForm({
             style={FIELD_STYLE}
           />
           {showPatientList && (
-            <div style={{ position: "absolute", zIndex: 5, top: "100%", left: 0, right: 0, background: "white", border: "1px solid #ddd", borderRadius: 8, marginTop: 2, maxHeight: 200, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+            <div style={{ position: "absolute", zIndex: 5, top: "100%", left: 0, right: 0, background: "white", border: "1px solid #ddd", borderRadius: 8, marginTop: 2, maxHeight: 240, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
               {filteredPatients.length === 0 ? (
                 <div style={{ padding: "8px 12px", fontSize: 12.5, color: "#999" }}>No patients match.</div>
               ) : (
@@ -214,9 +322,113 @@ export function AppointmentForm({
                   </div>
                 ))
               )}
+              {/* Always offered, matches or not — the patient may just not be typed
+                  exactly right yet, and staff shouldn't have to leave the calendar
+                  to register someone new. */}
+              <div
+                onMouseDown={(e) => e.preventDefault()} // survive the input's onBlur before the click registers
+                onClick={openQuickAdd}
+                style={{ padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0c1730", cursor: "pointer", background: "#f8f9fb" }}
+              >
+                + Add New Patient
+              </div>
             </div>
           )}
         </div>
+
+        {quickAddOpen && (
+          <div style={{ background: "#f8f9fb", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>{possibleDuplicates ? "Possible Existing Patient Found" : "Add New Patient"}</div>
+              <button onClick={closeQuickAdd} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12.5 }}>
+                Cancel
+              </button>
+            </div>
+
+            {possibleDuplicates ? (
+              <div style={{ display: "grid", gap: 8 }}>
+                {possibleDuplicates.map((p) => (
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px" }}>
+                    <div style={{ fontSize: 12.5 }}>
+                      <div style={{ fontWeight: 700 }}>
+                        {p.last_name}, {p.first_name} {p.middle_name ? p.middle_name.charAt(0) + "." : ""}
+                      </div>
+                      <div style={{ color: "#888" }}>
+                        DOB: {p.date_of_birth}
+                        {p.mobile_phone ? ` · ${p.mobile_phone}` : ""}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => useExistingPatient(p)}
+                      style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                    >
+                      Use Existing
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={createPatient}
+                  disabled={quickAddPending}
+                  style={{ background: "white", color: "#555", border: "1px solid #ddd", borderRadius: 6, padding: "8px 12px", fontSize: 12, cursor: "pointer", textAlign: "left" }}
+                >
+                  {quickAddPending ? "Creating…" : "None of these — continue creating new patient"}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  <div>
+                    <div style={labelStyle}>First name *</div>
+                    <input value={quickAddForm.firstName} onChange={(e) => setQuickAddForm((f) => ({ ...f, firstName: e.target.value }))} style={FIELD_STYLE} />
+                  </div>
+                  <div>
+                    <div style={labelStyle}>Middle name</div>
+                    <input value={quickAddForm.middleName} onChange={(e) => setQuickAddForm((f) => ({ ...f, middleName: e.target.value }))} style={FIELD_STYLE} />
+                  </div>
+                  <div>
+                    <div style={labelStyle}>Last name *</div>
+                    <input value={quickAddForm.lastName} onChange={(e) => setQuickAddForm((f) => ({ ...f, lastName: e.target.value }))} style={FIELD_STYLE} />
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div>
+                    <div style={labelStyle}>Date of birth *</div>
+                    <input type="date" value={quickAddForm.dateOfBirth} onChange={(e) => setQuickAddForm((f) => ({ ...f, dateOfBirth: e.target.value }))} style={FIELD_STYLE} />
+                  </div>
+                  <div>
+                    <div style={labelStyle}>Sex</div>
+                    <select value={quickAddForm.sex} onChange={(e) => setQuickAddForm((f) => ({ ...f, sex: e.target.value }))} style={FIELD_STYLE}>
+                      <option value="female">Female</option>
+                      <option value="male">Male</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div>
+                    <div style={labelStyle}>Mobile phone</div>
+                    <input value={quickAddForm.mobilePhone} onChange={(e) => setQuickAddForm((f) => ({ ...f, mobilePhone: e.target.value }))} style={FIELD_STYLE} />
+                  </div>
+                  <div>
+                    <div style={labelStyle}>Email</div>
+                    <input value={quickAddForm.email} onChange={(e) => setQuickAddForm((f) => ({ ...f, email: e.target.value }))} style={FIELD_STYLE} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: "#999" }}>Address, emergency contact, and other details can be filled in later from the patient's chart.</div>
+                {quickAddError && <div style={{ fontSize: 12.5, color: "crimson" }}>{quickAddError}</div>}
+                <div>
+                  <button
+                    onClick={reviewOrCreatePatient}
+                    disabled={quickAddPending}
+                    style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    {quickAddPending ? "Saving…" : "Save patient"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px", gap: 10 }}>
           <div>

@@ -45,7 +45,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
 
-  const jellybeanCounts = { R: 0, M: 0, P: 0, T: 0, A: pendingApptRequests ?? 0, D: 0 };
+  // "C" (Customer Care) — unread replies from Virtual Angel Systems support
+  // on the clinic's own thread (support_messages, Part: Customer Care).
+  // Mirrors how the admin side decrements its own badge: unread = a
+  // "platform"-sent message with no read_at yet.
+  const { count: unreadSupportMessages } = await supabase
+    .from("support_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", profile.tenant_id)
+    .eq("sender_type", "platform")
+    .is("read_at", null);
+
+  const jellybeanCounts = { R: 0, M: 0, P: 0, T: 0, A: pendingApptRequests ?? 0, D: 0, C: unreadSupportMessages ?? 0 };
 
   return (
     <EmrShell

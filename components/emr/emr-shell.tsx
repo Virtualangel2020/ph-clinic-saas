@@ -38,6 +38,7 @@ const JELLYBEANS = [
   { key: "T", label: "Telephone encounters", href: "/dashboard/communications?tab=calls" },
   { key: "A", label: "Appointment requests", href: "/dashboard/appointment-requests" },
   { key: "D", label: "Documents/results to review", href: "/dashboard/results?tab=unreviewed" },
+  { key: "C", label: "Customer Care", href: "/dashboard/settings/customer-care" },
 ] as const;
 
 const MOBILE_QUERY = "(max-width: 859px)";

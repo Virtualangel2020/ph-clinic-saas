@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BrandHeader } from "@/components/brand-header";
+import { addDays, formatTime, phDayStart, todayPh } from "./calendar/date-utils";
+import { STATUS_GLYPH, STATUS_LABEL, statusColor } from "./calendar/status-constants";
 
 // Overrides the root manifest so /dashboard installs as its own app
 // ("Angel Clinic — Staff"), separate from the Super Admin dashboard.
@@ -94,6 +96,25 @@ export default async function DashboardPage() {
     .eq("status", "active")
     .order("feature_key");
 
+  // Today's schedule — Calendar & Scheduling shipped a while back now, this
+  // was left showing its old "isn't wired up yet" placeholder. Doctors see
+  // just their own day; everyone else (reception, clinic admin) sees the
+  // whole clinic's day, same as opening Calendar in day view would show.
+  const today = todayPh();
+  let todaysApptQuery = supabase
+    .from("appointments")
+    .select("id, start_at, end_at, status, patients(first_name,last_name), user_profiles(full_name), appointment_types(name,color)")
+    .eq("tenant_id", profile.tenant_id)
+    .gte("start_at", phDayStart(today))
+    .lt("start_at", phDayStart(addDays(today, 1)))
+    .order("start_at");
+  if (profile.role === "doctor") {
+    todaysApptQuery = todaysApptQuery.eq("provider_id", user!.id);
+  }
+  const { data: todaysAppointmentsRaw } = await todaysApptQuery;
+  const todaysAppointments = (todaysAppointmentsRaw as any[]) ?? [];
+  const APPT_PREVIEW_LIMIT = 6;
+
   // Rendered inside the EMR shell (app/dashboard/layout.tsx) once a tenant
   // exists — no BrandHeader/nav here, the shell already provides it.
   return (
@@ -112,9 +133,33 @@ export default async function DashboardPage() {
           <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>
             Today's schedule
           </h2>
-          <p style={{ color: "#888", fontSize: 13, margin: 0 }}>
-            Calendar & Scheduling isn't wired up yet — this fills in automatically once that module ships.
-          </p>
+          {todaysAppointments.length === 0 ? (
+            <p style={{ color: "#888", fontSize: 13, margin: 0 }}>
+              {profile.role === "doctor" ? "No appointments on your schedule for today." : "No appointments scheduled for today."}
+            </p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+              {todaysAppointments.slice(0, APPT_PREVIEW_LIMIT).map((a) => (
+                <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                  <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontWeight: 700, color: "#0c1730" }}>{formatTime(a.start_at)}</span>{" "}
+                    <span style={{ color: "#333" }}>{a.patients ? `${a.patients.last_name}, ${a.patients.first_name}` : "Unknown patient"}</span>
+                    {profile.role !== "doctor" && a.user_profiles?.full_name && <span style={{ color: "#999" }}> · {a.user_profiles.full_name}</span>}
+                    {a.appointment_types?.name && <span style={{ color: "#999" }}> · {a.appointment_types.name}</span>}
+                  </div>
+                  <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: statusColor(undefined, a.status) }}>
+                    {STATUS_GLYPH[a.status] ?? ""} {STATUS_LABEL[a.status] ?? a.status}
+                  </span>
+                </div>
+              ))}
+              {todaysAppointments.length > APPT_PREVIEW_LIMIT && (
+                <p style={{ color: "#999", fontSize: 12, margin: 0 }}>+{todaysAppointments.length - APPT_PREVIEW_LIMIT} more</p>
+              )}
+            </div>
+          )}
+          <Link href={`/dashboard/calendar?view=day&date=${today}`} style={{ fontSize: 12.5, color: "#2563eb" }}>
+            View full calendar →
+          </Link>
         </div>
         <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
           <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>

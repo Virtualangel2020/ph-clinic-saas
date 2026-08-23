@@ -12,7 +12,7 @@ import { addProviderTimeBlockAction, checkAppointmentConflictsAction, removeProv
 
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string; color: string; default_duration_minutes: number };
-type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; mobile_phone: string | null };
+type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; date_of_birth: string; mobile_phone: string | null };
 type CancellationReason = { id: string; label: string };
 type TimeBlockDisplay = { id: string; provider_id: string; providerName: string; block_date: string; start_time: string; end_time: string; reason: string | null };
 

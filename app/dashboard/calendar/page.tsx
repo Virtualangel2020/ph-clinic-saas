@@ -45,7 +45,7 @@ export default async function CalendarPage({
       .order("sort_order"),
     supabase
       .from("patients")
-      .select("id, first_name, middle_name, last_name, mobile_phone")
+      .select("id, first_name, middle_name, last_name, date_of_birth, mobile_phone")
       .eq("tenant_id", profile.tenant_id)
       .eq("is_active", true)
       .order("last_name")
