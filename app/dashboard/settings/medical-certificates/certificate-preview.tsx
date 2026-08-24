@@ -21,6 +21,8 @@ export function CertificatePreview({
   addressLine,
   contactLine,
   providerName,
+  providerCredentials,
+  signatureImageUrl,
   fields,
 }: {
   clinicName: string;
@@ -28,6 +30,8 @@ export function CertificatePreview({
   addressLine: string;
   contactLine: string;
   providerName: string;
+  providerCredentials: string | null;
+  signatureImageUrl: string | null;
   fields: Field[];
 }) {
   return (
@@ -62,9 +66,14 @@ export function CertificatePreview({
       <p style={{ margin: "0 0 32px" }}>This certification is issued upon the patient's request for whatever legal purpose it may serve.</p>
 
       <div style={{ textAlign: "right" }}>
-        <div style={{ borderBottom: "1px solid #999", width: 220, marginLeft: "auto", marginBottom: 4, height: 34 }} />
+        {signatureImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={signatureImageUrl} alt="Signature" style={{ maxHeight: 44, maxWidth: 200, marginLeft: "auto", marginBottom: 4, display: "block" }} />
+        ) : (
+          <div style={{ borderBottom: "1px solid #999", width: 220, marginLeft: "auto", marginBottom: 4, height: 34 }} />
+        )}
         <div style={{ fontWeight: 700 }}>{providerName || "Provider name"}</div>
-        <div style={{ fontSize: 11, color: "#777" }}>License No. _________ · PTR No. _________</div>
+        <div style={{ fontSize: 11, color: "#777" }}>{providerCredentials || "License No. _________ · PTR No. _________"}</div>
       </div>
     </DocumentPreviewFrame>
   );

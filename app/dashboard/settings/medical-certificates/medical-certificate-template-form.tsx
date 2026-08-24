@@ -21,6 +21,8 @@ export function MedicalCertificateTemplateForm({
   addressLine,
   contactLine,
   providerName,
+  providerCredentials,
+  signatureImageUrl,
 }: {
   initialTemplates: Template[];
   clinicName: string;
@@ -28,6 +30,8 @@ export function MedicalCertificateTemplateForm({
   addressLine: string;
   contactLine: string;
   providerName: string;
+  providerCredentials: string | null;
+  signatureImageUrl: string | null;
 }) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [editing, setEditing] = useState<Template | null>(null);
@@ -167,6 +171,8 @@ export function MedicalCertificateTemplateForm({
             addressLine={addressLine}
             contactLine={contactLine}
             providerName={providerName}
+            providerCredentials={providerCredentials}
+            signatureImageUrl={signatureImageUrl}
             fields={editing.fields_config}
           />
         </div>

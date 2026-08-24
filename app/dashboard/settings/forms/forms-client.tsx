@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { saveIntakeFormTemplateAction, deleteIntakeFormTemplateAction, duplicateIntakeFormTemplateAction, assignTemplateToPatientFromSettingsAction } from "./actions";
 import { searchPatientsAction, type PatientSearchResult } from "../../patients/actions";
 import { FormPreview } from "./form-preview";
+import { parseCheckboxOptions, isOtherOption } from "@/lib/forms/checkbox-options";
 
 type Category = "intake" | "consent" | "other";
 type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
@@ -395,58 +396,74 @@ export function FormTemplatesClient({
             <>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: "#333", marginBottom: 8 }}>Fields</div>
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-                {fields.map((f, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      <button
-                        onClick={() => moveField(i, -1)}
-                        disabled={i === 0}
-                        style={{ background: "none", border: "none", color: i === 0 ? "#ddd" : "#666", fontSize: 11, cursor: i === 0 ? "default" : "pointer", lineHeight: 1, padding: 0 }}
-                      >
-                        ▲
-                      </button>
-                      <button
-                        onClick={() => moveField(i, 1)}
-                        disabled={i === fields.length - 1}
-                        style={{ background: "none", border: "none", color: i === fields.length - 1 ? "#ddd" : "#666", fontSize: 11, cursor: i === fields.length - 1 ? "default" : "pointer", lineHeight: 1, padding: 0 }}
-                      >
-                        ▼
-                      </button>
+                {fields.map((f, i) => {
+                  const hasOptions = f.type === "select" || f.type === "checkbox";
+                  const options = parseCheckboxOptions(f.options);
+                  const hasOtherOption = options.some((o) => isOtherOption(o));
+                  return (
+                    <div key={i} style={{ border: hasOptions ? "1px solid #eee" : "none", borderRadius: 8, padding: hasOptions ? 8 : 0 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <button
+                            onClick={() => moveField(i, -1)}
+                            disabled={i === 0}
+                            style={{ background: "none", border: "none", color: i === 0 ? "#ddd" : "#666", fontSize: 11, cursor: i === 0 ? "default" : "pointer", lineHeight: 1, padding: 0 }}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            onClick={() => moveField(i, 1)}
+                            disabled={i === fields.length - 1}
+                            style={{ background: "none", border: "none", color: i === fields.length - 1 ? "#ddd" : "#666", fontSize: 11, cursor: i === fields.length - 1 ? "default" : "pointer", lineHeight: 1, padding: 0 }}
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        <input
+                          placeholder="Field label"
+                          value={f.label}
+                          onChange={(e) => updateField(i, { label: e.target.value })}
+                          style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 13 }}
+                        />
+                        <select
+                          value={f.type}
+                          onChange={(e) => updateField(i, { type: e.target.value as FieldType })}
+                          style={{ padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}
+                        >
+                          <option value="text">Short text</option>
+                          <option value="textarea">Long text</option>
+                          <option value="date">Date</option>
+                          <option value="select">Dropdown</option>
+                          <option value="checkbox">Checkbox(es)</option>
+                        </select>
+                        <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "#666", whiteSpace: "nowrap" }}>
+                          <input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} />
+                          Required
+                        </label>
+                        <button onClick={() => removeField(i)} style={{ background: "none", border: "none", color: "#c00", fontSize: 16, cursor: "pointer" }}>
+                          ✕
+                        </button>
+                      </div>
+                      {hasOptions && (
+                        <div style={{ marginTop: 6, paddingLeft: 22 }}>
+                          <input
+                            placeholder={f.type === "checkbox" ? "Options, comma-separated — e.g. Cash, HMO, PhilHealth, YAKAP, Others" : "Options, comma-separated"}
+                            value={f.options ?? ""}
+                            onChange={(e) => updateField(i, { options: e.target.value })}
+                            style={{ width: "100%", boxSizing: "border-box", padding: "7px 9px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}
+                          />
+                          <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>
+                            {f.type === "checkbox"
+                              ? hasOtherOption
+                                ? "Multiple options can be checked at once. Since \"Others\" is included, checking it will show a note field to specify."
+                                : "Multiple options can be checked at once. Add an \"Others\" option to automatically get a note field when it's checked."
+                              : "One choice from a dropdown list."}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <input
-                      placeholder="Field label"
-                      value={f.label}
-                      onChange={(e) => updateField(i, { label: e.target.value })}
-                      style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 13 }}
-                    />
-                    <select
-                      value={f.type}
-                      onChange={(e) => updateField(i, { type: e.target.value as FieldType })}
-                      style={{ padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}
-                    >
-                      <option value="text">Short text</option>
-                      <option value="textarea">Long text</option>
-                      <option value="date">Date</option>
-                      <option value="select">Dropdown</option>
-                      <option value="checkbox">Checkbox</option>
-                    </select>
-                    {f.type === "select" && (
-                      <input
-                        placeholder="Options, comma-separated"
-                        value={f.options ?? ""}
-                        onChange={(e) => updateField(i, { options: e.target.value })}
-                        style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}
-                      />
-                    )}
-                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "#666", whiteSpace: "nowrap" }}>
-                      <input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} />
-                      Required
-                    </label>
-                    <button onClick={() => removeField(i)} style={{ background: "none", border: "none", color: "#c00", fontSize: 16, cursor: "pointer" }}>
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
                 {fields.length === 0 && <p style={{ color: "#aaa", fontSize: 12.5 }}>No fields yet.</p>}
               </div>
               <button

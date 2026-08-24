@@ -56,6 +56,8 @@ export function NoteTemplatesClient({
   addressLine,
   contactLine,
   providerName,
+  providerCredentials,
+  signatureImageUrl,
 }: {
   initialTemplates: Template[];
   clinicName: string;
@@ -63,6 +65,8 @@ export function NoteTemplatesClient({
   addressLine: string;
   contactLine: string;
   providerName: string;
+  providerCredentials: string | null;
+  signatureImageUrl: string | null;
 }) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [editing, setEditing] = useState<Template | null>(null);
@@ -269,6 +273,8 @@ export function NoteTemplatesClient({
             addressLine={addressLine}
             contactLine={contactLine}
             providerName={providerName}
+            providerCredentials={providerCredentials}
+            signatureImageUrl={signatureImageUrl}
             sections={editing.sections}
           />
         </div>

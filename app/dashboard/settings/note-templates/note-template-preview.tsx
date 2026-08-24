@@ -16,6 +16,8 @@ export function NoteTemplatePreview({
   addressLine,
   contactLine,
   providerName,
+  providerCredentials,
+  signatureImageUrl,
   sections,
 }: {
   clinicName: string;
@@ -23,6 +25,8 @@ export function NoteTemplatePreview({
   addressLine: string;
   contactLine: string;
   providerName: string;
+  providerCredentials: string | null;
+  signatureImageUrl: string | null;
   sections: Section[];
 }) {
   return (
@@ -58,8 +62,14 @@ export function NoteTemplatePreview({
       </div>
 
       <div style={{ marginTop: 32, textAlign: "right" }}>
-        <div style={{ borderBottom: "1px solid #999", width: 220, marginLeft: "auto", marginBottom: 4, height: 34 }} />
+        {signatureImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={signatureImageUrl} alt="Signature" style={{ maxHeight: 44, maxWidth: 200, marginLeft: "auto", marginBottom: 4, display: "block" }} />
+        ) : (
+          <div style={{ borderBottom: "1px solid #999", width: 220, marginLeft: "auto", marginBottom: 4, height: 34 }} />
+        )}
         <div style={{ fontWeight: 700 }}>{providerName || "Provider name"}</div>
+        {providerCredentials && <div style={{ fontSize: 11, color: "#777" }}>{providerCredentials}</div>}
       </div>
     </DocumentPreviewFrame>
   );

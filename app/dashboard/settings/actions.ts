@@ -73,6 +73,11 @@ export async function uploadClinicLogoAction(formData: FormData) {
 }
 
 // ── Provider credentials & signatures (Parts 21-23) ─────────────────────
+// Per explicit instruction, neither of these needs Clinic Admin approval
+// any more — a provider's own edit/upload takes effect immediately (see
+// migration provider_signature_and_credentials_no_approval). The RPCs
+// still write an audit-trail row (self-reviewed), just never a 'pending'
+// one, so there's nothing left to approve/reject in the UI.
 
 export async function requestCredentialChangeAction(fieldKey: string, newValue: string) {
   const { supabase } = await requireClinicMember();
@@ -82,17 +87,8 @@ export async function requestCredentialChangeAction(fieldKey: string, newValue: 
   });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/settings/providers");
-}
-
-export async function reviewCredentialChangeAction(requestId: string, approve: boolean, note: string) {
-  const { supabase } = await requireClinicAdmin();
-  const { error } = await supabase.rpc("review_provider_credential_change", {
-    p_request_id: requestId,
-    p_approve: approve,
-    p_note: note || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/settings/providers");
+  revalidatePath("/dashboard/settings/medical-certificates");
+  revalidatePath("/dashboard/settings/note-templates");
 }
 
 export async function uploadSignatureAction(formData: FormData) {
@@ -113,17 +109,8 @@ export async function uploadSignatureAction(formData: FormData) {
   if (rpcError) throw new Error(rpcError.message);
 
   revalidatePath("/dashboard/settings/providers");
-}
-
-export async function reviewSignatureAction(signatureId: string, approve: boolean, note: string) {
-  const { supabase } = await requireClinicAdmin();
-  const { error } = await supabase.rpc("review_provider_signature", {
-    p_signature_id: signatureId,
-    p_approve: approve,
-    p_note: note || null,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/settings/providers");
+  revalidatePath("/dashboard/settings/medical-certificates");
+  revalidatePath("/dashboard/settings/note-templates");
 }
 
 // ── Users & Permissions (Part 63) ───────────────────────────────────────

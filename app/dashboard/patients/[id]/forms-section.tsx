@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { assignFormToPatientAction, completePatientFormAction, expirePatientFormAction } from "../actions";
+import { parseCheckboxOptions, isOtherOption, otherNoteKey } from "@/lib/forms/checkbox-options";
 
 type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
 type Field = { key: string; label: string; type: FieldType; required: boolean; options?: string };
@@ -267,14 +268,51 @@ export function FormsSection({
                                   ))}
                               </select>
                             ) : field.type === "checkbox" ? (
-                              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                                <input
-                                  type="checkbox"
-                                  checked={!!responses[field.key]}
-                                  onChange={(e) => setResponses((prev) => ({ ...prev, [field.key]: e.target.checked }))}
-                                />
-                                Yes
-                              </label>
+                              (() => {
+                                const opts = parseCheckboxOptions(field.options);
+                                if (opts.length === 0) {
+                                  return (
+                                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={!!responses[field.key]}
+                                        onChange={(e) => setResponses((prev) => ({ ...prev, [field.key]: e.target.checked }))}
+                                      />
+                                      Yes
+                                    </label>
+                                  );
+                                }
+                                const selected: string[] = Array.isArray(responses[field.key]) ? responses[field.key] : [];
+                                const showOtherNote = selected.some((o) => isOtherOption(o));
+                                return (
+                                  <div style={{ display: "grid", gap: 6 }}>
+                                    {opts.map((o) => (
+                                      <label key={o} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={selected.includes(o)}
+                                          onChange={(e) => {
+                                            setResponses((prev) => {
+                                              const cur: string[] = Array.isArray(prev[field.key]) ? prev[field.key] : [];
+                                              const next = e.target.checked ? [...cur, o] : cur.filter((v) => v !== o);
+                                              return { ...prev, [field.key]: next };
+                                            });
+                                          }}
+                                        />
+                                        {o}
+                                      </label>
+                                    ))}
+                                    {showOtherNote && (
+                                      <input
+                                        placeholder="Please specify…"
+                                        value={responses[otherNoteKey(field.key)] ?? ""}
+                                        onChange={(e) => setResponses((prev) => ({ ...prev, [otherNoteKey(field.key)]: e.target.value }))}
+                                        style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })()
                             ) : (
                               <input
                                 type={field.type === "date" ? "date" : "text"}
@@ -320,12 +358,24 @@ export function FormsSection({
                     {isConsent ? (
                       <div>Signed by {f.signature_name ?? "—"} on {f.signed_at ? new Date(f.signed_at).toLocaleString() : "—"}.</div>
                     ) : (
-                      (f.fields_config_snapshot as Field[]).map((field) => (
-                        <div key={field.key}>
-                          <span style={{ color: "#888" }}>{field.label}:</span>{" "}
-                          <strong>{field.type === "checkbox" ? (f.responses[field.key] ? "Yes" : "No") : f.responses[field.key] || "—"}</strong>
-                        </div>
-                      ))
+                      (f.fields_config_snapshot as Field[]).map((field) => {
+                        const opts = field.type === "checkbox" ? parseCheckboxOptions(field.options) : [];
+                        let display: string;
+                        if (field.type === "checkbox" && opts.length > 0) {
+                          const selected: string[] = Array.isArray(f.responses[field.key]) ? f.responses[field.key] : [];
+                          const note = f.responses[otherNoteKey(field.key)];
+                          display = selected.length === 0 ? "—" : selected.join(", ") + (note ? ` (${note})` : "");
+                        } else if (field.type === "checkbox") {
+                          display = f.responses[field.key] ? "Yes" : "No";
+                        } else {
+                          display = f.responses[field.key] || "—";
+                        }
+                        return (
+                          <div key={field.key}>
+                            <span style={{ color: "#888" }}>{field.label}:</span> <strong>{display}</strong>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 )}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { completeMyFormAction } from "../actions";
+import { parseCheckboxOptions, isOtherOption, otherNoteKey } from "@/lib/forms/checkbox-options";
 
 type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
 type Field = { key: string; label: string; type: FieldType; required: boolean; options?: string };
@@ -126,10 +127,47 @@ export function PortalFormsClient({ forms }: { forms: PatientFormRow[] }) {
                                   ))}
                               </select>
                             ) : field.type === "checkbox" ? (
-                              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                                <input type="checkbox" checked={!!responses[field.key]} onChange={(e) => setResponses((prev) => ({ ...prev, [field.key]: e.target.checked }))} />
-                                Yes
-                              </label>
+                              (() => {
+                                const opts = parseCheckboxOptions(field.options);
+                                if (opts.length === 0) {
+                                  return (
+                                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                                      <input type="checkbox" checked={!!responses[field.key]} onChange={(e) => setResponses((prev) => ({ ...prev, [field.key]: e.target.checked }))} />
+                                      Yes
+                                    </label>
+                                  );
+                                }
+                                const selected: string[] = Array.isArray(responses[field.key]) ? responses[field.key] : [];
+                                const showOtherNote = selected.some((o) => isOtherOption(o));
+                                return (
+                                  <div style={{ display: "grid", gap: 6 }}>
+                                    {opts.map((o) => (
+                                      <label key={o} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={selected.includes(o)}
+                                          onChange={(e) => {
+                                            setResponses((prev) => {
+                                              const cur: string[] = Array.isArray(prev[field.key]) ? prev[field.key] : [];
+                                              const next = e.target.checked ? [...cur, o] : cur.filter((v) => v !== o);
+                                              return { ...prev, [field.key]: next };
+                                            });
+                                          }}
+                                        />
+                                        {o}
+                                      </label>
+                                    ))}
+                                    {showOtherNote && (
+                                      <input
+                                        placeholder="Please specify…"
+                                        value={responses[otherNoteKey(field.key)] ?? ""}
+                                        onChange={(e) => setResponses((prev) => ({ ...prev, [otherNoteKey(field.key)]: e.target.value }))}
+                                        style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })()
                             ) : (
                               <input
                                 type={field.type === "date" ? "date" : "text"}

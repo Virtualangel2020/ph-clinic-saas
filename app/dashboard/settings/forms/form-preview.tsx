@@ -1,6 +1,7 @@
 "use client";
 
 import { DocumentPreviewFrame, LetterheadBlock } from "@/components/document-preview-frame";
+import { parseCheckboxOptions, isOtherOption } from "@/lib/forms/checkbox-options";
 
 type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
 type Field = { key: string; label: string; type: FieldType; required: boolean; options?: string };
@@ -74,9 +75,30 @@ export function FormPreview({
               {f.type === "textarea" ? (
                 <div style={{ ...INPUT_STYLE, borderBottom: "none", border: "1px solid #ccc", borderRadius: 4, padding: 8, minHeight: 40 }}>Sample response</div>
               ) : f.type === "checkbox" ? (
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#999" }}>
-                  <input type="checkbox" disabled /> Yes
-                </label>
+                (() => {
+                  const opts = parseCheckboxOptions(f.options);
+                  if (opts.length === 0) {
+                    return (
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#999" }}>
+                        <input type="checkbox" disabled /> Yes
+                      </label>
+                    );
+                  }
+                  const sampleChecked = opts[0];
+                  const otherChecked = opts.find((o) => isOtherOption(o)) === sampleChecked;
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {opts.map((o) => (
+                        <label key={o} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#999" }}>
+                          <input type="checkbox" disabled checked={o === sampleChecked} readOnly /> {o}
+                        </label>
+                      ))}
+                      {otherChecked && (
+                        <div style={{ ...INPUT_STYLE, marginTop: 2 }}>Sample note</div>
+                      )}
+                    </div>
+                  );
+                })()
               ) : f.type === "select" ? (
                 <div style={INPUT_STYLE}>{(f.options ?? "").split(",").map((o) => o.trim()).filter(Boolean)[0] || "Select an option"}</div>
               ) : f.type === "date" ? (
