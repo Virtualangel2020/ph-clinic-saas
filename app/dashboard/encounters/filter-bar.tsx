@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 6, padding: "6px 8px", fontSize: 12, fontFamily: "inherit" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 6, padding: "6px 8px", fontSize: 12, fontFamily: "inherit" };
 
 // Optional, non-mandatory filters on top of the date view (spec §19) — the
 // date stays primary; these just narrow what's shown for that date.

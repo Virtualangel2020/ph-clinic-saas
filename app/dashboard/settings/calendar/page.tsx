@@ -41,7 +41,7 @@ export default async function CalendarSettingsPage() {
         <p style={{ color: "#666", fontSize: 13 }}>
           Appointment types, status colors, cancellation reasons, and booking rules for your calendar. Looking for
           provider working hours instead? That's under{" "}
-          <Link href="/dashboard/settings/schedules" style={{ color: "#0c1730", fontWeight: 600 }}>
+          <Link href="/dashboard/settings/schedules" style={{ color: "var(--text-heading)", fontWeight: 600 }}>
             Settings → Schedules
           </Link>
           .

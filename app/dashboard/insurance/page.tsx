@@ -50,7 +50,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
       </p>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#0c1730" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-heading)" }}>
           {activeCount} active plan{activeCount === 1 ? "" : "s"}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
@@ -77,7 +77,7 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
       </div>
 
       {plans.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           No {filter === "all" ? "" : filter} insurance plans on file — open a patient's chart to add one.
         </div>
       ) : (
@@ -88,10 +88,10 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
               <Link
                 key={p.id}
                 href={`/dashboard/patients/${p.patients?.id}`}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12, flexWrap: "wrap" }}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12, flexWrap: "wrap" }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730" }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
                     {p.patients ? `${p.patients.last_name}, ${p.patients.first_name}` : "Unknown patient"}
                     <span style={{ marginLeft: 8 }}>
                       <StatusPill status={p.status} />

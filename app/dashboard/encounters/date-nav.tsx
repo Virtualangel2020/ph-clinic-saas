@@ -31,12 +31,12 @@ export function DateNav({ date }: { date: string }) {
         </button>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 17, fontWeight: 700, color: "#0c1730" }}>{formatDayLabel(date)}</span>
+        <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text-heading)" }}>{formatDayLabel(date)}</span>
         <input
           type="date"
           value={date}
           onChange={(e) => e.target.value && go(e.target.value)}
-          style={{ border: "1px solid #ddd", borderRadius: 8, padding: "6px 8px", fontSize: 12.5, fontFamily: "inherit" }}
+          style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "6px 8px", fontSize: 12.5, fontFamily: "inherit" }}
           aria-label="Select date"
         />
       </div>
@@ -44,4 +44,4 @@ export function DateNav({ date }: { date: string }) {
   );
 }
 
-const NAV_BTN: React.CSSProperties = { background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "#0c1730" };
+const NAV_BTN: React.CSSProperties = { background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "var(--text-heading)" };

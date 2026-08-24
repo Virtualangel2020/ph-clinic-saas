@@ -27,8 +27,28 @@ type Note = {
   user_profiles: { full_name: string | null } | null;
 };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%" };
 const VITAL_INPUT_STYLE: React.CSSProperties = { ...FIELD_STYLE, textAlign: "center" };
+
+// The clinic's default note template (if any) only relabels/reprompts these
+// same 4 fixed fields — patient_progress_notes has no flexible storage for
+// note content, so there's nothing else a template could add here. When no
+// template is set (the common case today), every field falls back to
+// exactly the hardcoded label/placeholder this composer always used.
+type NoteSection = { label: string; placeholder: string };
+type NoteTemplate = {
+  subjective?: NoteSection;
+  objective?: NoteSection;
+  assessment?: NoteSection;
+  plan?: NoteSection;
+} | null;
+
+const DEFAULT_SECTIONS: Record<"subjective" | "objective" | "assessment" | "plan", NoteSection> = {
+  subjective: { label: "Subjective", placeholder: "Subjective" },
+  objective: { label: "Objective", placeholder: "Objective" },
+  assessment: { label: "Assessment", placeholder: "Assessment / Diagnosis" },
+  plan: { label: "Plan", placeholder: "Plan" },
+};
 
 const EMPTY_DRAFT = {
   noteDate: new Date().toISOString().slice(0, 10),
@@ -66,13 +86,21 @@ export function ProgressNotesSection({
   encounterId,
   isSignedEncounter = false,
   canViewClinical = true,
+  noteTemplate = null,
 }: {
   patientId: string;
   notes: Note[];
   encounterId?: string;
   isSignedEncounter?: boolean;
   canViewClinical?: boolean;
+  noteTemplate?: NoteTemplate;
 }) {
+  const sections = {
+    subjective: noteTemplate?.subjective ?? DEFAULT_SECTIONS.subjective,
+    objective: noteTemplate?.objective ?? DEFAULT_SECTIONS.objective,
+    assessment: noteTemplate?.assessment ?? DEFAULT_SECTIONS.assessment,
+    plan: noteTemplate?.plan ?? DEFAULT_SECTIONS.plan,
+  };
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [tab, setTab] = useState<"notes" | "vitals">("notes");
@@ -150,7 +178,7 @@ export function ProgressNotesSection({
     return (
       <div style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 15, marginBottom: 8 }}>Progress notes</h2>
-        <div style={{ background: "#f7f7f9", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, color: "#888", fontSize: 12.5 }}>
+        <div style={{ background: "#f7f7f9", border: "1px solid var(--card-border)", borderRadius: 10, padding: 16, color: "#888", fontSize: 12.5 }}>
           🔒 Clinical documentation is restricted for your role. Contact your clinic administrator if you need access.
         </div>
       </div>
@@ -161,7 +189,7 @@ export function ProgressNotesSection({
     <div style={{ marginTop: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontSize: 15 }}>Progress notes</h2>
-        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {adding ? "Cancel" : isSignedEncounter ? "+ Add amendment" : "+ Add note"}
         </button>
       </div>
@@ -169,7 +197,7 @@ export function ProgressNotesSection({
       {error && !adding && <p style={{ fontSize: 12, color: "crimson", marginBottom: 8 }}>{error}</p>}
 
       {adding && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
           {isSignedEncounter && (
             <div style={{ padding: 14, borderBottom: "1px solid #e2e2e5", background: "#fff6e6" }}>
               <p style={{ fontSize: 11.5, color: "#5c4400", margin: "0 0 8px" }}>
@@ -218,10 +246,22 @@ export function ProgressNotesSection({
               <>
                 <input type="date" value={draft.noteDate} onChange={(e) => setDraft({ ...draft, noteDate: e.target.value })} style={{ ...FIELD_STYLE, width: 160 }} />
                 <input placeholder="Chief complaint" value={draft.chiefComplaint} onChange={(e) => setDraft({ ...draft, chiefComplaint: e.target.value })} style={FIELD_STYLE} />
-                <textarea placeholder="Subjective" value={draft.subjective} onChange={(e) => setDraft({ ...draft, subjective: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
-                <textarea placeholder="Objective" value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
-                <textarea placeholder="Assessment / Diagnosis" value={draft.assessment} onChange={(e) => setDraft({ ...draft, assessment: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
-                <textarea placeholder="Plan" value={draft.plan} onChange={(e) => setDraft({ ...draft, plan: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
+                <div>
+                  {noteTemplate && <div style={vitalLabelStyle}>{sections.subjective.label}</div>}
+                  <textarea placeholder={sections.subjective.placeholder} value={draft.subjective} onChange={(e) => setDraft({ ...draft, subjective: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
+                </div>
+                <div>
+                  {noteTemplate && <div style={vitalLabelStyle}>{sections.objective.label}</div>}
+                  <textarea placeholder={sections.objective.placeholder} value={draft.objective} onChange={(e) => setDraft({ ...draft, objective: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
+                </div>
+                <div>
+                  {noteTemplate && <div style={vitalLabelStyle}>{sections.assessment.label}</div>}
+                  <textarea placeholder={sections.assessment.placeholder} value={draft.assessment} onChange={(e) => setDraft({ ...draft, assessment: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
+                </div>
+                <div>
+                  {noteTemplate && <div style={vitalLabelStyle}>{sections.plan.label}</div>}
+                  <textarea placeholder={sections.plan.placeholder} value={draft.plan} onChange={(e) => setDraft({ ...draft, plan: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
+                </div>
               </>
             ) : (
               <>
@@ -275,7 +315,7 @@ export function ProgressNotesSection({
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {notes.map((n) => (
-            <div key={n.id} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, fontSize: 13 }}>
+            <div key={n.id} style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14, fontSize: 13 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <div style={{ fontWeight: 700 }}>{new Date(n.note_date).toLocaleDateString()} {n.chief_complaint ? `— ${n.chief_complaint}` : ""}</div>
                 {!isSignedEncounter && (
@@ -319,7 +359,7 @@ export function ProgressNotesSection({
 
 function VitalChip({ label, value }: { label: string; value: string }) {
   return (
-    <span style={{ fontSize: 11, background: "#f0f4ff", color: "#0c1730", border: "1px solid #c7d4f5", borderRadius: 999, padding: "2px 9px", fontWeight: 600 }}>
+    <span style={{ fontSize: 11, background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 999, padding: "2px 9px", fontWeight: 600 }}>
       {label} <span style={{ fontWeight: 400 }}>{value}</span>
     </span>
   );

@@ -45,7 +45,7 @@ export function PatientList({ patients, initialQuery }: { patients: Patient[]; i
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by name…"
-          style={{ flex: 1, minWidth: 220, border: "1px solid #ddd", borderRadius: 8, padding: "9px 12px", fontSize: 13.5 }}
+          style={{ flex: 1, minWidth: 220, border: "1px solid var(--input-border)", borderRadius: 8, padding: "9px 12px", fontSize: 13.5 }}
         />
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#666" }}>
           <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
@@ -54,7 +54,7 @@ export function PatientList({ patients, initialQuery }: { patients: Patient[]; i
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           {patients.length === 0 ? "No patients yet — add your first one." : "No patients match your search."}
         </div>
       ) : (
@@ -68,8 +68,8 @@ export function PatientList({ patients, initialQuery }: { patients: Patient[]; i
                 justifyContent: "space-between",
                 alignItems: "center",
                 gap: 12,
-                background: "white",
-                border: "1px solid #e2e2e5",
+                background: "var(--card-bg)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 10,
                 padding: "13px 16px",
                 textDecoration: "none",
@@ -77,7 +77,7 @@ export function PatientList({ patients, initialQuery }: { patients: Patient[]; i
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14.5, color: "#0c1730" }}>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--text-heading)" }}>
                   {p.last_name}, {p.first_name} {p.middle_name ? p.middle_name.charAt(0) + "." : ""}
                   {!p.is_active && <span style={{ marginLeft: 8, fontSize: 11, color: "#a12a2a", fontWeight: 600 }}>ARCHIVED</span>}
                 </div>

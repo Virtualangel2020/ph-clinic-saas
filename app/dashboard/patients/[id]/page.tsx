@@ -146,6 +146,26 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     supabase.from("appointment_types").select("id, name").eq("tenant_id", profile.tenant_id).eq("is_active", true).order("sort_order"),
   ]);
 
+  // Clinic's default progress-note template, if any — relabels/reprompts
+  // the note composer's fixed Subjective/Objective/Assessment/Plan fields.
+  // No default template is the common case today; the composer falls back
+  // to its standard hardcoded SOAP labels exactly as before when this is
+  // null.
+  const { data: defaultNoteTemplateRaw } = await supabase
+    .from("note_templates")
+    .select("sections")
+    .eq("tenant_id", profile.tenant_id)
+    .eq("is_default", true)
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  const noteTemplateSections = (defaultNoteTemplateRaw as any)?.sections as
+    | { key: string; label: string; placeholder: string }[]
+    | undefined;
+  const noteTemplate = noteTemplateSections
+    ? Object.fromEntries(noteTemplateSections.map((s) => [s.key, { label: s.label, placeholder: s.placeholder }]))
+    : null;
+
   // Which of the appointments we just fetched already have a documented
   // encounter behind them — scoped to just those appointment IDs, not the
   // patient's whole history, so this stays cheap regardless of how many
@@ -265,7 +285,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         <div style={{ display: "flex", gap: 8 }}>
           <Link
             href={`/dashboard/patients/${patient.id}/edit`}
-            style={{ border: "1px solid #ccc", borderRadius: 8, padding: "8px 14px", fontSize: 13, textDecoration: "none", color: "#333" }}
+            style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, textDecoration: "none", color: "#333" }}
           >
             Edit
           </Link>
@@ -277,7 +297,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         <PatientAlertsBanner patientId={patient.id} alerts={(alerts as any) ?? []} />
       </div>
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18, marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, fontSize: 13 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 18, marginTop: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, fontSize: 13 }}>
         <div>
           <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Contact</div>
           <div>{patient.mobile_phone || "—"}</div>
@@ -312,18 +332,18 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           THIS clinic's own records only (every query above is tenant_id
           scoped) — a patient shared across multiple AngelClinic clinics
           never bleeds another clinic's history into this number. */}
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18, marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, fontSize: 13 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 18, marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, fontSize: 13 }}>
         <div>
           <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Last seen</div>
-          <div style={{ fontWeight: 700, color: "#0c1730" }}>{lastEncounter ? formatDayLabel(lastEncounter.encounter_date) : "—"}</div>
+          <div style={{ fontWeight: 700, color: "var(--text-heading)" }}>{lastEncounter ? formatDayLabel(lastEncounter.encounter_date) : "—"}</div>
         </div>
         <div>
           <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Last provider</div>
-          <div style={{ fontWeight: 700, color: "#0c1730" }}>{lastEncounter?.user_profiles?.full_name ?? "—"}</div>
+          <div style={{ fontWeight: 700, color: "var(--text-heading)" }}>{lastEncounter?.user_profiles?.full_name ?? "—"}</div>
         </div>
         <div>
           <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Next appointment</div>
-          <div style={{ fontWeight: 700, color: "#0c1730" }}>
+          <div style={{ fontWeight: 700, color: "var(--text-heading)" }}>
             {nextAppt ? (
               <>
                 {formatDayLabel(nextAppt.start_at.slice(0, 10))} · {formatTime(nextAppt.start_at)}
@@ -335,7 +355,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         </div>
         <div>
           <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", marginBottom: 3 }}>Total encounters with this clinic</div>
-          <div style={{ fontWeight: 700, color: "#0c1730" }}>{totalEncounters ?? 0}</div>
+          <div style={{ fontWeight: 700, color: "var(--text-heading)" }}>{totalEncounters ?? 0}</div>
         </div>
       </div>
 
@@ -358,7 +378,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       <MedicationsSection patientId={patient.id} medications={(medications as any) ?? []} />
       <PrescriptionsSection patientId={patient.id} prescriptions={prescriptions} />
       <LabSection patientId={patient.id} labOrders={labOrders} />
-      <ProgressNotesSection patientId={patient.id} notes={(notes as any) ?? []} canViewClinical={canViewClinical} />
+      <ProgressNotesSection patientId={patient.id} notes={(notes as any) ?? []} canViewClinical={canViewClinical} noteTemplate={noteTemplate} />
       <DocumentsSection patientId={patient.id} documents={(documents as any) ?? []} />
       <PortalSection
         patientId={patient.id}

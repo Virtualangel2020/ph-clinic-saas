@@ -33,7 +33,7 @@ export default async function PhilhealthPage({ searchParams }: { searchParams: P
       </p>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#0c1730" }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-heading)" }}>
           {missingOnly ? `${patients.length} patient${patients.length === 1 ? "" : "s"} missing a PhilHealth #` : `${totalActive} active patient${totalActive === 1 ? "" : "s"} · ${missingCount} missing a PhilHealth #`}
         </div>
         <Link
@@ -54,7 +54,7 @@ export default async function PhilhealthPage({ searchParams }: { searchParams: P
       </div>
 
       {patients.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           {missingOnly ? "Every active patient has a PhilHealth # on file." : "No active patients yet."}
         </div>
       ) : (
@@ -63,9 +63,9 @@ export default async function PhilhealthPage({ searchParams }: { searchParams: P
             <Link
               key={p.id}
               href={`/dashboard/patients/${p.id}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12, flexWrap: "wrap" }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12, flexWrap: "wrap" }}
             >
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730" }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
                 {p.last_name}, {p.first_name}
               </div>
               {p.philhealth_number ? (

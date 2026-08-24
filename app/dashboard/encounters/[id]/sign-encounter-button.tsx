@@ -52,7 +52,7 @@ export function SignEncounterButton({ encounterId, patientId, hasNotes }: { enco
             <button onClick={sign} disabled={pending} style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
               {pending ? "Signing…" : "Confirm — sign encounter"}
             </button>
-            <button onClick={() => setConfirming(false)} disabled={pending} style={{ background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
+            <button onClick={() => setConfirming(false)} disabled={pending} style={{ background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
               Cancel
             </button>
           </div>

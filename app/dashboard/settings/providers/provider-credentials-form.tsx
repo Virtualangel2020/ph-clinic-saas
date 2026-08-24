@@ -51,7 +51,7 @@ export function ProviderCredentialsForm({
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Your credentials</h2>
       <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
         {isAdmin
@@ -66,7 +66,7 @@ export function ProviderCredentialsForm({
               <div style={{ width: 190, fontSize: 12, color: "#888" }}>{f.label}</div>
               {editing === f.key ? (
                 <>
-                  <input value={draft} onChange={(e) => setDraft(e.target.value)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #ccc", fontSize: 13 }} autoFocus />
+                  <input value={draft} onChange={(e) => setDraft(e.target.value)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--input-border)", fontSize: 13 }} autoFocus />
                   <button onClick={() => submit(f.key as string)} disabled={pending} style={smallBtn}>Save</button>
                   <button onClick={() => setEditing(null)} style={{ ...smallBtn, background: "#888" }}>Cancel</button>
                 </>
@@ -81,7 +81,7 @@ export function ProviderCredentialsForm({
                       setEditing(f.key as string);
                       setDraft((profile[f.key] as string) || "");
                     }}
-                    style={{ ...smallBtn, background: "white", color: "#2563eb", border: "1px solid #2563eb" }}
+                    style={{ ...smallBtn, background: "var(--card-bg)", color: "#2563eb", border: "1px solid #2563eb" }}
                   >
                     Edit
                   </button>

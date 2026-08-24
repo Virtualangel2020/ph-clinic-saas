@@ -73,8 +73,8 @@ export default async function ResultsPage({ searchParams }: { searchParams: { ta
       </p>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "10px 18px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#0c1730" }}>{unreviewedCount ?? 0}</div>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "10px 18px" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-heading)" }}>{unreviewedCount ?? 0}</div>
           <div style={{ fontSize: 11, color: "#888" }}>Awaiting review</div>
         </div>
       </div>
@@ -113,7 +113,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: { ta
       </div>
 
       {rows.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           {unreviewedOnly ? "Nothing awaiting review." : "No lab results found — open a patient's chart to record one."}
         </div>
       ) : (
@@ -121,13 +121,13 @@ export default async function ResultsPage({ searchParams }: { searchParams: { ta
           {rows.map((r) => (
             <div
               key={r.id}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "12px 16px", gap: 12 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 16px", gap: 12 }}
             >
               <Link
                 href={`/dashboard/patients/${r.patients?.id ?? ""}`}
                 style={{ textDecoration: "none", color: "inherit", flex: 1, minWidth: 0 }}
               >
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730" }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
                   {r.patients ? `${r.patients.last_name}, ${r.patients.first_name}` : "Unknown patient"}
                   <span style={{ marginLeft: 8 }}>
                     <ReviewedPill reviewedAt={r.reviewed_at} />

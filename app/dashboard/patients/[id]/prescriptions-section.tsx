@@ -24,11 +24,11 @@ export type PrescriptionRow = {
   items: PrescriptionItem[];
 };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
   active: { color: "#1a7f37", bg: "#eaf7ee", border: "#bfe6c9", label: "Active" },
-  completed: { color: "#0c1730", bg: "#f0f4ff", border: "#c7d4f5", label: "Completed" },
+  completed: { color: "var(--text-heading)", bg: "#f0f4ff", border: "#c7d4f5", label: "Completed" },
   cancelled: { color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9", label: "Cancelled" },
 };
 
@@ -115,7 +115,7 @@ export function PrescriptionsSection({
     <div style={{ marginTop: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontSize: 15 }}>Prescriptions</h2>
-        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {adding ? "Cancel" : "+ New prescription"}
         </button>
       </div>
@@ -123,7 +123,7 @@ export function PrescriptionsSection({
       {error && !adding && <p style={{ fontSize: 12, color: "crimson", marginBottom: 8 }}>{error}</p>}
 
       {adding && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, marginBottom: 10, padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, marginBottom: 10, padding: 14, display: "grid", gap: 10 }}>
           <div style={{ display: "grid", gap: 8 }}>
             {items.map((it, i) => (
               <div key={i} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, display: "grid", gap: 6, background: "#fafafa" }}>
@@ -146,7 +146,7 @@ export function PrescriptionsSection({
                 <input placeholder="Instructions (e.g. Take after meals)" value={it.instructions} onChange={(e) => updateItem(i, "instructions", e.target.value)} style={FIELD_STYLE} />
               </div>
             ))}
-            <button onClick={addRow} style={{ fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600, justifySelf: "start" }}>
+            <button onClick={addRow} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, justifySelf: "start" }}>
               + Add another drug
             </button>
           </div>
@@ -167,7 +167,7 @@ export function PrescriptionsSection({
           {prescriptions.map((p) => {
             const s = STATUS_STYLE[p.status] ?? STATUS_STYLE.active;
             return (
-              <div key={p.id} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, fontSize: 13 }}>
+              <div key={p.id} style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14, fontSize: 13 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <div style={{ fontWeight: 700 }}>
                     {new Date(p.prescribed_at).toLocaleDateString()}

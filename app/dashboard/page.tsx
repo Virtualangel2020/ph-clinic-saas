@@ -70,7 +70,7 @@ export default async function DashboardPage() {
           <BrandHeader />
         </div>
         <p style={{ color: "#555", marginBottom: 24 }}>Signed in as {user!.email}</p>
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 28, textAlign: "center" }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 28, textAlign: "center" }}>
           <h1 style={{ fontSize: 20, marginTop: 0, marginBottom: 8 }}>
             {pendingRequest ? "Your AngelClinic system isn't set up yet" : "You haven't activated an AngelClinic system yet"}
           </h1>
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 20 }}>
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
           <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>
             Today's schedule
           </h2>
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
               {todaysAppointments.slice(0, APPT_PREVIEW_LIMIT).map((a) => (
                 <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12.5 }}>
                   <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <span style={{ fontWeight: 700, color: "#0c1730" }}>{formatTime(a.start_at)}</span>{" "}
+                    <span style={{ fontWeight: 700, color: "var(--text-heading)" }}>{formatTime(a.start_at)}</span>{" "}
                     <span style={{ color: "#333" }}>{a.patients ? `${a.patients.last_name}, ${a.patients.first_name}` : "Unknown patient"}</span>
                     {profile.role !== "doctor" && a.user_profiles?.full_name && <span style={{ color: "#999" }}> · {a.user_profiles.full_name}</span>}
                     {a.appointment_types?.name && <span style={{ color: "#999" }}> · {a.appointment_types.name}</span>}
@@ -161,7 +161,7 @@ export default async function DashboardPage() {
             View full calendar →
           </Link>
         </div>
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
           <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>
             Quick links
           </h2>
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
         <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>What's included in your system</h2>
         {entitlements && entitlements.length > 0 ? (
           <ul style={{ fontSize: 14, color: "#333", paddingLeft: 18, margin: 0, columns: 2 }}>

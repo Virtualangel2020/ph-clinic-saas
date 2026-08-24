@@ -24,7 +24,7 @@ export function CalendarColorsForm({ statusColors, availabilityColors }: { statu
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Appointment status colors</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 14 }}>
         Shown on the calendar as a color dot plus a text label — status is never conveyed by color alone.

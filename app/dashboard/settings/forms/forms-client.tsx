@@ -1,0 +1,357 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { saveIntakeFormTemplateAction, deleteIntakeFormTemplateAction } from "./actions";
+
+type Category = "intake" | "consent" | "other";
+type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
+
+type Field = { key: string; label: string; type: FieldType; required: boolean; options?: string };
+// Consent (and any category without a structured field list) stores its
+// text in a single-element fields_config array, since the table has no
+// separate `body` column: [{ key: "body", type: "richtext", label: "Consent Text", value }]
+type ConsentField = { key: "body"; type: "richtext"; label: string; value: string };
+
+type Template = {
+  id: string;
+  name: string;
+  category: Category;
+  fields_config: Field[] | ConsentField[];
+  is_active: boolean;
+};
+
+const CATEGORY_LABEL: Record<Category, string> = {
+  intake: "Intake",
+  consent: "Consent / Acknowledgement",
+  other: "Other",
+};
+
+const DEFAULT_INTAKE_FIELDS: Field[] = [
+  { key: "chief_complaint", label: "Chief Complaint / Reason for Visit", type: "textarea", required: true },
+  { key: "known_allergies", label: "Known Allergies", type: "text", required: false },
+  { key: "current_medications", label: "Current Medications", type: "text", required: false },
+  { key: "emergency_contact", label: "Emergency Contact", type: "text", required: true },
+];
+
+const DEFAULT_CONSENT_BODY =
+  "I acknowledge that I have been informed of the nature of the services to be provided and consent to receiving care at this clinic. I understand that I may ask questions at any time and may withdraw consent for a specific procedure before it is performed.";
+
+function slugify(label: string, fallback: string) {
+  const s = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return s || fallback;
+}
+
+function blankTemplate(category: Category): Template {
+  if (category === "consent") {
+    return {
+      id: "",
+      name: "Standard Consent for Treatment",
+      category,
+      fields_config: [{ key: "body", type: "richtext", label: "Consent Text", value: DEFAULT_CONSENT_BODY }],
+      is_active: true,
+    };
+  }
+  return {
+    id: "",
+    name: category === "intake" ? "Standard Intake Form" : "New Form",
+    category,
+    fields_config: category === "intake" ? DEFAULT_INTAKE_FIELDS : [],
+    is_active: true,
+  };
+}
+
+export function FormTemplatesClient({ initialTemplates }: { initialTemplates: Template[] }) {
+  const [templates, setTemplates] = useState(initialTemplates);
+  const [editing, setEditing] = useState<Template | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const isConsent = editing?.category === "consent";
+  const fields = (editing?.fields_config as Field[]) ?? [];
+  const consentField = (editing?.fields_config as ConsentField[])?.[0];
+
+  function startNew(category: Category) {
+    setEditing(blankTemplate(category));
+    setMessage(null);
+  }
+
+  function startEdit(t: Template) {
+    setEditing(t);
+    setMessage(null);
+  }
+
+  function addField() {
+    if (!editing) return;
+    const next: Field = { key: `field_${fields.length + 1}`, label: "", type: "text", required: false };
+    setEditing({ ...editing, fields_config: [...fields, next] });
+  }
+
+  function updateField(idx: number, patch: Partial<Field>) {
+    if (!editing) return;
+    const updated = fields.map((f, i) => {
+      if (i !== idx) return f;
+      const merged = { ...f, ...patch };
+      // Keep key in sync with label unless the field's key was already
+      // customized away from its auto-slug — simplest rule: re-slug from
+      // the new label, same pattern as most auto-key builders in this app.
+      if (patch.label !== undefined) merged.key = slugify(patch.label, f.key);
+      return merged;
+    });
+    setEditing({ ...editing, fields_config: updated });
+  }
+
+  function removeField(idx: number) {
+    if (!editing) return;
+    setEditing({ ...editing, fields_config: fields.filter((_, i) => i !== idx) });
+  }
+
+  function moveField(idx: number, dir: -1 | 1) {
+    if (!editing) return;
+    const target = idx + dir;
+    if (target < 0 || target >= fields.length) return;
+    const next = [...fields];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setEditing({ ...editing, fields_config: next });
+  }
+
+  function updateConsentBody(value: string) {
+    if (!editing) return;
+    setEditing({ ...editing, fields_config: [{ key: "body", type: "richtext", label: "Consent Text", value }] });
+  }
+
+  function save() {
+    if (!editing || !editing.name.trim()) return;
+    startTransition(async () => {
+      try {
+        const savedFields = editing.fields_config;
+        await saveIntakeFormTemplateAction({
+          id: editing.id || null,
+          name: editing.name,
+          category: editing.category,
+          fieldsConfig: savedFields,
+          isActive: editing.is_active,
+        });
+        setTemplates((prev) => {
+          if (editing.id) return prev.map((t) => (t.id === editing.id ? editing : t));
+          return [...prev, { ...editing, id: `pending-${Date.now()}` }];
+        });
+        setEditing(null);
+        setMessage({ text: "Template saved.", ok: true });
+      } catch (e: any) {
+        setMessage({ text: `Error: ${e.message}`, ok: false });
+      }
+    });
+  }
+
+  function remove(t: Template) {
+    const sure = confirm(`Delete "${t.name}"? This cannot be undone.`);
+    if (!sure) return;
+    startTransition(async () => {
+      try {
+        await deleteIntakeFormTemplateAction(t.id);
+        setTemplates((prev) => prev.filter((x) => x.id !== t.id));
+        if (editing?.id === t.id) setEditing(null);
+        setMessage({ text: "Template deleted.", ok: true });
+      } catch (e: any) {
+        setMessage({ text: `Error: ${e.message}`, ok: false });
+      }
+    });
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
+        <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>Templates</h2>
+        {templates.length === 0 && !editing && (
+          <p style={{ color: "#aaa", fontSize: 12.5, marginBottom: 14 }}>No templates yet.</p>
+        )}
+        <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+          {templates.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 12px",
+                border: "1px solid #eee",
+                borderRadius: 8,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
+                <div style={{ fontSize: 11.5, color: "#999" }}>
+                  {CATEGORY_LABEL[t.category]} ·{" "}
+                  {t.category === "consent" ? "Text document" : `${t.fields_config.length} field(s)`} ·{" "}
+                  {t.is_active ? "Active" : "Inactive"}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => startEdit(t)}
+                  style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => remove(t)}
+                  disabled={pending}
+                  style={{ background: "none", border: "1px solid #f0c8c8", color: "#a12a2a", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: pending ? "default" : "pointer" }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {!editing && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={() => startNew("intake")}
+              style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
+            >
+              + New Intake Form
+            </button>
+            <button
+              onClick={() => startNew("consent")}
+              style={{ background: "none", border: "1px solid #0c1730", color: "var(--text-heading)", fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, cursor: "pointer" }}
+            >
+              + New Consent Form
+            </button>
+            <button
+              onClick={() => startNew("other")}
+              style={{ background: "none", border: "1px solid var(--input-border)", color: "#555", fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, cursor: "pointer" }}
+            >
+              + New Other Form
+            </button>
+          </div>
+        )}
+      </div>
+
+      {editing && (
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
+          <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>
+            {editing.id ? "Edit template" : "New template"} — {CATEGORY_LABEL[editing.category]}
+          </h2>
+          <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
+            <input
+              placeholder="Template name"
+              value={editing.name}
+              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13.5 }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <input type="checkbox" checked={editing.is_active} onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
+              Active
+            </label>
+          </div>
+
+          {isConsent ? (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#333", marginBottom: 8 }}>Consent Text</div>
+              <textarea
+                value={consentField?.value ?? ""}
+                onChange={(e) => updateConsentBody(e.target.value)}
+                rows={8}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+              />
+              <div style={{ fontSize: 11.5, color: "#999", marginTop: 6 }}>
+                This is the acknowledgement text patients will read and sign. Patient name, date, and signature are
+                added automatically at the point of use.
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#333", marginBottom: 8 }}>Fields</div>
+              <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                {fields.map((f, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <button
+                        onClick={() => moveField(i, -1)}
+                        disabled={i === 0}
+                        style={{ background: "none", border: "none", color: i === 0 ? "#ddd" : "#666", fontSize: 11, cursor: i === 0 ? "default" : "pointer", lineHeight: 1, padding: 0 }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveField(i, 1)}
+                        disabled={i === fields.length - 1}
+                        style={{ background: "none", border: "none", color: i === fields.length - 1 ? "#ddd" : "#666", fontSize: 11, cursor: i === fields.length - 1 ? "default" : "pointer", lineHeight: 1, padding: 0 }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <input
+                      placeholder="Field label"
+                      value={f.label}
+                      onChange={(e) => updateField(i, { label: e.target.value })}
+                      style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 13 }}
+                    />
+                    <select
+                      value={f.type}
+                      onChange={(e) => updateField(i, { type: e.target.value as FieldType })}
+                      style={{ padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}
+                    >
+                      <option value="text">Short text</option>
+                      <option value="textarea">Long text</option>
+                      <option value="date">Date</option>
+                      <option value="select">Dropdown</option>
+                      <option value="checkbox">Checkbox</option>
+                    </select>
+                    {f.type === "select" && (
+                      <input
+                        placeholder="Options, comma-separated"
+                        value={f.options ?? ""}
+                        onChange={(e) => updateField(i, { options: e.target.value })}
+                        style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}
+                      />
+                    )}
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "#666", whiteSpace: "nowrap" }}>
+                      <input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} />
+                      Required
+                    </label>
+                    <button onClick={() => removeField(i)} style={{ background: "none", border: "none", color: "#c00", fontSize: 16, cursor: "pointer" }}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {fields.length === 0 && <p style={{ color: "#aaa", fontSize: 12.5 }}>No fields yet.</p>}
+              </div>
+              <button
+                onClick={addField}
+                style={{ background: "none", border: "1px dashed #bbb", borderRadius: 7, padding: "7px 14px", fontSize: 12, cursor: "pointer", color: "#666", marginBottom: 16 }}
+              >
+                + Add field
+              </button>
+            </>
+          )}
+
+          {message && !message.ok && <p style={{ color: "crimson", fontSize: 12.5, marginBottom: 10 }}>{message.text}</p>}
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={save}
+              disabled={pending || !editing.name.trim()}
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+            >
+              {pending ? "Saving…" : "Save Template"}
+            </button>
+            <button
+              onClick={() => setEditing(null)}
+              style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "9px 18px", fontSize: 13, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {message && message.ok && !editing && <p style={{ color: "#1a7f37", fontSize: 12.5 }}>{message.text}</p>}
+    </div>
+  );
+}

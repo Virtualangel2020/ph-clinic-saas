@@ -14,10 +14,10 @@ export type AppointmentRow = {
 
 function ApptRow({ a }: { a: AppointmentRow }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "10px 14px", fontSize: 13 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "10px 14px", fontSize: 13 }}>
       <div>
         <div>
-          <span style={{ fontWeight: 700, color: "#0c1730" }}>{formatDayLabel(a.start_at.slice(0, 10))}</span>
+          <span style={{ fontWeight: 700, color: "var(--text-heading)" }}>{formatDayLabel(a.start_at.slice(0, 10))}</span>
           <span style={{ color: "#666", marginLeft: 6 }}>{formatTime(a.start_at)}</span>
         </div>
         <div style={{ color: "#666", fontSize: 12, marginTop: 2 }}>

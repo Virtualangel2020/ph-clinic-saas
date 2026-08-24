@@ -64,7 +64,7 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
         <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>Templates</h2>
         {templates.length === 0 && !editing && <p style={{ color: "#aaa", fontSize: 12.5, marginBottom: 14 }}>No template yet.</p>}
         <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
@@ -74,7 +74,7 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
                 <div style={{ fontSize: 11.5, color: "#999" }}>{t.fields_config.length} field(s) · {t.is_active ? "Active" : "Inactive"}</div>
               </div>
-              <button onClick={() => setEditing(t)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => setEditing(t)} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                 Edit
               </button>
             </div>
@@ -88,14 +88,14 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
       </div>
 
       {editing && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
           <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>{editing.id ? "Edit template" : "New template"}</h2>
           <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
             <input
               placeholder="Template name"
               value={editing.name}
               onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-              style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13.5 }}
+              style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13.5 }}
             />
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
               <input type="checkbox" checked={editing.is_active} onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
@@ -111,9 +111,9 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
                   placeholder="Field label"
                   value={f.label}
                   onChange={(e) => updateField(i, { label: e.target.value })}
-                  style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid #ddd", fontSize: 13 }}
+                  style={{ flex: 1, padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 13 }}
                 />
-                <select value={f.type} onChange={(e) => updateField(i, { type: e.target.value as Field["type"] })} style={{ padding: "8px 10px", borderRadius: 7, border: "1px solid #ddd", fontSize: 12.5 }}>
+                <select value={f.type} onChange={(e) => updateField(i, { type: e.target.value as Field["type"] })} style={{ padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 12.5 }}>
                   <option value="text">Short text</option>
                   <option value="textarea">Long text</option>
                   <option value="date">Date</option>
@@ -138,7 +138,7 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
             >
               {pending ? "Saving…" : "Save Template"}
             </button>
-            <button onClick={() => setEditing(null)} style={{ background: "none", border: "1px solid #ddd", borderRadius: 8, padding: "9px 18px", fontSize: 13, cursor: "pointer" }}>
+            <button onClick={() => setEditing(null)} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "9px 18px", fontSize: 13, cursor: "pointer" }}>
               Cancel
             </button>
           </div>

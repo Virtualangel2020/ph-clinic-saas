@@ -101,7 +101,7 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
       })}
 
       {showAdd ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 8, padding: 12 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 8, padding: 12 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             {(["red", "yellow", "blue"] as const).map((c) => (
               <label key={c} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, cursor: "pointer" }}>
@@ -115,14 +115,14 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="e.g. Allergic to penicillin"
-            style={{ width: "100%", boxSizing: "border-box", border: "1px solid #ddd", borderRadius: 6, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", minHeight: 44, marginBottom: 8 }}
+            style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--input-border)", borderRadius: 6, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", minHeight: 44, marginBottom: 8 }}
           />
           {error && <div style={{ fontSize: 12, color: "crimson", marginBottom: 8 }}>{error}</div>}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={addAlert} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}>
               Add alert
             </button>
-            <button onClick={() => { setShowAdd(false); setError(null); }} disabled={pending} style={{ background: "white", color: "#666", border: "1px solid #ddd", borderRadius: 6, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
+            <button onClick={() => { setShowAdd(false); setError(null); }} disabled={pending} style={{ background: "var(--card-bg)", color: "#666", border: "1px solid var(--input-border)", borderRadius: 6, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
               Cancel
             </button>
           </div>

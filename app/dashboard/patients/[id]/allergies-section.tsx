@@ -39,16 +39,16 @@ export function AllergiesSection({ patientId, allergies }: { patientId: string; 
     <div style={{ marginTop: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontSize: 15 }}>Allergies</h2>
-        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {adding ? "Cancel" : "+ Add allergy"}
         </button>
       </div>
 
       {adding && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gap: 8 }}>
-          <input placeholder="Allergen (e.g. Penicillin)" value={allergen} onChange={(e) => setAllergen(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
-          <input placeholder="Reaction (e.g. Rash, hives)" value={reaction} onChange={(e) => setReaction(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
-          <select value={severity} onChange={(e) => setSeverity(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gap: 8 }}>
+          <input placeholder="Allergen (e.g. Penicillin)" value={allergen} onChange={(e) => setAllergen(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+          <input placeholder="Reaction (e.g. Rash, hives)" value={reaction} onChange={(e) => setReaction(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+          <select value={severity} onChange={(e) => setSeverity(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}>
             <option value="mild">Mild</option>
             <option value="moderate">Moderate</option>
             <option value="severe">Severe</option>
@@ -64,7 +64,7 @@ export function AllergiesSection({ patientId, allergies }: { patientId: string; 
       ) : (
         <div style={{ display: "grid", gap: 6 }}>
           {allergies.map((a) => (
-            <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
+            <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 8, padding: "8px 12px", fontSize: 13 }}>
               <div>
                 <strong>{a.allergen}</strong>
                 {a.reaction ? ` — ${a.reaction}` : ""}

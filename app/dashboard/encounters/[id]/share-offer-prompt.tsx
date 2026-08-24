@@ -44,7 +44,7 @@ export function ShareOfferPrompt({
 
   return (
     <div style={{ background: "#eef1fb", border: "1px solid #c7d4f5", borderRadius: 10, padding: 14, marginBottom: 20 }}>
-      <p style={{ fontSize: 13, color: "#0c1730", margin: "0 0 8px" }}>
+      <p style={{ fontSize: 13, color: "var(--text-heading)", margin: "0 0 8px" }}>
         This patient has an active sharing preference for <strong>{providerName}</strong>. Send a copy of this
         encounter to them now?
       </p>
@@ -53,7 +53,7 @@ export function ShareOfferPrompt({
         <button onClick={send} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
           {pending ? "Sending…" : `Send Copy to ${providerName}`}
         </button>
-        <button onClick={() => setDismissed(true)} disabled={pending} style={{ background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
+        <button onClick={() => setDismissed(true)} disabled={pending} style={{ background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
           Not Now
         </button>
       </div>

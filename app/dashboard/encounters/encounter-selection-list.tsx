@@ -17,7 +17,7 @@ export type SelectableEncounterRow = {
   encounter_date: string;
 };
 
-const CARD_STYLE: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "12px 14px" };
+const CARD_STYLE: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12, background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 14px" };
 
 // Multi-select + combined PDF export (spec §3-5, §14). Reused by both the
 // date-organized default view and the Search Encounters results — the
@@ -122,7 +122,7 @@ export function EncounterSelectionList({
             <button
               onClick={() => setSendOpen(true)}
               disabled={sendDisabled}
-              style={{ ...ACTION_BUTTON, background: "white", color: "#0c1730", border: "1px solid #0c1730", ...(sendDisabled ? { ...ACTION_DISABLED, border: "1px solid #ddd" } : {}) }}
+              style={{ ...ACTION_BUTTON, background: "var(--card-bg)", color: "var(--text-heading)", border: "1px solid #0c1730", ...(sendDisabled ? { ...ACTION_DISABLED, border: "1px solid var(--input-border)" } : {}) }}
             >
               Send to AngelClinic Provider
             </button>
@@ -152,7 +152,7 @@ export function EncounterSelectionList({
       {error && <div style={{ fontSize: 12, color: "crimson", marginBottom: 10 }}>{error}</div>}
 
       {rows.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>{emptyMessage}</div>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>{emptyMessage}</div>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {rows.map((r) => (
@@ -160,9 +160,9 @@ export function EncounterSelectionList({
               <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
               <Link href={`/dashboard/encounters/${r.id}`} style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, textDecoration: "none", color: "inherit", minWidth: 0 }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#0c1730" }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)" }}>
                     {r.patient_name ?? "Unknown patient"}
-                    {r.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px", fontWeight: 400 }}>{r.encounter_type}</span>}
+                    {r.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid var(--input-border)", borderRadius: 999, padding: "1px 7px", fontWeight: 400 }}>{r.encounter_type}</span>}
                   </div>
                   <div style={{ fontSize: 12, color: "#888", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {showDate && `${new Date(r.encounter_date).toLocaleDateString()} · `}
@@ -182,7 +182,7 @@ export function EncounterSelectionList({
   );
 }
 
-const LINK_BUTTON: React.CSSProperties = { background: "none", border: "none", color: "#0c1730", fontWeight: 600, fontSize: 12, cursor: "pointer", padding: 0 };
+const LINK_BUTTON: React.CSSProperties = { background: "none", border: "none", color: "var(--text-heading)", fontWeight: 600, fontSize: 12, cursor: "pointer", padding: 0 };
 const ACTION_BUTTON: React.CSSProperties = { background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
 const ACTION_DISABLED: React.CSSProperties = { background: "#eceef2", color: "#aaa", cursor: "not-allowed" };
 
@@ -247,7 +247,7 @@ function SendToProviderPanel({
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #c7d4f5", borderRadius: 10, padding: 16, marginBottom: 12 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid #c7d4f5", borderRadius: 10, padding: 16, marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <h3 style={{ fontSize: 14, margin: 0 }}>Send to AngelClinic Provider</h3>
         <button onClick={onClose} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12 }}>Cancel</button>
@@ -261,7 +261,7 @@ function SendToProviderPanel({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runSearch()}
               placeholder="Search by name, specialty, or clinic…"
-              style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, flex: 1 }}
+              style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, flex: 1 }}
             />
             <button onClick={runSearch} disabled={searching} style={ACTION_BUTTON}>{searching ? "…" : "Search"}</button>
           </div>
@@ -272,7 +272,7 @@ function SendToProviderPanel({
                 <button
                   key={p.id}
                   onClick={() => pick(p)}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "white", cursor: "pointer", fontSize: 13 }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "var(--card-bg)", cursor: "pointer", fontSize: 13 }}
                 >
                   {p.title ? `${p.title} ` : ""}{p.full_name}
                   <div style={{ fontSize: 11, color: "#888" }}>{[p.specialty, p.clinic_name].filter(Boolean).join(" · ")}</div>
@@ -297,7 +297,7 @@ function SendToProviderPanel({
             {error && <p style={{ fontSize: 11.5, color: "crimson", marginBottom: 8 }}>{error}</p>}
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={sendSecurely} disabled={sending} style={ACTION_BUTTON}>{sending ? "Sending…" : "Send Securely"}</button>
-              <button onClick={() => setStep("pick")} disabled={sending} style={{ background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
+              <button onClick={() => setStep("pick")} disabled={sending} style={{ background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
                 Back
               </button>
             </div>
@@ -312,7 +312,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
       <span style={{ color: "#888" }}>{label}</span>
-      <span style={{ fontWeight: 600, color: "#0c1730", textAlign: "right" }}>{value}</span>
+      <span style={{ fontWeight: 600, color: "var(--text-heading)", textAlign: "right" }}>{value}</span>
     </div>
   );
 }

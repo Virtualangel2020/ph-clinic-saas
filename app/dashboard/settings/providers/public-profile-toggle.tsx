@@ -41,7 +41,7 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Public directory listing</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>
         Optional. Turn this on to appear on AngelClinic's public "Find a Doctor" page. Off by default — nothing
@@ -58,16 +58,16 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
             placeholder="Short bio shown to patients"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, minHeight: 60, fontFamily: "inherit" }}
+            style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13, minHeight: 60, fontFamily: "inherit" }}
           />
           <input
             placeholder="Languages spoken (comma-separated)"
             value={languages}
             onChange={(e) => setLanguages(e.target.value)}
-            style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}
+            style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 }}
           />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
-            <select value={consultationType} onChange={(e) => setConsultationType(e.target.value)} style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}>
+            <select value={consultationType} onChange={(e) => setConsultationType(e.target.value)} style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 }}>
               <option value="in_person">In-person</option>
               <option value="telehealth">Telehealth</option>
               <option value="both">Both</option>
@@ -77,12 +77,12 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
               placeholder="Consultation fee (₱)"
               value={fee}
               onChange={(e) => setFee(e.target.value)}
-              style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}
+              style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 }}
             />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: "#333", display: "block", marginBottom: 4 }}>Public booking</label>
-            <select value={bookingMode} onChange={(e) => setBookingMode(e.target.value)} style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%" }}>
+            <select value={bookingMode} onChange={(e) => setBookingMode(e.target.value)} style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13, width: "100%" }}>
               <option value="none">Don't accept public appointment requests — listing only</option>
               <option value="request">Accept appointment requests (clinic confirms manually)</option>
               <option value="real_time" disabled>

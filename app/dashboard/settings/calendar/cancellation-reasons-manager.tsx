@@ -34,7 +34,7 @@ export function CancellationReasonsManager({ initialReasons }: { initialReasons:
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Cancellation reasons</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 14 }}>
         Shown as a dropdown whenever staff cancel an appointment or mark it a late cancellation — keeps reasons
@@ -49,7 +49,7 @@ export function CancellationReasonsManager({ initialReasons }: { initialReasons:
               disabled={pending}
               onChange={(e) => setReasons((prev) => prev.map((x) => (x.id === r.id ? { ...x, label: e.target.value } : x)))}
               onBlur={(e) => save({ id: r.id, label: e.target.value, isActive: r.is_active, sortOrder: r.sort_order })}
-              style={{ flex: 1, border: "1px solid #ddd", borderRadius: 6, padding: "6px 8px", fontSize: 13 }}
+              style={{ flex: 1, border: "1px solid var(--input-border)", borderRadius: 6, padding: "6px 8px", fontSize: 13 }}
             />
             <label style={{ fontSize: 11.5, color: "#666", display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}>
               <input
@@ -71,7 +71,7 @@ export function CancellationReasonsManager({ initialReasons }: { initialReasons:
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && addReason()}
-          style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}
+          style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 }}
         />
         <button
           onClick={addReason}

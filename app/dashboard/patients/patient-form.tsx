@@ -30,7 +30,7 @@ type Patient = {
   notes: string | null;
 };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "9px 11px", fontSize: 13.5, width: "100%" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "9px 11px", fontSize: 13.5, width: "100%" };
 const LABEL_STYLE: React.CSSProperties = { fontSize: 12, color: "#666", marginBottom: 4, display: "block" };
 
 function toInput(p: Patient | null): PatientInput {
@@ -88,7 +88,7 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22, display: "grid", gap: 18, maxWidth: 720 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22, display: "grid", gap: 18, maxWidth: 720 }}>
       <div>
         <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Demographics</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>

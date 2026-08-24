@@ -57,7 +57,7 @@ export function QrCheckout({ invoiceId }: { invoiceId: string }) {
 
   if (phase === "waiting" && qrImage) {
     return (
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, textAlign: "center" }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 16, textAlign: "center" }}>
         <img src={qrImage} alt="QR Ph payment code" style={{ width: 220, height: 220, margin: "0 auto 10px" }} />
         <div style={{ fontSize: 13, color: "#333", marginBottom: 4 }}>
           Scan with your GCash, Maya, or banking app — ₱{amount?.toLocaleString()}

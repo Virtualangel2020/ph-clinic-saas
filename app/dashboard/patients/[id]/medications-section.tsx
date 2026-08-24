@@ -54,17 +54,17 @@ export function MedicationsSection({ patientId, medications }: { patientId: stri
     <div style={{ marginTop: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontSize: 15 }}>Current medications</h2>
-        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {adding ? "Cancel" : "+ Add medication"}
         </button>
       </div>
 
       {adding && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
-          <input placeholder="Medication name" value={name} onChange={(e) => setName(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, gridColumn: "1 / -1" }} />
-          <input placeholder="Dosage (e.g. 500mg)" value={dosage} onChange={(e) => setDosage(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
-          <input placeholder="Frequency (e.g. 2x/day)" value={frequency} onChange={(e) => setFrequency(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
-          <input type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+          <input placeholder="Medication name" value={name} onChange={(e) => setName(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, gridColumn: "1 / -1" }} />
+          <input placeholder="Dosage (e.g. 500mg)" value={dosage} onChange={(e) => setDosage(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+          <input placeholder="Frequency (e.g. 2x/day)" value={frequency} onChange={(e) => setFrequency(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+          <input type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
           <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
             Save
           </button>
@@ -76,7 +76,7 @@ export function MedicationsSection({ patientId, medications }: { patientId: stri
       ) : (
         <div style={{ display: "grid", gap: 6 }}>
           {medications.map((m) => (
-            <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 8, padding: "8px 12px", fontSize: 13, opacity: m.is_active ? 1 : 0.55 }}>
+            <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, opacity: m.is_active ? 1 : 0.55 }}>
               <div>
                 <strong>{m.medication_name}</strong>
                 {m.dosage ? ` — ${m.dosage}` : ""}

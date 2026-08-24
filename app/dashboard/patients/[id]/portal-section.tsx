@@ -73,7 +73,7 @@ export function PortalSection({
   return (
     <div style={{ marginTop: 24 }}>
       <h2 style={{ fontSize: 15, marginBottom: 8 }}>Patient Portal</h2>
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14 }}>
         {!channels.email && !channels.sms && (
           <div style={{ fontSize: 11.5, color: "#8a6100", background: "#fff6e6", border: "1px solid #f0d998", borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
             Automatic email/SMS invites need the matching Communications add-on. Portal login itself always works —
@@ -101,7 +101,7 @@ export function PortalSection({
                   onClick={() => invite("email")}
                   disabled={pending || !patientEmail}
                   title={!patientEmail ? "This patient has no email on file" : undefined}
-                  style={{ background: "#f0f4ff", color: "#0c1730", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: patientEmail ? "pointer" : "not-allowed", opacity: patientEmail ? 1 : 0.5 }}
+                  style={{ background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: patientEmail ? "pointer" : "not-allowed", opacity: patientEmail ? 1 : 0.5 }}
                 >
                   Send email invite
                 </button>
@@ -111,7 +111,7 @@ export function PortalSection({
                   onClick={() => invite("sms")}
                   disabled={pending || !patientMobile}
                   title={!patientMobile ? "This patient has no mobile number on file" : undefined}
-                  style={{ background: "#f0f4ff", color: "#0c1730", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: patientMobile ? "pointer" : "not-allowed", opacity: patientMobile ? 1 : 0.5 }}
+                  style={{ background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: patientMobile ? "pointer" : "not-allowed", opacity: patientMobile ? 1 : 0.5 }}
                 >
                   Send SMS invite
                 </button>
@@ -132,7 +132,7 @@ export function PortalSection({
                 Generate new in-person code
               </button>
               {account.channel !== "manual" && (
-                <button onClick={() => invite(account.channel)} disabled={pending} style={{ background: "#f0f4ff", color: "#0c1730", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={() => invite(account.channel)} disabled={pending} style={{ background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                   Resend {account.channel}
                 </button>
               )}
@@ -168,7 +168,7 @@ export function PortalSection({
         {code && (
           <div style={{ marginTop: 12, background: "#f0f4ff", border: "1px solid #c7d4f5", borderRadius: 8, padding: "12px 14px" }}>
             <div style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>Read or show this to the patient — expires in 24 hours:</div>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3, color: "#0c1730", fontFamily: "monospace" }}>{code}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3, color: "var(--text-heading)", fontFamily: "monospace" }}>{code}</div>
             <div style={{ fontSize: 11, color: "#666", marginTop: 6 }}>
               They enter it at <strong>{typeof window !== "undefined" ? window.location.origin : ""}/portal/activate</strong> to set their own password.
             </div>

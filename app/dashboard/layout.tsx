@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("full_name, role, tenant_id, tenants(name)")
+    .select("full_name, role, tenant_id, theme_preference, tenants(name)")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -64,6 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       userLabel={profile.full_name || user.email || ""}
       enabledAddonKeys={(entitlements ?? []).map((e) => e.feature_key)}
       jellybeanCounts={jellybeanCounts}
+      themePreference={((profile as any).theme_preference as "light" | "dark" | "system" | undefined) ?? "system"}
     >
       {children}
     </EmrShell>

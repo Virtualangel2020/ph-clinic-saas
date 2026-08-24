@@ -49,7 +49,7 @@ export function ApprovalQueue({
 
   if (pendingSignatures.length === 0 && pendingCredentials.length === 0) {
     return (
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24 }}>
         <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Pending approvals</h2>
         <p style={{ fontSize: 13, color: "#888", margin: 0 }}>Nothing waiting on you right now.</p>
       </div>
@@ -57,7 +57,7 @@ export function ApprovalQueue({
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 14 }}>Pending approvals</h2>
 
       {pendingSignatures.map((s) => (

@@ -37,11 +37,11 @@ export type LabOrderRow = {
   results: LabResultRow[];
 };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
   ordered: { color: "#8a6100", bg: "#fff6e6", border: "#f0d998", label: "Ordered" },
-  collected: { color: "#0c1730", bg: "#f0f4ff", border: "#c7d4f5", label: "Collected" },
+  collected: { color: "var(--text-heading)", bg: "#f0f4ff", border: "#c7d4f5", label: "Collected" },
   completed: { color: "#1a7f37", bg: "#eaf7ee", border: "#bfe6c9", label: "Completed" },
   cancelled: { color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9", label: "Cancelled" },
 };
@@ -121,7 +121,7 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
     <div style={{ marginTop: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontSize: 15 }}>Lab orders &amp; results</h2>
-        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {adding ? "Cancel" : "+ Order labs"}
         </button>
       </div>
@@ -129,7 +129,7 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
       {error && !adding && <p style={{ fontSize: 12, color: "#a12a2a", marginBottom: 8 }}>{error}</p>}
 
       {adding && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, marginBottom: 10, padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, marginBottom: 10, padding: 14, display: "grid", gap: 10 }}>
           <div>
             <div style={labelStyle}>Tests</div>
             <div style={{ display: "grid", gap: 6 }}>
@@ -144,7 +144,7 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
                 </div>
               ))}
             </div>
-            <button onClick={addTestRow} style={{ marginTop: 6, fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+            <button onClick={addTestRow} style={{ marginTop: 6, fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
               + Add another test
             </button>
           </div>
@@ -236,7 +236,7 @@ function LabOrderCard({ order, patientId }: { order: LabOrderRow; patientId: str
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, fontSize: 13 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14, fontSize: 13 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
         <div>
           <div style={{ fontWeight: 700 }}>
@@ -334,4 +334,4 @@ function LabOrderCard({ order, patientId }: { order: LabOrderRow; patientId: str
 }
 
 const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 4 };
-const linkButtonStyle: React.CSSProperties = { fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: 0 };
+const linkButtonStyle: React.CSSProperties = { fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: 0 };

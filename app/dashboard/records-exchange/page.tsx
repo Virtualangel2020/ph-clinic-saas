@@ -84,5 +84,5 @@ function TabLink({ href, active, label }: { href: string; active: boolean; label
 }
 
 function Empty({ text }: { text: string }) {
-  return <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>{text}</div>;
+  return <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>{text}</div>;
 }

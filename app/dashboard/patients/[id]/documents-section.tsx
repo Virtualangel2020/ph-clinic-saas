@@ -138,16 +138,16 @@ export function DocumentsSection({ patientId, documents }: { patientId: string; 
             <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} />
             Show entered-in-error / archived
           </label>
-          <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
             {adding ? "Cancel" : "+ Add document"}
           </button>
         </div>
       </div>
 
       {adding && (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gap: 8 }}>
-          <input placeholder="Title (e.g. Referral Letter — Aug 2026)" value={title} onChange={(e) => setTitle(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
-          <select value={docType} onChange={(e) => setDocType(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gap: 8 }}>
+          <input placeholder="Title (e.g. Referral Letter — Aug 2026)" value={title} onChange={(e) => setTitle(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+          <select value={docType} onChange={(e) => setDocType(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}>
             {Object.entries(UPLOADABLE_TYPES).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
@@ -155,7 +155,7 @@ export function DocumentsSection({ patientId, documents }: { patientId: string; 
           <p style={{ fontSize: 11, color: "#999", margin: "-4px 0 0" }}>
             Lab results and prescriptions have their own tabs — file those there, not here.
           </p>
-          <textarea placeholder="Description / notes" value={description} onChange={(e) => setDescription(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, minHeight: 50, fontFamily: "inherit" }} />
+          <textarea placeholder="Description / notes" value={description} onChange={(e) => setDescription(e.target.value)} style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, minHeight: 50, fontFamily: "inherit" }} />
           <div>
             <input ref={fileRef} type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/webp" style={{ fontSize: 12 }} />
             <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>PDF, JPG, PNG, HEIC, or WEBP, up to 25MB. Optional — you can also just record the metadata.</p>
@@ -172,10 +172,10 @@ export function DocumentsSection({ patientId, documents }: { patientId: string; 
       ) : (
         <div style={{ display: "grid", gap: 6 }}>
           {visible.map((d) => (
-            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 8, padding: "8px 12px", fontSize: 13, opacity: d.status === "active" ? 1 : 0.6 }}>
+            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, opacity: d.status === "active" ? 1 : 0.6 }}>
               <div>
                 <strong>{d.title}</strong>
-                <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px" }}>{TYPE_LABEL[d.doc_type] ?? d.doc_type}</span>
+                <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid var(--input-border)", borderRadius: 999, padding: "1px 7px" }}>{TYPE_LABEL[d.doc_type] ?? d.doc_type}</span>
                 {d.status !== "active" && (
                   <span style={{ marginLeft: 6, fontSize: 11, color: "#a12a2a", fontWeight: 600 }}>{STATUS_LABEL[d.status] ?? d.status}</span>
                 )}
@@ -186,7 +186,7 @@ export function DocumentsSection({ patientId, documents }: { patientId: string; 
               </div>
               <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
                 {d.storage_path && (
-                  <button onClick={() => view(d.storage_path!)} style={{ background: "none", border: "none", color: "#0c1730", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                  <button onClick={() => view(d.storage_path!)} style={{ background: "none", border: "none", color: "var(--text-heading)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                     View
                   </button>
                 )}

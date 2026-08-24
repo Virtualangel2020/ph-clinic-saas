@@ -44,7 +44,7 @@ export function PermissionsGrid({
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, overflowX: "auto" }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, overflowX: "auto" }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Permissions</h2>
       <p style={{ fontSize: 12, color: "#999", marginBottom: 14 }}>
         Each toggle starts at that permission's sensible default and can be adjusted per person. Clinic admins

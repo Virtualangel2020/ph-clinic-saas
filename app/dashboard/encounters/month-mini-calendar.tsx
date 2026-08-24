@@ -33,10 +33,10 @@ export function MonthMiniCalendar({ monthAnchor, selectedDate, encounterDates }:
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 14 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 14 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <button onClick={() => goMonth(startOfMonth(addDays(monthFirst, -1)))} style={ARROW_BTN} aria-label="Previous month">‹</button>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#0c1730" }}>{formatMonthLabel(monthFirst)}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-heading)" }}>{formatMonthLabel(monthFirst)}</span>
         <button onClick={() => goMonth(startOfMonth(addDays(monthFirst, 32)))} style={ARROW_BTN} aria-label="Next month">›</button>
       </div>
 
@@ -96,4 +96,4 @@ export function MonthMiniCalendar({ monthAnchor, selectedDate, encounterDates }:
   );
 }
 
-const ARROW_BTN: React.CSSProperties = { background: "none", border: "1px solid #ddd", borderRadius: 6, width: 24, height: 24, cursor: "pointer", fontSize: 13, color: "#0c1730", lineHeight: 1 };
+const ARROW_BTN: React.CSSProperties = { background: "none", border: "1px solid var(--input-border)", borderRadius: 6, width: 24, height: 24, cursor: "pointer", fontSize: 13, color: "var(--text-heading)", lineHeight: 1 };

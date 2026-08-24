@@ -23,7 +23,7 @@ export function ArchiveButton({ patientId, isActive }: { patientId: string; isAc
       disabled={pending}
       style={{
         border: "1px solid " + (isActive ? "#e0b3b3" : "#ccc"),
-        background: "white",
+        background: "var(--card-bg)",
         color: isActive ? "#a12a2a" : "#333",
         borderRadius: 8,
         padding: "8px 14px",

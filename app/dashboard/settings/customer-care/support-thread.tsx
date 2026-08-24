@@ -60,7 +60,7 @@ export function SupportThread({ initialMessages }: { initialMessages: Message[] 
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, display: "flex", flexDirection: "column", height: 480 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, display: "flex", flexDirection: "column", height: 480 }}>
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
         {messages.length === 0 && (
           <div style={{ color: "#999", fontSize: 13, textAlign: "center", marginTop: 24 }}>
@@ -108,7 +108,7 @@ export function SupportThread({ initialMessages }: { initialMessages: Message[] 
           }}
           placeholder="Type a message…"
           rows={2}
-          style={{ flex: 1, resize: "none", border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13.5, fontFamily: "inherit" }}
+          style={{ flex: 1, resize: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13.5, fontFamily: "inherit" }}
         />
         <button
           onClick={send}

@@ -17,7 +17,7 @@ const RANGE_OPTIONS: { key: EncounterHistoryFilter["rangeKey"]; label: string }[
   { key: "1y", label: "Last Year" },
 ];
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 6, padding: "5px 8px", fontSize: 12, fontFamily: "inherit" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 6, padding: "5px 8px", fontSize: 12, fontFamily: "inherit" };
 
 // Patient-chart Encounters — this is deliberately the OTHER of the two ways
 // to reach encounter info (see spec: "OPTION 1 — From Patient Chart" vs
@@ -93,7 +93,7 @@ export function EncounterHistorySection({
     <div style={{ marginTop: 28 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
         <h2 style={{ fontSize: 15 }}>Encounters</h2>
-        <Link href={`/dashboard/encounters?patient=${patientId}`} style={{ fontSize: 12.5, color: "#0c1730", fontWeight: 600, textDecoration: "none" }}>
+        <Link href={`/dashboard/encounters?patient=${patientId}`} style={{ fontSize: 12.5, color: "var(--text-heading)", fontWeight: 600, textDecoration: "none" }}>
           + New encounter
         </Link>
       </div>
@@ -105,7 +105,7 @@ export function EncounterHistorySection({
             onClick={() => runFilter({ rangeKey: r.key })}
             disabled={pending}
             style={{
-              border: "1px solid #ddd",
+              border: "1px solid var(--input-border)",
               borderRadius: 999,
               padding: "4px 11px",
               fontSize: 11.5,
@@ -151,11 +151,11 @@ export function EncounterHistorySection({
             <Link
               key={e.id}
               href={`/dashboard/encounters/${e.id}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "11px 14px", textDecoration: "none", fontSize: 13 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "11px 14px", textDecoration: "none", fontSize: 13 }}
             >
               <div>
-                <span style={{ fontWeight: 700, color: "#0c1730" }}>{new Date(e.encounter_date).toLocaleDateString()}</span>
-                {e.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px" }}>{e.encounter_type}</span>}
+                <span style={{ fontWeight: 700, color: "var(--text-heading)" }}>{new Date(e.encounter_date).toLocaleDateString()}</span>
+                {e.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid var(--input-border)", borderRadius: 999, padding: "1px 7px" }}>{e.encounter_type}</span>}
                 {e.chief_complaint && <span style={{ color: "#666", marginLeft: 8 }}>— {e.chief_complaint}</span>}
                 {e.provider_name && <span style={{ color: "#999", marginLeft: 8, fontSize: 12 }}>· {e.provider_name}</span>}
               </div>
@@ -171,7 +171,7 @@ export function EncounterHistorySection({
         <button
           onClick={loadMore}
           disabled={pending}
-          style={{ marginTop: 12, background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "#0c1730" }}
+          style={{ marginTop: 12, background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "var(--text-heading)" }}
         >
           {pending ? "Loading…" : "Load more"}
         </button>

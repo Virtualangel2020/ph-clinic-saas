@@ -11,7 +11,7 @@ import {
   type ExternalDirectoryProvider,
 } from "../care-coordination-actions";
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 type PrimaryProvider = { kind: "angelclinic"; name: string; specialty: string | null; clinicName: string | null } | { kind: "external"; name: string; specialty: string | null; clinicName: string | null } | null;
 
@@ -24,7 +24,7 @@ type SharingPreference = { providerUserId: string; providerName: string; clinicN
 // never sets or implies sharing authorization.
 export function CareCoordinationSection({ patientId, primaryProvider, sharingPreference }: { patientId: string; primaryProvider: PrimaryProvider; sharingPreference: SharingPreference }) {
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
       <h2 style={{ fontSize: 15, marginBottom: 12 }}>Care Coordination</h2>
       <div style={{ display: "grid", gap: 16 }}>
         <PrimaryProviderRow patientId={patientId} current={primaryProvider} />
@@ -96,7 +96,7 @@ function PrimaryProviderRow({ patientId, current }: { patientId: string; current
             <div style={{ fontSize: 12.5, color: "#999" }}>Not set</div>
           )}
         </div>
-        <button onClick={() => setEditing((v) => !v)} style={{ fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setEditing((v) => !v)} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {editing ? "Cancel" : current ? "Change" : "+ Set"}
         </button>
       </div>
@@ -167,7 +167,7 @@ function SharingPreferenceRow({ patientId, current }: { patientId: string; curre
             </div>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setEditing((v) => !v)} style={{ fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+            <button onClick={() => setEditing((v) => !v)} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
               Change
             </button>
             <button onClick={revoke} disabled={pending} style={{ fontSize: 12, color: "#a12a2a", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
@@ -253,7 +253,7 @@ function ProviderSearch({
               key={p.id}
               disabled={pending}
               onClick={() => onPickAngelClinic(p)}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "white", cursor: "pointer", fontSize: 13 }}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "var(--card-bg)", cursor: "pointer", fontSize: 13 }}
             >
               {p.title ? `${p.title} ` : ""}
               {p.full_name}
@@ -266,10 +266,10 @@ function ProviderSearch({
               key={p.id}
               disabled={pending}
               onClick={() => onPickExternal?.(p)}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "white", cursor: "pointer", fontSize: 13 }}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "var(--card-bg)", cursor: "pointer", fontSize: 13 }}
             >
               {p.full_name}
-              <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#666", background: "#f2f2f2", border: "1px solid #ddd", borderRadius: 999, padding: "1px 6px" }}>External</span>
+              <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#666", background: "#f2f2f2", border: "1px solid var(--input-border)", borderRadius: 999, padding: "1px 6px" }}>External</span>
               <div style={{ fontSize: 11, color: "#888" }}>{[p.specialty, p.clinic_name, p.city].filter(Boolean).join(" · ")}</div>
             </button>
           ))}

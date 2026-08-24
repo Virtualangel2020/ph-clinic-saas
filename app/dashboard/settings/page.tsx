@@ -72,10 +72,10 @@ export default async function SettingsHubPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                style={{ display: "block", position: "relative", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, textDecoration: "none" }}
+                style={{ display: "block", position: "relative", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 16, textDecoration: "none" }}
               >
                 {item.href === "/dashboard/settings/customer-care" && <UnreadBadge count={unreadCount ?? 0} />}
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#0c1730", marginBottom: 4 }}>{item.label}</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)", marginBottom: 4 }}>{item.label}</div>
                 <div style={{ fontSize: 12, color: "#888" }}>{item.desc}</div>
               </Link>
             ))}

@@ -8,7 +8,7 @@ type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string };
 type TodaysAppointment = { id: string; patient_id: string; provider_id: string | null; start_at: string; status: string; patients: { first_name: string; last_name: string } | null };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "#666", marginBottom: 4 };
 
 // Quick-start "+ New encounter" panel — today's-appointment quick-pick plus
@@ -79,7 +79,7 @@ export function EncountersClient({
             + New encounter
           </button>
         ) : (
-          <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16 }}>
+          <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <h3 style={{ fontSize: 14.5 }}>New encounter</h3>
               <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 13 }}>
@@ -117,7 +117,7 @@ export function EncountersClient({
                   style={FIELD_STYLE}
                 />
                 {showPatientList && (
-                  <div style={{ position: "absolute", zIndex: 5, top: "100%", left: 0, right: 0, background: "white", border: "1px solid #ddd", borderRadius: 8, marginTop: 2, maxHeight: 200, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+                  <div style={{ position: "absolute", zIndex: 5, top: "100%", left: 0, right: 0, background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, marginTop: 2, maxHeight: 200, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
                     {filteredPatients.length === 0 ? (
                       <div style={{ padding: "8px 12px", fontSize: 12.5, color: "#999" }}>No patients match.</div>
                     ) : (

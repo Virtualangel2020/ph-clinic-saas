@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { addPatientInsuranceAction, setPatientInsuranceStatusAction } from "../../insurance/actions";
 import { setPhilhealthAction } from "../../philhealth/actions";
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 export type InsurancePlanRow = {
   id: string;
@@ -51,7 +51,7 @@ export function InsurancePhilhealthSection({
   insurancePlans: InsurancePlanRow[];
 }) {
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 16, marginTop: 20 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 16, marginTop: 20 }}>
       <h2 style={{ fontSize: 15, marginBottom: 12 }}>Insurance / HMO &amp; PhilHealth</h2>
       <div style={{ display: "grid", gap: 16 }}>
         <PhilhealthRow patientId={patientId} number={philhealthNumber} memberType={philhealthMemberType} />
@@ -108,7 +108,7 @@ function PhilhealthRow({ patientId, number, memberType }: { patientId: string; n
           )}
         </div>
         {!editing && (
-          <button onClick={startEdit} style={{ fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={startEdit} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
             {number ? "Change" : "+ Add"}
           </button>
         )}
@@ -124,7 +124,7 @@ function PhilhealthRow({ patientId, number, memberType }: { patientId: string; n
             <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer" }}>
               {pending ? "Saving…" : "Save"}
             </button>
-            <button onClick={() => setEditing(false)} disabled={pending} style={{ background: "none", border: "1px solid #ddd", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", color: "#555" }}>
+            <button onClick={() => setEditing(false)} disabled={pending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", color: "#555" }}>
               Cancel
             </button>
           </div>
@@ -181,7 +181,7 @@ function InsurancePlansRow({ patientId, plans }: { patientId: string; plans: Ins
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#666" }}>Insurance / HMO plans</div>
-        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+        <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
           {adding ? "Cancel" : "+ Add plan"}
         </button>
       </div>
@@ -189,7 +189,7 @@ function InsurancePlansRow({ patientId, plans }: { patientId: string; plans: Ins
       {error && !adding && <p style={{ fontSize: 11.5, color: "crimson", marginBottom: 8 }}>{error}</p>}
 
       {adding && (
-        <div style={{ background: "#f7f7f9", border: "1px solid #e2e2e5", borderRadius: 8, padding: 12, marginBottom: 10, display: "grid", gap: 8 }}>
+        <div style={{ background: "#f7f7f9", border: "1px solid var(--card-border)", borderRadius: 8, padding: 12, marginBottom: 10, display: "grid", gap: 8 }}>
           <input placeholder="Provider (e.g. Maxicare) *" value={draft.providerName} onChange={(e) => setDraft({ ...draft, providerName: e.target.value })} style={FIELD_STYLE} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <input placeholder="Member number" value={draft.memberNumber} onChange={(e) => setDraft({ ...draft, memberNumber: e.target.value })} style={FIELD_STYLE} />

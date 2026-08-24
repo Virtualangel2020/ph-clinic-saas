@@ -31,7 +31,7 @@ export function SignatureManager({ signatures, activeSignatureUrl }: { signature
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Your e-signature</h2>
       <p style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
         Used automatically on progress notes, prescriptions, and referrals once those ship. A new signature needs

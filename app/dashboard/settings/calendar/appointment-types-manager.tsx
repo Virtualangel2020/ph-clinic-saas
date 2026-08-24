@@ -43,7 +43,7 @@ export function AppointmentTypesManager({ initialTypes }: { initialTypes: Appoin
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Appointment types</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 14 }}>Each type gets its own color on the calendar once scheduling ships.</p>
 
@@ -81,13 +81,13 @@ export function AppointmentTypesManager({ initialTypes }: { initialTypes: Appoin
           placeholder="Type name (e.g. New Patient)"
           value={draft.name}
           onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-          style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, flex: "1 1 180px" }}
+          style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13, flex: "1 1 180px" }}
         />
         <input
           type="number"
           value={draft.duration}
           onChange={(e) => setDraft((d) => ({ ...d, duration: Number(e.target.value) || 30 }))}
-          style={{ width: 70, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13 }}
+          style={{ width: 70, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 }}
         />
         <span style={{ fontSize: 12, color: "#888" }}>min</span>
         <button

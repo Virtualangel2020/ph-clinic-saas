@@ -7,7 +7,7 @@ import { EncounterSelectionList, type SelectableEncounterRow } from "./encounter
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit" };
 const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "#666", marginBottom: 4 };
 const PAGE_SIZE = 25;
 
@@ -73,7 +73,7 @@ export function SearchPanel({ providers, appointmentTypes, clinicName }: { provi
 
   return (
     <div>
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 16, marginBottom: 14 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 16, marginBottom: 14 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
           <div>
             <div style={labelStyle}>From date</div>
@@ -121,7 +121,7 @@ export function SearchPanel({ providers, appointmentTypes, clinicName }: { provi
             <button
               onClick={loadMore}
               disabled={pending}
-              style={{ marginTop: 12, background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "#0c1730" }}
+              style={{ marginTop: 12, background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", color: "var(--text-heading)" }}
             >
               {pending ? "Loading…" : "Load more"}
             </button>

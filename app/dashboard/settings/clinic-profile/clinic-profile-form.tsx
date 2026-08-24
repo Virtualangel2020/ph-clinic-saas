@@ -76,7 +76,7 @@ export function ClinicProfileForm({ settings, logoUrl }: { settings: Settings; l
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, display: "grid", gap: 14 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, display: "grid", gap: 14 }}>
       <div>
         <div style={label}>Clinic logo</div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -134,5 +134,5 @@ function Field({ label: labelText, value, onChange }: { label: string; value: st
 }
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 };
-const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 6, border: "1px solid #ccc", fontSize: 13 };
+const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 6, border: "1px solid var(--input-border)", fontSize: 13 };
 const buttonStyle: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, cursor: "pointer" };

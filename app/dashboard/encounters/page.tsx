@@ -101,7 +101,7 @@ export default async function EncountersPage({
         </div>
         <Link
           href={searchMode ? "/dashboard/encounters" : "/dashboard/encounters?mode=search"}
-          style={{ fontSize: 12.5, fontWeight: 600, color: "#0c1730", border: "1px solid #ddd", borderRadius: 8, padding: "8px 14px", textDecoration: "none", whiteSpace: "nowrap" }}
+          style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-heading)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", whiteSpace: "nowrap" }}
         >
           {searchMode ? "← Back to date view" : "🔍 Search Encounters"}
         </Link>

@@ -17,7 +17,7 @@ const STATUS_STYLE: Record<string, { bg: string; border: string; color: string; 
 
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; date_of_birth: string; mobile_phone: string | null };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "7px 9px", fontSize: 12.5, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 9px", fontSize: 12.5, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 const EMPTY_NEW_PATIENT: PatientInput = {
   id: null,
@@ -148,10 +148,10 @@ export function IncomingTransferRow({
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#0c1730" }}>{transfer.patient_name}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)" }}>{transfer.patient_name}</div>
           <div style={{ fontSize: 12, color: "#888" }}>
             DOB {new Date(transfer.patient_dob).toLocaleDateString()} · From Dr. {transfer.sending_provider_name}
             {transfer.sending_clinic_name ? ` · ${transfer.sending_clinic_name}` : ""} · {transfer.record_count} record
@@ -165,7 +165,7 @@ export function IncomingTransferRow({
           <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 999, padding: "3px 10px" }}>
             {alreadyFiled ? "Filed" : s.label}
           </span>
-          <button onClick={viewPdf} disabled={pending} style={{ fontSize: 12, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={viewPdf} disabled={pending} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
             View PDF
           </button>
           {transfer.status === "sent" && (
@@ -180,7 +180,7 @@ export function IncomingTransferRow({
               <button
                 onClick={decline}
                 disabled={pending}
-                style={{ fontSize: 12, fontWeight: 700, color: "#a12a2a", background: "white", border: "1px solid #f0c2c2", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
+                style={{ fontSize: 12, fontWeight: 700, color: "#a12a2a", background: "var(--card-bg)", border: "1px solid #f0c2c2", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
               >
                 Decline
               </button>
@@ -268,7 +268,7 @@ export function IncomingTransferRow({
             <button
               onClick={() => setFiling(false)}
               disabled={pending}
-              style={{ fontSize: 12.5, fontWeight: 600, color: "#666", background: "white", border: "1px solid #ddd", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}
+              style={{ fontSize: 12.5, fontWeight: 600, color: "#666", background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}
             >
               Cancel
             </button>

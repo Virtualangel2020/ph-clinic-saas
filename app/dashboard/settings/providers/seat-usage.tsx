@@ -22,7 +22,7 @@ export function SeatUsage({ used, total }: { used: number; total: number }) {
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Clinical provider seats</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>
         Only providers holding a seat can sign notes and prescriptions. Staff accounts (reception, other staff) don't
@@ -42,7 +42,7 @@ export function SeatUsage({ used, total }: { used: number; total: number }) {
             placeholder="Optional note (e.g. adding Dr. Santos)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            style={{ flex: "1 1 200px", padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 12.5 }}
+            style={{ flex: "1 1 200px", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 12.5 }}
           />
           <button
             onClick={request}

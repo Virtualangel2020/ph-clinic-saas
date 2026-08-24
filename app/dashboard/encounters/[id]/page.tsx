@@ -85,7 +85,7 @@ export default async function EncounterDetailPage({ params }: { params: Promise<
         <div>
           <h1 style={{ fontSize: 22, marginBottom: 2 }}>
             {patient ? (
-              <Link href={`/dashboard/patients/${patient.id}`} style={{ color: "#0c1730", textDecoration: "none" }}>
+              <Link href={`/dashboard/patients/${patient.id}`} style={{ color: "var(--text-heading)", textDecoration: "none" }}>
                 {patient.last_name}, {patient.first_name}
               </Link>
             ) : (
@@ -97,7 +97,7 @@ export default async function EncounterDetailPage({ params }: { params: Promise<
             {encounter.appointment_id && (
               <>
                 {" · "}
-                <Link href="/dashboard/calendar" style={{ color: "#0c1730" }}>
+                <Link href="/dashboard/calendar" style={{ color: "var(--text-heading)" }}>
                   from a booked appointment
                 </Link>
               </>
@@ -118,10 +118,10 @@ export default async function EncounterDetailPage({ params }: { params: Promise<
         isSigned={isSigned}
       />
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
         {isSigned ? (
           <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", background: "#eef1fb", border: "1px solid #c7d4f5", borderRadius: 999, padding: "3px 10px" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-heading)", background: "#eef1fb", border: "1px solid #c7d4f5", borderRadius: 999, padding: "3px 10px" }}>
               ✓ Signed
             </span>
             <p style={{ fontSize: 12.5, color: "#666", margin: "8px 0 0" }}>

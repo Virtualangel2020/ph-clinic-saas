@@ -3,7 +3,7 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
   ordered: { color: "#8a6100", bg: "#fff6e6", border: "#f0d998", label: "Ordered" },
-  collected: { color: "#0c1730", bg: "#f0f4ff", border: "#c7d4f5", label: "Collected" },
+  collected: { color: "var(--text-heading)", bg: "#f0f4ff", border: "#c7d4f5", label: "Collected" },
   completed: { color: "#1a7f37", bg: "#eaf7ee", border: "#bfe6c9", label: "Completed" },
   cancelled: { color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9", label: "Cancelled" },
 };
@@ -103,8 +103,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: { sta
       </p>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "10px 18px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#0c1730" }}>{openCount ?? 0}</div>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "10px 18px" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-heading)" }}>{openCount ?? 0}</div>
           <div style={{ fontSize: 11, color: "#888" }}>Awaiting collection/results</div>
         </div>
       </div>
@@ -134,7 +134,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: { sta
       </div>
 
       {rows.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           No lab orders found — open a patient's chart to place one.
         </div>
       ) : (
@@ -143,10 +143,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: { sta
             <Link
               key={o.id}
               href={`/dashboard/patients/${o.patients?.id ?? ""}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12 }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730" }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
                   {o.patients ? `${o.patients.last_name}, ${o.patients.first_name}` : "Unknown patient"}
                   <span style={{ marginLeft: 8, display: "inline-flex", gap: 6 }}>
                     <PriorityPill priority={o.priority} />

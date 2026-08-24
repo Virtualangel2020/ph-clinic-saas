@@ -133,7 +133,7 @@ function ProviderWeekEditor({ provider, existing }: { provider: Provider; existi
                   onDeleted={() => removeAt(day, i)}
                 />
               ))}
-              <button onClick={() => addDraft(day)} style={{ background: "none", border: "none", color: "#0c1730", fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "left", padding: 0 }}>
+              <button onClick={() => addDraft(day)} style={{ background: "none", border: "none", color: "var(--text-heading)", fontSize: 11, fontWeight: 600, cursor: "pointer", textAlign: "left", padding: 0 }}>
                 + Add range
               </button>
             </div>
@@ -144,12 +144,12 @@ function ProviderWeekEditor({ provider, existing }: { provider: Provider; existi
   );
 }
 
-const timeFieldStyle: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 6, padding: "4px 6px", fontSize: 12 };
+const timeFieldStyle: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 6, padding: "4px 6px", fontSize: 12 };
 const saveBtnStyle: React.CSSProperties = { background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 11, padding: "3px 9px", borderRadius: 5, border: "none", cursor: "pointer" };
 
 export function ProviderSchedulesManager({ providers, schedules }: { providers: Provider[]; schedules: ScheduleRow[] }) {
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Provider working hours</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 14 }}>
         Shades the calendar grid so it's obvious at a glance when a provider is and isn't working. Add a second range
