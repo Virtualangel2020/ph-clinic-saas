@@ -17,7 +17,7 @@ export default async function PortalHomePage() {
   const { supabase, account } = await requirePatientPortal();
   const patientId = (account as any).patient_id;
 
-  const [{ data: patient }, { data: nextAppt }, { data: assignedForms }] = await Promise.all([
+  const [{ data: patient }, { data: nextAppt }, { data: assignedForms }, { data: chargesRaw }, { data: paymentsRaw }] = await Promise.all([
     supabase.from("patients").select("first_name, last_name, middle_name, date_of_birth, sex, mobile_phone, email, patient_code").eq("id", patientId).maybeSingle(),
     supabase
       .from("appointments")
@@ -29,10 +29,21 @@ export default async function PortalHomePage() {
       .limit(1)
       .maybeSingle(),
     supabase.from("patient_forms").select("id").eq("patient_id", patientId).eq("status", "assigned"),
+    // Balance owed (spec: billing balance also shows on the portal) — the
+    // SAME patient_charges/patient_charge_payments rows the clinic's own
+    // Billing tab reads, via the portal-read RLS policy added alongside
+    // those tables. This is a read-only balance display, not an online
+    // payment flow — see the note below the card.
+    supabase.from("patient_charges").select("amount_php, status").eq("patient_id", patientId),
+    supabase.from("patient_charge_payments").select("amount_php").eq("patient_id", patientId),
   ]);
 
   const fullName = patient ? `${patient.first_name} ${patient.middle_name ? patient.middle_name + " " : ""}${patient.last_name}` : "";
   const pendingFormsCount = assignedForms?.length ?? 0;
+  const totalCharged = ((chargesRaw as any[]) ?? []).filter((c) => c.status !== "void").reduce((sum, c) => sum + Number(c.amount_php), 0);
+  const totalPaid = ((paymentsRaw as any[]) ?? []).reduce((sum, p) => sum + Number(p.amount_php), 0);
+  const balance = Math.max(0, totalCharged - totalPaid);
+  const peso = (n: number) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <PortalShell patientName={patient?.first_name}>
@@ -88,6 +99,18 @@ export default async function PortalHomePage() {
             View all appointments →
           </Link>
         </div>
+
+        {totalCharged > 0 && (
+          <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: 18 }}>
+            <h2 style={{ fontSize: 13.5, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>My Balance</h2>
+            <div style={{ fontSize: 22, fontWeight: 700, color: balance > 0 ? "#a12a2a" : "#1a7f37" }}>{peso(balance)}</div>
+            <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{balance > 0 ? "Balance due" : "Paid in full"}</div>
+            <p style={{ fontSize: 11.5, color: "#aaa", marginTop: 12 }}>
+              This reflects what your clinic has recorded. Online payment isn&apos;t available yet — please settle your
+              balance at the clinic.
+            </p>
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: 14, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>

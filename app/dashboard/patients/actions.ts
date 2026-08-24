@@ -140,6 +140,8 @@ export type PatientInput = {
   employerPosition: string;
   employerContact: string;
   employerAddress: string;
+  employmentStatus: string;
+  referredByNote: string;
 };
 
 export async function savePatientAction(input: PatientInput): Promise<string> {
@@ -174,6 +176,8 @@ export async function savePatientAction(input: PatientInput): Promise<string> {
     p_employer_position: input.employerPosition || null,
     p_employer_contact: input.employerContact || null,
     p_employer_address: input.employerAddress || null,
+    p_employment_status: input.employmentStatus || null,
+    p_referred_by_note: input.referredByNote || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/patients");
@@ -450,11 +454,15 @@ export async function revokePatientPortalAccessAction(id: string, patientId: str
 // patient-alerts-banner.tsx and never calls this action; only "Remove"
 // (deactivate) does.
 
-export async function addPatientAlertAction(patientId: string, category: "red" | "yellow" | "blue", message: string) {
+// kind defaults to "alert" so every pre-existing call site (the sticky-note
+// banner's original 3-arg call) keeps working unchanged; the banner UI now
+// also offers "note" explicitly — see patient-alerts-banner.tsx.
+export async function addPatientAlertAction(patientId: string, category: "red" | "yellow" | "blue", message: string, kind: "alert" | "note" = "alert") {
   await requireClinicMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("add_patient_alert", {
     p_patient_id: patientId,
+    p_kind: kind,
     p_category: category,
     p_message: message,
   });
@@ -568,6 +576,98 @@ export async function completePatientFormAction(formId: string, patientId: strin
 export async function expirePatientFormAction(formId: string, patientId: string) {
   const { supabase } = await requireClinicMember();
   const { error } = await supabase.rpc("expire_patient_form", { p_id: formId });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Bill types — a multi-select (Cash / HMO / PhilHealth / YAKAP, any
+// combination) replacing the old single-select payment_type on the
+// Billing tab. Existing PhilHealth/HMO detail (philhealth_* columns,
+// patient_insurance rows) is untouched — bill_types just records which
+// payer categories apply to this patient's billing.
+export async function setPatientBillTypesAction(patientId: string, billTypes: string[]) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_patient_bill_types", { p_patient_id: patientId, p_bill_types: billTypes });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Active Problems (Clinical tab) — a longitudinal problem list distinct
+// from any single encounter's assessment.
+export async function addPatientProblemAction(patientId: string, description: string, onsetDate: string, notes: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_patient_problem", {
+    p_patient_id: patientId,
+    p_description: description,
+    p_onset_date: onsetDate || null,
+    p_notes: notes || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function setPatientProblemStatusAction(id: string, patientId: string, status: "active" | "resolved") {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_patient_problem_status", { p_id: id, p_status: status });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Patient billing ledger (Billing tab) — manual charges + payments, not
+// an online payment gateway (that stays a later "Payments" add-on). Powers
+// the balance-owed display here AND on the Patient Portal (same rows,
+// portal-read RLS policy — see migration patient_billing_charges_and_payments).
+export async function addPatientChargeAction(
+  patientId: string,
+  description: string,
+  amountPhp: number,
+  billType: string,
+  providerId: string,
+  encounterId: string
+) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_patient_charge", {
+    p_patient_id: patientId,
+    p_description: description,
+    p_amount_php: amountPhp,
+    p_bill_type: billType,
+    p_provider_id: providerId || null,
+    p_encounter_id: encounterId || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function voidPatientChargeAction(id: string, patientId: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("void_patient_charge", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function recordPatientChargePaymentAction(
+  patientId: string,
+  chargeId: string | null,
+  amountPhp: number,
+  method: string,
+  reference: string,
+  paidAt: string
+) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_patient_charge_payment", {
+    p_patient_id: patientId,
+    p_charge_id: chargeId || null,
+    p_amount_php: amountPhp,
+    p_method: method,
+    p_reference: reference || null,
+    p_paid_at: paidAt || null,
+  });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
 }

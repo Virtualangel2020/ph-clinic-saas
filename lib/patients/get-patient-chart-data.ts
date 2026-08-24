@@ -143,16 +143,33 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       .order("created_at", { ascending: false }),
   ]);
 
-  const [{ data: portalChannels }, { data: portalAccount }, { data: alerts }, { data: providers }, { data: appointmentTypes }] = await Promise.all([
+  const [
+    { data: portalChannels },
+    { data: portalAccount },
+    { data: alerts },
+    { data: providers },
+    { data: appointmentTypes },
+    { data: problemsRaw },
+    { data: chargesRaw },
+    { data: chargePaymentsRaw },
+  ] = await Promise.all([
     supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: tenantId }),
     supabase
       .from("patient_portal_accounts")
       .select("id, channel, contact_value, status, invited_at, activated_at, revoked_at")
       .eq("patient_id", patientId)
       .maybeSingle(),
-    supabase.from("patient_alerts").select("id, category, message, created_at").eq("patient_id", patientId).eq("is_active", true).order("created_at", { ascending: false }),
+    supabase.from("patient_alerts").select("id, kind, category, message, created_at, user_profiles(full_name)").eq("patient_id", patientId).eq("is_active", true).order("created_at", { ascending: false }),
     supabase.from("user_profiles").select("id, full_name, title").eq("tenant_id", tenantId).eq("role", "doctor").eq("is_active", true).order("full_name"),
     supabase.from("appointment_types").select("id, name").eq("tenant_id", tenantId).eq("is_active", true).order("sort_order"),
+    // Active Problems (Clinical tab) — a longitudinal list, separate from
+    // any one encounter's assessment.
+    supabase.from("patient_problems").select("id, description, status, onset_date, noted_at, notes, user_profiles!patient_problems_noted_by_fkey(full_name)").eq("patient_id", patientId).order("noted_at", { ascending: false }),
+    // Billing ledger (Billing tab + Patient Portal balance) — manual
+    // charges/payments, distinct from the clinic's own SaaS-subscription
+    // invoices/payments tables.
+    supabase.from("patient_charges").select("id, description, amount_php, bill_type, status, created_at, user_profiles!patient_charges_provider_id_fkey(full_name, title)").eq("patient_id", patientId).order("created_at", { ascending: false }),
+    supabase.from("patient_charge_payments").select("id, charge_id, amount_php, method, reference, paid_at, created_at").eq("patient_id", patientId).order("paid_at", { ascending: false }),
   ]);
 
   const { data: defaultNoteTemplateRaw } = await supabase
@@ -285,9 +302,63 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     };
   }
 
+  // Active Problems (Clinical tab).
+  const activeProblems = ((problemsRaw as any[]) ?? []).map((p) => ({
+    id: p.id,
+    description: p.description,
+    status: p.status,
+    onset_date: p.onset_date,
+    noted_at: p.noted_at,
+    notes: p.notes,
+    noted_by_name: p.user_profiles?.full_name ?? null,
+  }));
+
+  // Billing ledger (Billing tab + Patient Portal balance).
+  const charges = ((chargesRaw as any[]) ?? []).map((c) => ({
+    id: c.id,
+    description: c.description,
+    amount_php: Number(c.amount_php),
+    bill_type: c.bill_type,
+    status: c.status,
+    created_at: c.created_at,
+    provider_name: c.user_profiles ? `${c.user_profiles.title ? c.user_profiles.title + " " : ""}${c.user_profiles.full_name}` : null,
+  }));
+  const payments = ((chargePaymentsRaw as any[]) ?? []).map((p) => ({
+    id: p.id,
+    charge_id: p.charge_id,
+    amount_php: Number(p.amount_php),
+    method: p.method,
+    reference: p.reference,
+    paid_at: p.paid_at,
+    created_at: p.created_at,
+  }));
+  const totalCharged = charges.filter((c) => c.status !== "void").reduce((sum, c) => sum + c.amount_php, 0);
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount_php, 0);
+  const balance = Math.max(0, totalCharged - totalPaid);
+  const billingStatus: "no_charges" | "unpaid" | "partial" | "paid" =
+    totalCharged === 0 ? "no_charges" : balance === 0 ? "paid" : totalPaid > 0 ? "partial" : "unpaid";
+  const billing = { charges, payments, totalCharged, totalPaid, balance, status: billingStatus };
+
+  // "Referred by" (Overview > Profile) — auto-populated from an
+  // accepted/completed INCOMING internal referral for this patient when
+  // one exists (i.e. another AngelClinic provider referred them in);
+  // otherwise falls back to the manually-entered referred_by_note.
+  let referredBy: { source: "referral" | "manual"; label: string } | null = null;
+  const incomingReferral = referrals.find(
+    (r) => r.isIncoming && r.destination_type === "internal" && (r.status === "accepted" || r.status === "completed")
+  );
+  if (incomingReferral) {
+    referredBy = { source: "referral", label: incomingReferral.sending_provider_name ?? "Another AngelClinic provider" };
+  } else if (patient.referred_by_note) {
+    referredBy = { source: "manual", label: patient.referred_by_note };
+  }
+
   return {
     patient,
     fullName,
+    activeProblems,
+    billing,
+    referredBy,
     allergies: (allergies as any[]) ?? [],
     medications: (medications as any[]) ?? [],
     documents: (documents as any[]) ?? [],

@@ -3,20 +3,30 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { PatientChartData } from "@/lib/patients/get-patient-chart-data";
-import { ProfileTab } from "./profile-tab";
+import { OverviewTab } from "./overview-tab";
+import { ClinicalTab } from "./clinical-tab";
 import { PatientHistoryTab } from "./patient-history-tab";
-import { CoverageSection } from "./coverage-section";
+import { BillingSection } from "./billing-section";
 import { EncounterHistorySection } from "./encounter-history-section";
 import { ProgressNotesSection } from "./progress-notes-section";
 import { PrescriptionsSection } from "./prescriptions-section";
 import { LabSection } from "./lab-section";
-import { AppointmentHistorySection } from "./appointment-history-section";
 import { DocumentsSection } from "./documents-section";
 import { FormsSection } from "./forms-section";
 import { ReferralsSection } from "./referrals-section";
+import { AppointmentHistorySection } from "./appointment-history-section";
 
+// "appointments" and "coverage" keys are kept exactly as before for
+// deep-link compatibility (../orders/page.tsx, ../results/page.tsx, and
+// ../prescriptions/page.tsx all link in with ?tab=orders_results /
+// ?tab=prescriptions; nothing currently deep-links ?tab=appointments, but
+// the key stays wired below regardless — cheap insurance). Overview now
+// folds the old standalone Appointments tab in as a subtab (see
+// overview-tab.tsx), so "appointments" is no longer in the visible TABS
+// list, just still handled if ever reached directly.
 type TabKey =
   | "profile"
+  | "clinical"
   | "coverage"
   | "encounters"
   | "progress_notes"
@@ -29,8 +39,9 @@ type TabKey =
   | "history";
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: "profile", label: "Profile" },
-  { key: "coverage", label: "Coverage" },
+  { key: "profile", label: "Overview" },
+  { key: "clinical", label: "Clinical" },
+  { key: "coverage", label: "Billing" },
   { key: "encounters", label: "Encounters" },
   { key: "progress_notes", label: "Progress Notes" },
   { key: "orders_results", label: "Orders & Results" },
@@ -38,7 +49,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "referrals", label: "Referrals" },
   { key: "documents", label: "Documents" },
   { key: "forms", label: "Forms" },
-  { key: "appointments", label: "Appointments" },
   { key: "history", label: "Patient History" },
 ];
 
@@ -100,7 +110,7 @@ export function PatientChartTabs({
       </div>
 
       {tab === "profile" && (
-        <ProfileTab
+        <OverviewTab
           patient={patient}
           totalEncounters={data.totalEncounters}
           lastEncounter={data.lastEncounter}
@@ -114,12 +124,34 @@ export function PatientChartTabs({
             channels: data.portalChannels,
             account: data.portalAccount,
           }}
+          referredBy={data.referredBy}
+        />
+      )}
+
+      {tab === "clinical" && (
+        <ClinicalTab
+          patientId={patient.id}
+          problems={data.activeProblems}
+          prescriptions={data.prescriptions}
+          labOrders={data.labOrders}
+          encounters={data.encounters.map((e: any) => ({
+            id: e.id,
+            encounter_date: e.encounter_date,
+            encounter_type: e.encounter_type,
+            chief_complaint: e.chief_complaint,
+            status: e.status,
+            signed_at: e.signed_at ?? null,
+            provider_name: e.user_profiles?.full_name ?? null,
+          }))}
         />
       )}
 
       {tab === "coverage" && (
-        <CoverageSection
+        <BillingSection
           patientId={patient.id}
+          billTypes={patient.bill_types ?? []}
+          billing={data.billing}
+          providers={data.providers}
           paymentType={patient.payment_type ?? "cash"}
           philhealthNumber={patient.philhealth_number}
           philhealthMemberType={patient.philhealth_member_type}

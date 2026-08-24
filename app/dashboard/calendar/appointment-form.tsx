@@ -161,6 +161,8 @@ export function AppointmentForm({
       employerPosition: "",
       employerContact: "",
       employerAddress: "",
+      employmentStatus: "",
+      referredByNote: "",
     };
     setQuickAddPending(true);
     savePatientAction(input)

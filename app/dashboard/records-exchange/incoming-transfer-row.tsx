@@ -48,6 +48,8 @@ const EMPTY_NEW_PATIENT: PatientInput = {
   employerPosition: "",
   employerContact: "",
   employerAddress: "",
+  employmentStatus: "",
+  referredByNote: "",
 };
 
 // Incoming Records review row (spec §15) — Review -> Accept/Decline ->

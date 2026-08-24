@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { addPatientAlertAction, deactivatePatientAlertAction } from "../actions";
 
-type Alert = { id: string; category: "red" | "yellow" | "blue"; message: string; created_at: string };
+type Alert = { id: string; category: "red" | "yellow" | "blue"; message: string; created_at: string; kind?: "alert" | "note"; user_profiles?: { full_name: string | null } | null };
 
 const CATEGORY_STYLE: Record<Alert["category"], { bg: string; border: string; text: string; label: string }> = {
   red: { bg: "#fdecec", border: "#f3c2c2", text: "#a12a2a", label: "Alert (clinical/safety)" },
@@ -20,6 +20,7 @@ const CATEGORY_STYLE: Record<Alert["category"], { bg: string; border: string; te
 export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; alerts: Alert[] }) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [showAdd, setShowAdd] = useState(false);
+  const [kind, setKind] = useState<"alert" | "note">("alert");
   const [category, setCategory] = useState<Alert["category"]>("red");
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
@@ -33,7 +34,7 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
     if (!message.trim()) return setError("Enter an alert message.");
     startTransition(async () => {
       try {
-        await addPatientAlertAction(patientId, category, message.trim());
+        await addPatientAlertAction(patientId, category, message.trim(), kind);
         setMessage("");
         setShowAdd(false);
       } catch (e: any) {
@@ -78,8 +79,11 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
             }}
           >
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: s.text, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: s.text, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 }}>
+                {a.kind === "note" ? "Note" : s.label}
+              </div>
               <div style={{ fontSize: 13, color: "#333" }}>{a.message}</div>
+              {a.user_profiles?.full_name && <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{a.user_profiles.full_name}</div>}
             </div>
             <button
               onClick={() => remove(a.id)}
@@ -102,6 +106,17 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
 
       {showAdd ? (
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 8, padding: 12 }}>
+          <div style={{ display: "flex", gap: 14, marginBottom: 8, fontSize: 12.5 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+              <input type="radio" checked={kind === "alert"} onChange={() => setKind("alert")} />
+              Alert
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+              <input type="radio" checked={kind === "note"} onChange={() => setKind("note")} />
+              Note only
+            </label>
+          </div>
+          {kind === "alert" && (
           <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             {(["red", "yellow", "blue"] as const).map((c) => (
               <label key={c} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, cursor: "pointer" }}>
@@ -111,10 +126,11 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
               </label>
             ))}
           </div>
+          )}
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="e.g. Allergic to penicillin"
+            placeholder={kind === "note" ? "e.g. Prefers morning appointments" : "e.g. Allergic to penicillin"}
             style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--input-border)", borderRadius: 6, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", minHeight: 44, marginBottom: 8 }}
           />
           {error && <div style={{ fontSize: 12, color: "crimson", marginBottom: 8 }}>{error}</div>}

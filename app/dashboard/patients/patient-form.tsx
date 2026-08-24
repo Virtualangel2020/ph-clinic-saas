@@ -33,6 +33,8 @@ type Patient = {
   employer_position: string | null;
   employer_contact: string | null;
   employer_address: string | null;
+  employment_status: string | null;
+  referred_by_note: string | null;
 };
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "9px 11px", fontSize: 13.5, width: "100%" };
@@ -68,6 +70,8 @@ function toInput(p: Patient | null): PatientInput {
     employerPosition: p?.employer_position ?? "",
     employerContact: p?.employer_contact ?? "",
     employerAddress: p?.employer_address ?? "",
+    employmentStatus: p?.employment_status ?? "",
+    referredByNote: p?.referred_by_note ?? "",
   };
 }
 
@@ -241,7 +245,34 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
             <label style={LABEL_STYLE}>Company address</label>
             <input style={FIELD_STYLE} value={form.employerAddress} onChange={(e) => set("employerAddress", e.target.value)} />
           </div>
+          <div>
+            <label style={LABEL_STYLE}>Employment status</label>
+            <select style={FIELD_STYLE} value={form.employmentStatus} onChange={(e) => set("employmentStatus", e.target.value)}>
+              <option value="">—</option>
+              <option value="employed">Employed</option>
+              <option value="self_employed">Self-employed</option>
+              <option value="unemployed">Unemployed</option>
+              <option value="student">Student</option>
+              <option value="retired">Retired</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
         </div>
+      </div>
+
+      <div>
+        <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Referred by</h3>
+        <p style={{ fontSize: 11.5, color: "#888", marginTop: -4, marginBottom: 8 }}>
+          If this patient came in through an accepted referral already recorded in Referrals, that shows
+          automatically on the chart — only fill this in if the source isn&apos;t captured there (e.g. word of
+          mouth, a doctor outside AngelClinic, walk-in).
+        </p>
+        <input
+          style={FIELD_STYLE}
+          value={form.referredByNote}
+          onChange={(e) => set("referredByNote", e.target.value)}
+          placeholder="e.g. Referred by Dr. Cruz, St. Luke's — or 'Walk-in'"
+        />
       </div>
 
       <div>

@@ -3,6 +3,8 @@ import { age } from "@/lib/patients/get-patient-chart-data";
 import { formatDayLabel, formatTime } from "../../calendar/date-utils";
 import { PortalSection } from "./portal-section";
 
+const BILL_TYPE_LABEL: Record<string, string> = { cash: "Cash", hmo: "HMO", philhealth: "PhilHealth", yakap: "YAKAP", other: "Other" };
+
 const NO_SHOW_STATUSES = new Set(["no_show"]);
 const CANCELLATION_STATUSES = new Set(["cancelled", "late_cancellation"]);
 
@@ -22,6 +24,7 @@ export function ProfileTab({
   pastAppts,
   upcomingAppts,
   portalProps,
+  referredBy,
 }: {
   patient: any;
   totalEncounters: number;
@@ -30,6 +33,7 @@ export function ProfileTab({
   pastAppts: { id: string; status: string }[];
   upcomingAppts: { id: string; status: string }[];
   portalProps: React.ComponentProps<typeof PortalSection>;
+  referredBy: { source: "referral" | "manual"; label: string } | null;
 }) {
   const allAppts = [...pastAppts, ...upcomingAppts];
   const noShowCount = allAppts.filter((a) => NO_SHOW_STATUSES.has(a.status)).length;
@@ -75,6 +79,10 @@ export function ProfileTab({
           <div style={{ fontSize: 14 }}>{patient.occupation || "—"}</div>
         </div>
         <div style={FIELD_BLOCK}>
+          <div style={LABEL}>Employment status</div>
+          <div style={{ fontSize: 14, textTransform: "capitalize" }}>{(patient.employment_status || "—").replace("_", " ")}</div>
+        </div>
+        <div style={FIELD_BLOCK}>
           <div style={LABEL}>Civil status / blood type</div>
           <div style={{ fontSize: 14 }}>{[patient.civil_status, patient.blood_type].filter(Boolean).join(" · ") || "—"}</div>
         </div>
@@ -101,6 +109,34 @@ export function ProfileTab({
           <div style={LABEL}>Guardian</div>
           <div style={{ fontSize: 14 }}>{patient.guardian_name || "—"}</div>
           <div style={{ fontSize: 12.5, color: "#666" }}>{[patient.guardian_relationship, patient.guardian_phone].filter(Boolean).join(" · ")}</div>
+        </div>
+        <div style={FIELD_BLOCK}>
+          <div style={LABEL}>Referred by</div>
+          <div style={{ fontSize: 14 }}>
+            {referredBy ? referredBy.label : "—"}
+            {referredBy?.source === "referral" && (
+              <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "#1a4e8a", background: "#eaf1fd", border: "1px solid #bcd4f7", borderRadius: 999, padding: "2px 8px" }}>
+                Auto — Referrals
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={FIELD_BLOCK}>
+          <div style={LABEL}>Bill type</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+            {(patient.bill_types ?? []).length === 0 ? (
+              <span style={{ fontSize: 14 }}>—</span>
+            ) : (
+              (patient.bill_types as string[]).map((b) => (
+                <span key={b} style={{ fontSize: 10.5, fontWeight: 700, color: "#555", background: "#f2f2f2", border: "1px solid #ddd", borderRadius: 999, padding: "2px 8px" }}>
+                  {BILL_TYPE_LABEL[b] ?? b}
+                </span>
+              ))
+            )}
+          </div>
+          <Link href={`/dashboard/patients/${patient.id}?tab=coverage`} style={{ fontSize: 11, color: "var(--text-heading)", textDecoration: "none" }}>
+            Manage in Billing →
+          </Link>
         </div>
       </div>
 
