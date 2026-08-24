@@ -30,7 +30,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     );
   }
 
-  const [{ data: patient }, { data: documents }, { data: providers }] = await Promise.all([
+  const [{ data: patient }, { data: documents }, { data: providers }, { data: documentFolders }] = await Promise.all([
     supabase.from("patients").select("id, first_name, last_name, middle_name, date_of_birth, sex, patient_code, is_active").eq("id", patientId).eq("tenant_id", profile.tenant_id).maybeSingle(),
     supabase
       .from("patient_documents")
@@ -39,6 +39,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       .eq("tenant_id", profile.tenant_id)
       .order("created_at", { ascending: false }),
     supabase.from("user_profiles").select("id, full_name, title").eq("tenant_id", profile.tenant_id).eq("role", "doctor").eq("is_active", true).order("full_name"),
+    supabase.from("document_folders").select("key, label").eq("tenant_id", profile.tenant_id).order("label"),
   ]);
 
   if (!patient) notFound();
@@ -63,7 +64,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <DocumentsSection patientId={patient.id} documents={(documents as any) ?? []} providers={(providers as any) ?? []} />
+        <DocumentsSection patientId={patient.id} documents={(documents as any) ?? []} providers={(providers as any) ?? []} customFolders={(documentFolders as any) ?? []} />
       </div>
     </div>
   );

@@ -27,6 +27,8 @@ export function OverviewTab({
   upcomingAppts,
   portalProps,
   referredBy,
+  alerts,
+  billing,
 }: {
   patient: any;
   totalEncounters: number;
@@ -36,6 +38,8 @@ export function OverviewTab({
   upcomingAppts: AppointmentRow[];
   portalProps: React.ComponentProps<typeof PortalSection>;
   referredBy: { source: "referral" | "manual"; label: string } | null;
+  alerts: { id: string; kind?: string; category: string; message: string; created_at: string; user_profiles?: { full_name: string | null } | null }[];
+  billing: { balance: number; status: "no_charges" | "unpaid" | "partial" | "paid" };
 }) {
   const [sub, setSub] = useState<SubTabKey>("profile");
 
@@ -73,6 +77,8 @@ export function OverviewTab({
           upcomingAppts={upcomingAppts}
           portalProps={portalProps}
           referredBy={referredBy}
+          alerts={alerts}
+          billing={billing}
         />
       )}
       {sub === "appointments" && <AppointmentHistorySection past={pastAppts} upcoming={upcomingAppts} />}

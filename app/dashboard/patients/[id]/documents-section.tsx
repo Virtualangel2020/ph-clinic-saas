@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addDocumentAction, getDocumentSignedUrlAction, setDocumentStatusAction } from "../actions";
+import { addDocumentAction, addDocumentFolderAction, getDocumentSignedUrlAction, setDocumentStatusAction } from "../actions";
 
 type Doc = {
   id: string;
@@ -78,7 +78,17 @@ function formatSize(bytes: number | null | undefined) {
 // underlying patient_documents rows the global Documents tab shows after a
 // patient is selected there (see app/dashboard/documents/page.tsx) — this
 // is the one implementation both places render, not a fork.
-export function DocumentsSection({ patientId, documents, providers = [] }: { patientId: string; documents: Doc[]; providers?: Provider[] }) {
+export function DocumentsSection({
+  patientId,
+  documents,
+  providers = [],
+  customFolders = [],
+}: {
+  patientId: string;
+  documents: Doc[];
+  providers?: Provider[];
+  customFolders?: { key: string; label: string }[];
+}) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [addingIn, setAddingIn] = useState<string | null>(null);
@@ -91,13 +101,36 @@ export function DocumentsSection({ patientId, documents, providers = [] }: { pat
   const [providerId, setProviderId] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [newFolderLabel, setNewFolderLabel] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Built-in folders + this tenant's custom folders (spec follow-up:
+  // "provider can add more folders depends on what they need to
+  // organize"), placed just before the catch-all "Other" folder.
+  const allFolders = [...FOLDERS.slice(0, -1), ...customFolders.map((f) => ({ key: f.key, label: f.label, docTypes: [f.key], blurb: "" })), FOLDERS[FOLDERS.length - 1]];
+  const allUploadableTypes: Record<string, string> = { ...UPLOADABLE_TYPES, ...Object.fromEntries(customFolders.map((f) => [f.key, f.label])) };
 
   const visible = documents.filter((d) => (showResolved ? true : d.status === "active"));
 
   function byFolder(folderKey: string) {
-    const folder = FOLDERS.find((f) => f.key === folderKey)!;
+    const folder = allFolders.find((f) => f.key === folderKey)!;
     return visible.filter((d) => folder.docTypes.includes(d.doc_type));
+  }
+
+  function saveFolder() {
+    if (!newFolderLabel.trim()) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await addDocumentFolderAction(newFolderLabel.trim());
+        setNewFolderLabel("");
+        setAddingFolder(false);
+        router.refresh();
+      } catch (e: any) {
+        setError(e.message || "Couldn't add that folder.");
+      }
+    });
   }
 
   function toggle(key: string) {
@@ -105,7 +138,7 @@ export function DocumentsSection({ patientId, documents, providers = [] }: { pat
   }
 
   function startAdd(folderKey: string) {
-    setDocType(folderKey in UPLOADABLE_TYPES ? folderKey : "other");
+    setDocType(folderKey in allUploadableTypes ? folderKey : "other");
     setAddingIn(folderKey);
     setExpanded((prev) => ({ ...prev, [folderKey]: true }));
   }
@@ -177,7 +210,7 @@ export function DocumentsSection({ patientId, documents, providers = [] }: { pat
       </div>
 
       <div style={{ display: "grid", gap: 6 }}>
-        {FOLDERS.map((folder) => {
+        {allFolders.map((folder) => {
           const docs = byFolder(folder.key);
           const isOpen = !!expanded[folder.key];
           return (
@@ -201,7 +234,7 @@ export function DocumentsSection({ patientId, documents, providers = [] }: { pat
                   {folder.label}
                   <span style={{ marginLeft: 8, fontSize: 11.5, color: "#999", fontWeight: 500 }}>{docs.length > 0 ? `(${docs.length})` : ""}</span>
                 </span>
-                {folder.key in UPLOADABLE_TYPES && (
+                {folder.key in allUploadableTypes && (
                   <span
                     onClick={(e) => {
                       e.stopPropagation();
@@ -298,6 +331,33 @@ export function DocumentsSection({ patientId, documents, providers = [] }: { pat
             </div>
           );
         })}
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        {addingFolder ? (
+          <div style={{ background: "#f7f7f9", border: "1px solid #eee", borderRadius: 8, padding: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              placeholder="New folder name (e.g. Surgical Clearance)"
+              value={newFolderLabel}
+              onChange={(e) => setNewFolderLabel(e.target.value)}
+              style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", flex: 1, minWidth: 200 }}
+            />
+            <button onClick={saveFolder} disabled={pending || !newFolderLabel.trim()} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer" }}>
+              {pending ? "Adding…" : "Add folder"}
+            </button>
+            <button onClick={() => { setAddingFolder(false); setNewFolderLabel(""); setError(null); }} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", color: "#555" }}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setAddingFolder(true)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
+            + New folder
+          </button>
+        )}
+        {error && addingFolder && <p style={{ fontSize: 11.5, color: "#a12a2a", marginTop: 6 }}>{error}</p>}
+        {customFolders.length > 0 && !addingFolder && (
+          <p style={{ fontSize: 11, color: "#999", marginTop: 6 }}>Custom folders apply clinic-wide — every patient's Documents tab shows the same list.</p>
+        )}
       </div>
     </div>
   );

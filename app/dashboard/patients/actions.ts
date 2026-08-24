@@ -311,6 +311,17 @@ export async function addDocumentAction(formData: FormData) {
   revalidatePath("/dashboard/documents");
 }
 
+// Custom document folder (spec follow-up: "provider can add more folders
+// depends on what they need to organize") — tenant-wide, so a folder added
+// from one patient's Documents tab shows up for every patient.
+export async function addDocumentFolderAction(label: string) {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("add_document_folder", { p_label: label });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/patients", "layout");
+  revalidatePath("/dashboard/documents");
+}
+
 // Get a short-lived signed URL to view/download a document — never expose
 // the storage path directly, and never make the bucket public (this is
 // PHI). RLS on storage.objects still gates this to the caller's own tenant.

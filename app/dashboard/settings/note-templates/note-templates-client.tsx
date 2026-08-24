@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { saveNoteTemplateAction, deleteNoteTemplateAction } from "./actions";
+import { NoteTemplatePreview } from "./note-template-preview";
 
 type Section = { key: "subjective" | "objective" | "assessment" | "plan"; label: string; placeholder: string };
 type BasedOn = "soap" | "expanded" | "custom";
@@ -48,7 +49,21 @@ function emptyDraft(): Template {
   return { id: "", name: "SOAP (Standard)", based_on: "soap", sections: SOAP_PRESET.map((s) => ({ ...s })), is_default: false, is_active: true };
 }
 
-export function NoteTemplatesClient({ initialTemplates }: { initialTemplates: Template[] }) {
+export function NoteTemplatesClient({
+  initialTemplates,
+  clinicName,
+  logoUrl,
+  addressLine,
+  contactLine,
+  providerName,
+}: {
+  initialTemplates: Template[];
+  clinicName: string;
+  logoUrl: string | null;
+  addressLine: string;
+  contactLine: string;
+  providerName: string;
+}) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [editing, setEditing] = useState<Template | null>(null);
   const [pending, startTransition] = useTransition();
@@ -169,7 +184,8 @@ export function NoteTemplatesClient({ initialTemplates }: { initialTemplates: Te
       </div>
 
       {editing && (
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 380px", minWidth: 0, background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
           <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>{editing.id ? "Edit template" : "New template"}</h2>
 
           <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
@@ -244,6 +260,18 @@ export function NoteTemplatesClient({ initialTemplates }: { initialTemplates: Te
               Cancel
             </button>
           </div>
+        </div>
+
+        <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+          <NoteTemplatePreview
+            clinicName={clinicName}
+            logoUrl={logoUrl}
+            addressLine={addressLine}
+            contactLine={contactLine}
+            providerName={providerName}
+            sections={editing.sections}
+          />
+        </div>
         </div>
       )}
     </div>

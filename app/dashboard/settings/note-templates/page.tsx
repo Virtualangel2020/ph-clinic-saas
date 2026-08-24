@@ -13,14 +13,27 @@ import { NoteTemplatesClient } from "./note-templates-client";
 export default async function NoteTemplatesSettingsPage() {
   const { supabase, profile } = await requireClinicAdmin();
 
-  const { data: templates } = await supabase
-    .from("note_templates")
-    .select("id, name, based_on, sections, is_default, is_active")
-    .eq("tenant_id", profile.tenant_id)
-    .order("created_at");
+  const [{ data: templates }, { data: clinicSettings }, { data: providerProfile }] = await Promise.all([
+    supabase.from("note_templates").select("id, name, based_on, sections, is_default, is_active").eq("tenant_id", profile.tenant_id).order("created_at"),
+    supabase
+      .from("clinic_settings")
+      .select("clinic_name, logo_path, address_line1, address_line2, city, province, postal_code, phone, mobile, email")
+      .maybeSingle(),
+    supabase.from("user_profiles").select("title").eq("id", profile.id).maybeSingle(),
+  ]);
+
+  let logoUrl: string | null = null;
+  if (clinicSettings?.logo_path) {
+    const { data } = supabase.storage.from("clinic-logos").getPublicUrl(clinicSettings.logo_path);
+    logoUrl = data.publicUrl;
+  }
+  const clinicName = clinicSettings?.clinic_name || "Your Clinic Name";
+  const addressLine = [clinicSettings?.address_line1, clinicSettings?.address_line2, clinicSettings?.city, clinicSettings?.province, clinicSettings?.postal_code].filter(Boolean).join(", ");
+  const contactLine = [clinicSettings?.phone || clinicSettings?.mobile, clinicSettings?.email].filter(Boolean).join(" · ");
+  const providerName = [providerProfile?.title, profile.full_name].filter(Boolean).join(" ") || profile.full_name || "";
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div style={{ maxWidth: 1180 }}>
       <BackLink href="/dashboard/settings" label="Settings" />
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Progress Note Templates</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
@@ -28,7 +41,14 @@ export default async function NoteTemplatesSettingsPage() {
         providers write a progress note. Mark one template as the clinic default — it's the one providers see when
         charting a patient.
       </p>
-      <NoteTemplatesClient initialTemplates={(templates as any) ?? []} />
+      <NoteTemplatesClient
+        initialTemplates={(templates as any) ?? []}
+        clinicName={clinicName}
+        logoUrl={logoUrl}
+        addressLine={addressLine}
+        contactLine={contactLine}
+        providerName={providerName}
+      />
     </div>
   );
 }

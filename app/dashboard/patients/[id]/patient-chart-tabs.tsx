@@ -125,6 +125,8 @@ export function PatientChartTabs({
             account: data.portalAccount,
           }}
           referredBy={data.referredBy}
+          alerts={data.alerts}
+          billing={data.billing}
         />
       )}
 
@@ -198,7 +200,9 @@ export function PatientChartTabs({
 
       {tab === "referrals" && <ReferralsSection patientId={patient.id} referrals={data.referrals} />}
 
-      {tab === "documents" && <DocumentsSection patientId={patient.id} documents={data.documents as any} providers={data.providers} />}
+      {tab === "documents" && (
+        <DocumentsSection patientId={patient.id} documents={data.documents as any} providers={data.providers} customFolders={data.documentFolders} />
+      )}
 
       {tab === "forms" && (
         <FormsSection patientId={patient.id} forms={data.patientForms as any} activeTemplates={data.activeFormTemplates as any} entitled={data.formsEntitled} />

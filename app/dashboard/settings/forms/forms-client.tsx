@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { saveIntakeFormTemplateAction, deleteIntakeFormTemplateAction, duplicateIntakeFormTemplateAction, assignTemplateToPatientFromSettingsAction } from "./actions";
 import { searchPatientsAction, type PatientSearchResult } from "../../patients/actions";
+import { FormPreview } from "./form-preview";
 
 type Category = "intake" | "consent" | "other";
 type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
@@ -69,7 +70,21 @@ function blankTemplate(category: Category): Template {
   };
 }
 
-export function FormTemplatesClient({ initialTemplates, canAssign = false }: { initialTemplates: Template[]; canAssign?: boolean }) {
+export function FormTemplatesClient({
+  initialTemplates,
+  canAssign = false,
+  clinicName,
+  logoUrl,
+  addressLine,
+  contactLine,
+}: {
+  initialTemplates: Template[];
+  canAssign?: boolean;
+  clinicName: string;
+  logoUrl: string | null;
+  addressLine: string;
+  contactLine: string;
+}) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [editing, setEditing] = useState<Template | null>(null);
   const [pending, startTransition] = useTransition();
@@ -338,7 +353,8 @@ export function FormTemplatesClient({ initialTemplates, canAssign = false }: { i
       </div>
 
       {editing && (
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 380px", minWidth: 0, background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
           <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>
             {editing.id ? "Edit template" : "New template"} — {CATEGORY_LABEL[editing.category]}
           </h2>
@@ -459,6 +475,20 @@ export function FormTemplatesClient({ initialTemplates, canAssign = false }: { i
               Cancel
             </button>
           </div>
+        </div>
+
+        <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+          <FormPreview
+            clinicName={clinicName}
+            logoUrl={logoUrl}
+            addressLine={addressLine}
+            contactLine={contactLine}
+            templateName={editing.name}
+            category={editing.category}
+            fields={fields}
+            consentBody={consentField?.value ?? ""}
+          />
+        </div>
         </div>
       )}
 

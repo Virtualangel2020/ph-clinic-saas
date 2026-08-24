@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setMedicalCertificateTemplateAction } from "../actions";
+import { CertificatePreview } from "./certificate-preview";
 
 type Field = { key: string; label: string; type: "text" | "textarea" | "date" };
 type Template = { id: string; name: string; based_on: string; fields_config: Field[]; is_active: boolean };
@@ -13,7 +14,21 @@ const DEFAULT_FIELDS: Field[] = [
   { key: "recommendations", label: "Recommendations", type: "textarea" },
 ];
 
-export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTemplates: Template[] }) {
+export function MedicalCertificateTemplateForm({
+  initialTemplates,
+  clinicName,
+  logoUrl,
+  addressLine,
+  contactLine,
+  providerName,
+}: {
+  initialTemplates: Template[];
+  clinicName: string;
+  logoUrl: string | null;
+  addressLine: string;
+  contactLine: string;
+  providerName: string;
+}) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [editing, setEditing] = useState<Template | null>(null);
   const [pending, startTransition] = useTransition();
@@ -88,7 +103,8 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
       </div>
 
       {editing && (
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
+        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 380px", minWidth: 0, background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 22 }}>
           <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>{editing.id ? "Edit template" : "New template"}</h2>
           <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
             <input
@@ -142,6 +158,18 @@ export function MedicalCertificateTemplateForm({ initialTemplates }: { initialTe
               Cancel
             </button>
           </div>
+        </div>
+
+        <div style={{ flex: "1 1 340px", minWidth: 0 }}>
+          <CertificatePreview
+            clinicName={clinicName}
+            logoUrl={logoUrl}
+            addressLine={addressLine}
+            contactLine={contactLine}
+            providerName={providerName}
+            fields={editing.fields_config}
+          />
+        </div>
         </div>
       )}
     </div>

@@ -172,6 +172,11 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     supabase.from("patient_charge_payments").select("id, charge_id, amount_php, method, reference, paid_at, created_at").eq("patient_id", patientId).order("paid_at", { ascending: false }),
   ]);
 
+  // Custom document folders (tenant-wide, not per-patient — see migration
+  // patient_document_custom_folders). Merged with the built-in folder list
+  // in DocumentsSection.
+  const { data: documentFoldersRaw } = await supabase.from("document_folders").select("key, label").eq("tenant_id", tenantId).order("label");
+
   const { data: defaultNoteTemplateRaw } = await supabase
     .from("note_templates")
     .select("sections")
@@ -385,5 +390,6 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     activeFormTemplates: (activeFormTemplatesRaw as any[]) ?? [],
     formsEntitled: !!formsEntitlementRaw,
     referrals,
+    documentFolders: (documentFoldersRaw as { key: string; label: string }[]) ?? [],
   };
 }
