@@ -50,12 +50,17 @@ export function EmrShell({
   userLabel,
   enabledAddonKeys,
   jellybeanCounts,
+  themePreference,
   children,
 }: {
   clinicName: string;
   userLabel: string;
   enabledAddonKeys: string[];
   jellybeanCounts: Partial<Record<(typeof JELLYBEANS)[number]["key"], number>>;
+  // "light" | "dark" | "system" — see app/globals.css's `[data-emr-theme]`
+  // rules and Settings → Appearance. Defaults to "system" so existing
+  // sessions (before this shipped) behave exactly as before.
+  themePreference?: "light" | "dark" | "system";
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -105,7 +110,7 @@ export function EmrShell({
   const contentOffset = isMobile ? 0 : navWidth;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f4f5f7" }}>
+    <div data-emr-theme={themePreference ?? "system"} style={{ minHeight: "100vh", background: "var(--bg-page)" }}>
       {isMobile && mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
@@ -192,8 +197,8 @@ export function EmrShell({
           left: contentOffset,
           right: 0,
           minHeight: 56,
-          background: "white",
-          borderBottom: "1px solid #e2e2e5",
+          background: "var(--card-bg)",
+          borderBottom: "1px solid var(--card-border)",
           display: "flex",
           alignItems: "center",
           gap: isMobile ? 10 : 16,
@@ -208,7 +213,7 @@ export function EmrShell({
             <button
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
-              style={{ background: "none", border: "1px solid #ddd", borderRadius: 8, padding: "6px 9px", fontSize: 15, cursor: "pointer", flexShrink: 0 }}
+              style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "6px 9px", fontSize: 15, cursor: "pointer", flexShrink: 0 }}
             >
               ☰
             </button>

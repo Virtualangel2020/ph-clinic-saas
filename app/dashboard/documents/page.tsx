@@ -48,7 +48,7 @@ export default async function DocumentsPage() {
       </p>
 
       {!documents || documents.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           No documents yet — open a patient's chart to add one.
         </div>
       ) : (
@@ -57,12 +57,12 @@ export default async function DocumentsPage() {
             <Link
               key={d.id}
               href={`/dashboard/patients/${d.patients?.id}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12 }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: "#0c1730" }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
                   {d.title}
-                  <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px", fontWeight: 400 }}>
+                  <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid var(--input-border)", borderRadius: 999, padding: "1px 7px", fontWeight: 400 }}>
                     {TYPE_LABEL[d.doc_type] ?? d.doc_type}
                   </span>
                   {!d.storage_path && (

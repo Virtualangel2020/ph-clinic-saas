@@ -57,4 +57,4 @@ export function ProviderTypePicker({
 }
 
 const pickerLabel: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "#666", marginBottom: 4 };
-const pickerField: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, minWidth: 220 };
+const pickerField: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, minWidth: 220 };

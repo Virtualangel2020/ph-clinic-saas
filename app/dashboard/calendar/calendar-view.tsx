@@ -198,7 +198,7 @@ export function CalendarView({
           <div style={{ fontWeight: 700, fontSize: 15, marginLeft: 8 }}>{rangeLabel}</div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <div style={{ display: "flex", border: "1px solid #ddd", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1px solid var(--input-border)", borderRadius: 8, overflow: "hidden" }}>
             {(["day", "week", "month"] as const).map((v) => (
               <Link
                 key={v}
@@ -219,7 +219,7 @@ export function CalendarView({
           </div>
           <Link
             href="/dashboard/calendar/patient-booking"
-            style={{ fontSize: 12, fontWeight: 600, color: "#0c1730", textDecoration: "none", border: "1px solid #ddd", borderRadius: 8, padding: "8px 12px" }}
+            style={{ fontSize: 12, fontWeight: 600, color: "var(--text-heading)", textDecoration: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 12px" }}
           >
             Patient booking preview
           </Link>
@@ -246,7 +246,7 @@ export function CalendarView({
             {moveError && <div style={{ color: "crimson" }}>{moveError}</div>}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={cancelMove} disabled={moveBusy} style={{ background: "white", border: "1px solid #ddd", borderRadius: 7, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={cancelMove} disabled={moveBusy} style={{ background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 7, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
               Cancel
             </button>
             <button
@@ -356,7 +356,7 @@ function CalendarSidebar({
 
   return (
     <div style={{ flex: "0 0 260px", width: 260, display: "grid", gap: 14 }}>
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <button onClick={() => setMiniMonth(addDays(startOfMonth(miniMonth), -1).slice(0, 7) + "-01")} style={miniNavBtn}>
             ‹
@@ -402,7 +402,7 @@ function CalendarSidebar({
         </div>
       </div>
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 12 }}>
         <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 8 }}>Providers</div>
         {providers.length === 0 ? (
           <p style={{ color: "#aaa", fontSize: 11.5 }}>None yet.</p>
@@ -419,10 +419,10 @@ function CalendarSidebar({
         )}
       </div>
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 12 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={{ fontWeight: 700, fontSize: 12.5 }}>Blocked time</div>
-          <button onClick={() => setBlockFormOpen((v) => !v)} style={{ background: "none", border: "none", color: "#0c1730", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => setBlockFormOpen((v) => !v)} style={{ background: "none", border: "none", color: "var(--text-heading)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
             {blockFormOpen ? "Cancel" : "+ Block"}
           </button>
         </div>
@@ -443,7 +443,7 @@ function CalendarSidebar({
   );
 }
 
-const miniNavBtn: React.CSSProperties = { background: "none", border: "1px solid #ddd", borderRadius: 6, width: 22, height: 22, cursor: "pointer", fontSize: 12, color: "#555" };
+const miniNavBtn: React.CSSProperties = { background: "none", border: "1px solid var(--input-border)", borderRadius: 6, width: 22, height: 22, cursor: "pointer", fontSize: 12, color: "#555" };
 
 function BlockTimeRow({ block }: { block: TimeBlockDisplay }) {
   const [pending, setPending] = useState(false);
@@ -524,13 +524,13 @@ function BlockTimeForm({ providers, defaultDate, onDone }: { providers: Provider
   );
 }
 
-const miniFieldStyle: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 6, padding: "5px 7px", fontSize: 11.5, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const miniFieldStyle: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 6, padding: "5px 7px", fontSize: 11.5, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 34, height: 32, padding: "0 10px", border: "1px solid #ddd", borderRadius: 8, textDecoration: "none", color: "#333", fontSize: 12.5, fontWeight: 600, background: "white" }}
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 34, height: 32, padding: "0 10px", border: "1px solid var(--input-border)", borderRadius: 8, textDecoration: "none", color: "#333", fontSize: 12.5, fontWeight: 600, background: "var(--card-bg)" }}
     >
       {children}
     </Link>
@@ -582,8 +582,8 @@ function GridEventBlock({
         height,
         left: `calc(${(col / colCount) * 100}% + 2px)`,
         width: `calc(${100 / colCount}% - 4px)`,
-        background: "white",
-        border: "1px solid #e2e2e5",
+        background: "var(--card-bg)",
+        border: "1px solid var(--card-border)",
         borderLeft: `4px solid ${typeColor}`,
         borderRadius: 5,
         padding: "2px 5px",
@@ -596,7 +596,7 @@ function GridEventBlock({
         zIndex: 2,
       }}
     >
-      <div style={{ fontWeight: 700, color: "#0c1730", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <div style={{ fontWeight: 700, color: "var(--text-heading)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {formatTime(a.start_at)} {who}
       </div>
       {height > 30 && (a.appointment_types || a.patients?.mobile_phone) && (
@@ -777,12 +777,12 @@ function DayView({
   const minWidth = 52 + Math.max(1, providers.length + (showUnassignedCol ? 1 : 0)) * colWidth;
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, overflow: "auto" }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, overflow: "auto" }}>
       <div style={{ minWidth }}>
-        <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5", position: "sticky", top: 0, background: "white", zIndex: 5 }}>
+        <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5", position: "sticky", top: 0, background: "var(--card-bg)", zIndex: 5 }}>
           <div style={{ width: 52, flexShrink: 0 }} />
           {providers.map((p) => (
-            <div key={p.id} style={{ flex: 1, minWidth: colWidth, padding: "8px 10px", fontWeight: 700, fontSize: 12.5, color: "#0c1730", borderLeft: "1px solid #eee", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div key={p.id} style={{ flex: 1, minWidth: colWidth, padding: "8px 10px", fontWeight: 700, fontSize: 12.5, color: "var(--text-heading)", borderLeft: "1px solid #eee", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {p.title ? `${p.title} ` : ""}
               {p.full_name}
             </div>
@@ -854,16 +854,16 @@ function WeekView({
   const minWidth = 52 + 7 * colWidth;
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, overflow: "auto" }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, overflow: "auto" }}>
       <div style={{ minWidth }}>
-        <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5", position: "sticky", top: 0, background: "white", zIndex: 5 }}>
+        <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5", position: "sticky", top: 0, background: "var(--card-bg)", zIndex: 5 }}>
           <div style={{ width: 52, flexShrink: 0 }} />
           {days.map((d) => {
             const isToday = d === today;
             return (
               <div key={d} style={{ flex: 1, minWidth: colWidth, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderLeft: "1px solid #eee", background: isToday ? "#f0f4ff" : "white" }}>
                 <span style={{ fontWeight: 700, fontSize: 12.5, color: isToday ? "#0c1730" : "#555" }}>{formatDayLabel(d)}</span>
-                <button onClick={() => onAddAt(d, "09:00")} title="Add appointment" style={{ background: "none", border: "none", color: "#0c1730", cursor: "pointer", fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
+                <button onClick={() => onAddAt(d, "09:00")} title="Add appointment" style={{ background: "none", border: "none", color: "var(--text-heading)", cursor: "pointer", fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
                   +
                 </button>
               </div>
@@ -919,7 +919,7 @@ function MonthView({ anchor, appointments }: { anchor: string; appointments: App
               style={{
                 display: "block",
                 minHeight: 78,
-                background: "white",
+                background: "var(--card-bg)",
                 border: `1px solid ${isToday ? "#0c1730" : "#e2e2e5"}`,
                 borderRadius: 8,
                 padding: 6,

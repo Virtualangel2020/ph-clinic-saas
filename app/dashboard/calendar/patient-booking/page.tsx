@@ -120,7 +120,7 @@ export default async function PatientBookingPreviewPage({
         so what you check here is what patients would actually be offered. Booking itself isn't wired up on this page yet.
       </p>
 
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18, marginBottom: 18 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 18, marginBottom: 18 }}>
         <ProviderTypePicker providers={(providers as any) ?? []} appointmentTypes={(appointmentTypes as any) ?? []} providerId={providerId} typeId={typeId} />
       </div>
 
@@ -130,7 +130,7 @@ export default async function PatientBookingPreviewPage({
         </div>
       ) : (
         <>
-          <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18, marginBottom: 18 }}>
+          <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 18, marginBottom: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <Link href={monthHref(addDays(startOfMonth(month), -1))} style={navBtn}>
@@ -143,7 +143,7 @@ export default async function PatientBookingPreviewPage({
                   Next ›
                 </Link>
               </div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: "#0c1730" }}>{formatMonthLabel(month)}</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: "var(--text-heading)" }}>{formatMonthLabel(month)}</div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginBottom: 4 }}>
@@ -205,7 +205,7 @@ export default async function PatientBookingPreviewPage({
           </div>
 
           {searchParams.date && (
-            <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 18 }}>
+            <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 18 }}>
               <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 10 }}>{formatDayLabel(searchParams.date)} — Available Times</h2>
               {selectedDateStatus === "gray" && (
                 <p style={{ color: "#888", fontSize: 13 }}>Online booking is not available for this provider on this date. Please submit an appointment request or contact the clinic.</p>
@@ -236,4 +236,4 @@ function minToLabel(totalMin: number): string {
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-const navBtn: React.CSSProperties = { padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, textDecoration: "none", color: "#333", fontSize: 12.5, fontWeight: 600, background: "white" };
+const navBtn: React.CSSProperties = { padding: "6px 12px", border: "1px solid var(--input-border)", borderRadius: 8, textDecoration: "none", color: "#333", fontSize: 12.5, fontWeight: 600, background: "var(--card-bg)" };

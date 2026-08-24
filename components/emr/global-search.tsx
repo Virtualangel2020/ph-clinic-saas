@@ -68,9 +68,9 @@ export function GlobalSearch() {
             boxSizing: "border-box",
             padding: "8px 12px",
             borderRadius: 8,
-            border: "1px solid #ddd",
+            border: "1px solid var(--input-border)",
             fontSize: 13,
-            background: "white",
+            background: "var(--card-bg)",
             color: "#333",
           }}
         />
@@ -85,8 +85,8 @@ export function GlobalSearch() {
             left: 0,
             right: 0,
             marginTop: 4,
-            background: "white",
-            border: "1px solid #ddd",
+            background: "var(--card-bg)",
+            border: "1px solid var(--input-border)",
             borderRadius: 8,
             boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
             maxHeight: 320,
@@ -105,7 +105,7 @@ export function GlobalSearch() {
                   onClick={() => go(p.id)}
                   style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer", borderBottom: "1px solid #f2f2f2", opacity: p.is_active ? 1 : 0.55 }}
                 >
-                  <div style={{ fontWeight: 700, color: "#0c1730" }}>
+                  <div style={{ fontWeight: 700, color: "var(--text-heading)" }}>
                     {p.last_name}, {p.first_name} {p.middle_name ? p.middle_name.charAt(0) + "." : ""}
                     {!p.is_active && <span style={{ marginLeft: 6, fontSize: 10.5, color: "#a12a2a", fontWeight: 700 }}>ARCHIVED</span>}
                   </div>
@@ -119,7 +119,7 @@ export function GlobalSearch() {
                   setOpen(false);
                   router.push(`/dashboard/patients?q=${encodeURIComponent(q.trim())}`);
                 }}
-                style={{ padding: "9px 14px", fontSize: 12, color: "#0c1730", fontWeight: 600, cursor: "pointer" }}
+                style={{ padding: "9px 14px", fontSize: 12, color: "var(--text-heading)", fontWeight: 600, cursor: "pointer" }}
               >
                 See all results in Patients →
               </div>

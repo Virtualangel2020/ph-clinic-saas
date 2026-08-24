@@ -21,7 +21,7 @@ export function ModulePlaceholder({
     <div style={{ maxWidth: 640 }}>
       <BackLink href={backHref} label={backLabel} />
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>{title}</h1>
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24 }}>
         <div style={{ display: "inline-block", fontSize: 11, fontWeight: 700, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "3px 10px", marginBottom: 12 }}>
           {phase}
         </div>

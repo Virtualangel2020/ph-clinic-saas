@@ -74,7 +74,7 @@ export default async function DashboardBillingPage() {
             const owed = Number(inv.amount_php) - Number(inv.discount_php);
             const payable = inv.status === "pending" || inv.status === "partially_paid" || inv.status === "overdue";
             return (
-              <div key={inv.id} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20 }}>
+              <div key={inv.id} style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{inv.description}</div>
@@ -93,7 +93,7 @@ export default async function DashboardBillingPage() {
           })}
         </div>
       ) : (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
           No invoices yet.
         </div>
       )}
@@ -101,7 +101,7 @@ export default async function DashboardBillingPage() {
       {payments && payments.length > 0 && (
         <div style={{ marginTop: 32 }}>
           <h2 style={{ fontSize: 16, marginBottom: 12 }}>Payment history</h2>
-          <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "#fafafa", textAlign: "left" }}>

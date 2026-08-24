@@ -23,7 +23,7 @@ type EditingAppointment = {
   notes: string | null;
 };
 
-const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 
 export function AppointmentForm({
   defaultDate,
@@ -279,7 +279,7 @@ export function AppointmentForm({
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+    <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 16, marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <h3 style={{ fontSize: 14.5 }}>{editing ? "Edit appointment" : "New appointment"}</h3>
         <button onClick={onClose} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 13 }}>
@@ -303,7 +303,7 @@ export function AppointmentForm({
             style={FIELD_STYLE}
           />
           {showPatientList && (
-            <div style={{ position: "absolute", zIndex: 5, top: "100%", left: 0, right: 0, background: "white", border: "1px solid #ddd", borderRadius: 8, marginTop: 2, maxHeight: 240, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
+            <div style={{ position: "absolute", zIndex: 5, top: "100%", left: 0, right: 0, background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, marginTop: 2, maxHeight: 240, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}>
               {filteredPatients.length === 0 ? (
                 <div style={{ padding: "8px 12px", fontSize: 12.5, color: "#999" }}>No patients match.</div>
               ) : (
@@ -328,7 +328,7 @@ export function AppointmentForm({
               <div
                 onMouseDown={(e) => e.preventDefault()} // survive the input's onBlur before the click registers
                 onClick={openQuickAdd}
-                style={{ padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "#0c1730", cursor: "pointer", background: "#f8f9fb" }}
+                style={{ padding: "9px 12px", fontSize: 12.5, fontWeight: 700, color: "var(--text-heading)", cursor: "pointer", background: "#f8f9fb" }}
               >
                 + Add New Patient
               </div>
@@ -337,7 +337,7 @@ export function AppointmentForm({
         </div>
 
         {quickAddOpen && (
-          <div style={{ background: "#f8f9fb", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14 }}>
+          <div style={{ background: "#f8f9fb", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ fontWeight: 700, fontSize: 13 }}>{possibleDuplicates ? "Possible Existing Patient Found" : "Add New Patient"}</div>
               <button onClick={closeQuickAdd} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12.5 }}>
@@ -348,7 +348,7 @@ export function AppointmentForm({
             {possibleDuplicates ? (
               <div style={{ display: "grid", gap: 8 }}>
                 {possibleDuplicates.map((p) => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px" }}>
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px" }}>
                     <div style={{ fontSize: 12.5 }}>
                       <div style={{ fontWeight: 700 }}>
                         {p.last_name}, {p.first_name} {p.middle_name ? p.middle_name.charAt(0) + "." : ""}
@@ -369,7 +369,7 @@ export function AppointmentForm({
                 <button
                   onClick={createPatient}
                   disabled={quickAddPending}
-                  style={{ background: "white", color: "#555", border: "1px solid #ddd", borderRadius: 6, padding: "8px 12px", fontSize: 12, cursor: "pointer", textAlign: "left" }}
+                  style={{ background: "var(--card-bg)", color: "#555", border: "1px solid var(--input-border)", borderRadius: 6, padding: "8px 12px", fontSize: 12, cursor: "pointer", textAlign: "left" }}
                 >
                   {quickAddPending ? "Creating…" : "None of these — continue creating new patient"}
                 </button>
@@ -496,7 +496,7 @@ export function AppointmentForm({
                   Book anyway
                 </button>
               )}
-              <button onClick={() => setConflicts(null)} disabled={pending} style={{ background: "white", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => setConflicts(null)} disabled={pending} style={{ background: "var(--card-bg)", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                 Choose a different time
               </button>
             </div>
@@ -528,7 +528,7 @@ export function AppointmentForm({
               <button onClick={confirmReasonAndChangeStatus} disabled={pending} style={{ background: "#a12a2a", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
                 Confirm
               </button>
-              <button onClick={() => setReasonPromptFor(null)} disabled={pending} style={{ background: "white", color: "#666", border: "1px solid #ddd", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => setReasonPromptFor(null)} disabled={pending} style={{ background: "var(--card-bg)", color: "#666", border: "1px solid var(--input-border)", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                 Back
               </button>
             </div>
@@ -547,7 +547,7 @@ export function AppointmentForm({
                   key={s.key}
                   onClick={() => changeStatus(s.key)}
                   disabled={pending}
-                  style={{ background: "#f0f4ff", color: "#0c1730", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}
+                  style={{ background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}
                 >
                   Mark {s.label}
                 </button>

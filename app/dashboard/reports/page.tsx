@@ -278,7 +278,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { ra
 
 function RangeTabs({ activeKey }: { activeKey: string }) {
   return (
-    <div style={{ display: "flex", gap: 4, border: "1px solid #e2e2e5", borderRadius: 8, padding: 3, background: "white" }}>
+    <div style={{ display: "flex", gap: 4, border: "1px solid var(--card-border)", borderRadius: 8, padding: 3, background: "var(--card-bg)" }}>
       {RANGE_OPTIONS.map((r) => {
         const active = r.key === activeKey;
         return (
@@ -339,7 +339,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div style={{ marginBottom: 32 }}>
       <h2 style={{ fontSize: 15, marginBottom: 10 }}>{title}</h2>
-      <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, overflow: "hidden" }}>{children}</div>
+      <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, overflow: "hidden" }}>{children}</div>
     </div>
   );
 }
