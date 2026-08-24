@@ -20,6 +20,14 @@ const TYPE_LABEL: Record<string, string> = {
 // Files are stored in the private "patient-documents" Storage bucket,
 // tenant-isolated by folder path — this list only shows metadata; opening
 // a file goes through a signed URL requested from the patient's own page.
+//
+// IMPORTANT: this tab is for standalone FILES only (referrals, forms,
+// scanned hospital records, insurance cards, external records received via
+// Records Exchange) — never a place clinical results pile up unsorted.
+// Prescriptions, lab orders, and lab results are structured data with
+// their own dedicated modules (Prescriptions / Orders / Results, plus each
+// patient's own chart) — they are never filed here, precisely so this tab
+// never turns into a mess of loose result printouts.
 export default async function DocumentsPage() {
   const { supabase, profile } = await requireClinicMember();
 
@@ -34,7 +42,9 @@ export default async function DocumentsPage() {
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>Documents</h1>
       <p style={{ color: "#666", marginBottom: 20, fontSize: 13 }}>
-        Every active document on file across your patients, organized by folder. Add one from a patient's own chart.
+        Standalone files only — referrals, forms, scanned records, insurance cards — each already organized inside a
+        patient's own chart. Lab results and prescriptions live in their own Results and Prescriptions tabs, not here.
+        Add a file from a patient's own chart.
       </p>
 
       {!documents || documents.length === 0 ? (

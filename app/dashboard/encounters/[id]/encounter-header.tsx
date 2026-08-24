@@ -19,6 +19,7 @@ export function EncounterHeader({
   chiefComplaint,
   providers,
   appointmentTypes,
+  isSigned = false,
 }: {
   encounterId: string;
   patientId: string;
@@ -28,6 +29,7 @@ export function EncounterHeader({
   chiefComplaint: string | null;
   providers: Provider[];
   appointmentTypes: ApptType[];
+  isSigned?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -78,19 +80,23 @@ export function EncounterHeader({
         >
           {status === "closed" ? "Closed" : "Open visit"}
         </span>
-        <button
-          onClick={toggleStatus}
-          disabled={pending}
-          style={{ background: status === "closed" ? "#f0f4ff" : "#0c1730", color: status === "closed" ? "#0c1730" : "white", border: status === "closed" ? "1px solid #c7d4f5" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
-        >
-          {status === "closed" ? "Reopen encounter" : "Close encounter"}
-        </button>
+        {isSigned ? (
+          <span style={{ fontSize: 11.5, color: "#999" }}>Locked — signed encounters can't be reopened.</span>
+        ) : (
+          <button
+            onClick={toggleStatus}
+            disabled={pending}
+            style={{ background: status === "closed" ? "#f0f4ff" : "#0c1730", color: status === "closed" ? "#0c1730" : "white", border: status === "closed" ? "1px solid #c7d4f5" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+          >
+            {status === "closed" ? "Reopen encounter" : "Close encounter"}
+          </button>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
         <div>
           <div style={labelStyle}>Provider</div>
-          <select value={provider} onChange={(e) => setProvider(e.target.value)} onBlur={save} style={FIELD_STYLE}>
+          <select value={provider} onChange={(e) => setProvider(e.target.value)} onBlur={save} disabled={isSigned} style={FIELD_STYLE}>
             <option value="">Unassigned</option>
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -102,7 +108,7 @@ export function EncounterHeader({
         </div>
         <div>
           <div style={labelStyle}>Visit type</div>
-          <select value={type} onChange={(e) => setType(e.target.value)} onBlur={save} style={FIELD_STYLE}>
+          <select value={type} onChange={(e) => setType(e.target.value)} onBlur={save} disabled={isSigned} style={FIELD_STYLE}>
             <option value="">—</option>
             {appointmentTypes.map((t) => (
               <option key={t.id} value={t.name}>
@@ -115,7 +121,7 @@ export function EncounterHeader({
 
       <div>
         <div style={labelStyle}>Chief complaint</div>
-        <input value={complaint} onChange={(e) => setComplaint(e.target.value)} onBlur={save} style={FIELD_STYLE} />
+        <input value={complaint} onChange={(e) => setComplaint(e.target.value)} onBlur={save} disabled={isSigned} style={FIELD_STYLE} />
       </div>
 
       {saved && <div style={{ fontSize: 11.5, color: "#1a7f37", marginTop: 6 }}>Saved.</div>}

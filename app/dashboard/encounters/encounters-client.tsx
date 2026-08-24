@@ -1,36 +1,28 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { startEncounterAction } from "./actions";
 
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; mobile_phone: string | null };
 type Provider = { id: string; full_name: string; title: string | null };
 type ApptType = { id: string; name: string };
 type TodaysAppointment = { id: string; patient_id: string; provider_id: string | null; start_at: string; status: string; patients: { first_name: string; last_name: string } | null };
-type EncounterRow = {
-  id: string;
-  encounter_date: string;
-  encounter_type: string | null;
-  chief_complaint: string | null;
-  status: string;
-  created_at: string;
-  patients: { id: string; first_name: string; last_name: string } | null;
-  user_profiles: { full_name: string } | null;
-};
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "#666", marginBottom: 4 };
 
+// Quick-start "+ New encounter" panel — today's-appointment quick-pick plus
+// patient search. This used to also render a flat, unbounded list of the
+// tenant's most recent encounters underneath; that's been replaced by the
+// date-organized view in page.tsx (spec §1: date is the primary organizing
+// principle, never one long list), so this component now does one job.
 export function EncountersClient({
-  encounters,
   providers,
   patients,
   appointmentTypes,
   todaysAppointments,
   prefillPatientId,
 }: {
-  encounters: EncounterRow[];
   providers: Provider[];
   patients: Patient[];
   appointmentTypes: ApptType[];
@@ -188,35 +180,6 @@ export function EncountersClient({
           </div>
         )}
       </div>
-
-      {encounters.length === 0 ? (
-        <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
-          No encounters yet — start one above, or from a patient's chart.
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 8 }}>
-          {encounters.map((e) => (
-            <Link
-              key={e.id}
-              href={`/dashboard/encounters/${e.id}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: "13px 16px", textDecoration: "none" }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#0c1730" }}>
-                  {e.patients ? `${e.patients.last_name}, ${e.patients.first_name}` : "Unknown patient"}
-                  {e.encounter_type && <span style={{ marginLeft: 8, fontSize: 11, color: "#888", border: "1px solid #ddd", borderRadius: 999, padding: "1px 7px", fontWeight: 400 }}>{e.encounter_type}</span>}
-                </div>
-                <div style={{ fontSize: 12, color: "#888" }}>
-                  {new Date(e.encounter_date).toLocaleDateString()} {e.user_profiles ? `· ${e.user_profiles.full_name}` : ""} {e.chief_complaint ? `· ${e.chief_complaint}` : ""}
-                </div>
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: e.status === "closed" ? "#1a7f37" : "#8a6100", whiteSpace: "nowrap" }}>
-                {e.status === "closed" ? "Closed" : "Open"}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

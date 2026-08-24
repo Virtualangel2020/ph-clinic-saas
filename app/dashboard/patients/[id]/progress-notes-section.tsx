@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addProgressNoteAction, removeProgressNoteAction } from "../actions";
+import { addEncounterAmendmentAction } from "../../encounters/actions";
 
 type Note = {
   id: string;
@@ -21,6 +22,8 @@ type Note = {
   weight_kg: number | null;
   height_cm: number | null;
   created_at: string;
+  amends_note_id?: string | null;
+  amendment_reason?: string | null;
   user_profiles: { full_name: string | null } | null;
 };
 
@@ -57,25 +60,42 @@ function hasAnyVital(n: Note) {
   );
 }
 
-export function ProgressNotesSection({ patientId, notes, encounterId }: { patientId: string; notes: Note[]; encounterId?: string }) {
+export function ProgressNotesSection({
+  patientId,
+  notes,
+  encounterId,
+  isSignedEncounter = false,
+  canViewClinical = true,
+}: {
+  patientId: string;
+  notes: Note[];
+  encounterId?: string;
+  isSignedEncounter?: boolean;
+  canViewClinical?: boolean;
+}) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [tab, setTab] = useState<"notes" | "vitals">("notes");
   const [draft, setDraft] = useState(EMPTY_DRAFT);
+  const [amendsNoteId, setAmendsNoteId] = useState("");
+  const [amendmentReason, setAmendmentReason] = useState("");
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function save() {
     if (!draft.chiefComplaint.trim() && !draft.assessment.trim() && !draft.bpSystolic && !draft.pulseRate) return;
+    if (isSignedEncounter && !amendsNoteId) {
+      setError("Select which note this amendment corrects.");
+      return;
+    }
+    if (isSignedEncounter && !amendmentReason.trim()) {
+      setError("An amendment reason is required.");
+      return;
+    }
+    setError(null);
     startTransition(async () => {
-      await addProgressNoteAction(
-        patientId,
-        draft.noteDate,
-        draft.chiefComplaint,
-        draft.subjective,
-        draft.objective,
-        draft.assessment,
-        draft.plan,
-        {
+      try {
+        const vitals = {
           bpSystolic: draft.bpSystolic,
           bpDiastolic: draft.bpDiastolic,
           pulseRate: draft.pulseRate,
@@ -84,21 +104,57 @@ export function ProgressNotesSection({ patientId, notes, encounterId }: { patien
           temperatureC: draft.temperatureC,
           weightKg: draft.weightKg,
           heightCm: draft.heightCm,
-        },
-        encounterId
-      );
-      setDraft(EMPTY_DRAFT);
-      setTab("notes");
-      setAdding(false);
-      router.refresh();
+        };
+        if (isSignedEncounter && encounterId) {
+          await addEncounterAmendmentAction(
+            patientId,
+            encounterId,
+            amendsNoteId,
+            amendmentReason,
+            draft.noteDate,
+            draft.chiefComplaint,
+            draft.subjective,
+            draft.objective,
+            draft.assessment,
+            draft.plan,
+            vitals
+          );
+        } else {
+          await addProgressNoteAction(patientId, draft.noteDate, draft.chiefComplaint, draft.subjective, draft.objective, draft.assessment, draft.plan, vitals, encounterId);
+        }
+        setDraft(EMPTY_DRAFT);
+        setAmendsNoteId("");
+        setAmendmentReason("");
+        setTab("notes");
+        setAdding(false);
+        router.refresh();
+      } catch (e: any) {
+        setError(e.message);
+      }
     });
   }
 
   function remove(id: string) {
+    setError(null);
     startTransition(async () => {
-      await removeProgressNoteAction(id, patientId);
-      router.refresh();
+      try {
+        await removeProgressNoteAction(id, patientId);
+        router.refresh();
+      } catch (e: any) {
+        setError(e.message);
+      }
     });
+  }
+
+  if (!canViewClinical) {
+    return (
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 15, marginBottom: 8 }}>Progress notes</h2>
+        <div style={{ background: "#f7f7f9", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16, color: "#888", fontSize: 12.5 }}>
+          🔒 Clinical documentation is restricted for your role. Contact your clinic administrator if you need access.
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -106,12 +162,36 @@ export function ProgressNotesSection({ patientId, notes, encounterId }: { patien
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontSize: 15 }}>Progress notes</h2>
         <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "#0c1730", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
-          {adding ? "Cancel" : "+ Add note"}
+          {adding ? "Cancel" : isSignedEncounter ? "+ Add amendment" : "+ Add note"}
         </button>
       </div>
 
+      {error && !adding && <p style={{ fontSize: 12, color: "crimson", marginBottom: 8 }}>{error}</p>}
+
       {adding && (
         <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, marginBottom: 10, overflow: "hidden" }}>
+          {isSignedEncounter && (
+            <div style={{ padding: 14, borderBottom: "1px solid #e2e2e5", background: "#fff6e6" }}>
+              <p style={{ fontSize: 11.5, color: "#5c4400", margin: "0 0 8px" }}>
+                This encounter is signed — new entries are recorded as amendments, alongside the original note.
+              </p>
+              <div style={{ marginBottom: 8 }}>
+                <div style={vitalLabelStyle}>Note being amended</div>
+                <select value={amendsNoteId} onChange={(e) => setAmendsNoteId(e.target.value)} style={{ ...FIELD_STYLE, width: "100%" }}>
+                  <option value="">— Select a note —</option>
+                  {notes.filter((n) => !n.amends_note_id).map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {new Date(n.note_date).toLocaleDateString()} {n.chief_complaint ? `— ${n.chief_complaint}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div style={vitalLabelStyle}>Reason for amendment</div>
+                <input placeholder="e.g. Corrected diagnosis after lab results" value={amendmentReason} onChange={(e) => setAmendmentReason(e.target.value)} style={{ ...FIELD_STYLE, width: "100%" }} />
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", borderBottom: "1px solid #e2e2e5" }}>
             {(["notes", "vitals"] as const).map((t) => (
               <button
@@ -182,8 +262,9 @@ export function ProgressNotesSection({ patientId, notes, encounterId }: { patien
                 </div>
               </>
             )}
+            {error && <p style={{ fontSize: 12, color: "crimson", margin: 0 }}>{error}</p>}
             <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start", marginTop: 4 }}>
-              Save note
+              {pending ? "Saving…" : isSignedEncounter ? "Save amendment" : "Save note"}
             </button>
           </div>
         </div>
@@ -197,10 +278,17 @@ export function ProgressNotesSection({ patientId, notes, encounterId }: { patien
             <div key={n.id} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, fontSize: 13 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <div style={{ fontWeight: 700 }}>{new Date(n.note_date).toLocaleDateString()} {n.chief_complaint ? `— ${n.chief_complaint}` : ""}</div>
-                <button onClick={() => remove(n.id)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12 }}>
-                  Remove
-                </button>
+                {!isSignedEncounter && (
+                  <button onClick={() => remove(n.id)} disabled={pending} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12 }}>
+                    Remove
+                  </button>
+                )}
               </div>
+              {n.amends_note_id && (
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#8a6100", background: "#fff6e6", border: "1px solid #f0d998", borderRadius: 999, padding: "2px 8px", display: "inline-block", marginBottom: 6 }}>
+                  AMENDMENT{n.amendment_reason ? `: ${n.amendment_reason}` : ""}
+                </div>
+              )}
 
               {hasAnyVital(n) && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>

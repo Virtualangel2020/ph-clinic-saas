@@ -416,6 +416,7 @@ export type EncounterHistoryRow = {
   encounter_type: string | null;
   chief_complaint: string | null;
   status: string;
+  signed_at: string | null;
   provider_name: string | null;
 };
 
@@ -426,7 +427,7 @@ export async function searchPatientEncountersAction(filter: EncounterHistoryFilt
 
   let query = supabase
     .from("encounters")
-    .select("id, encounter_date, encounter_type, chief_complaint, status, provider_id, user_profiles(full_name)", { count: "exact" })
+    .select("id, encounter_date, encounter_type, chief_complaint, status, signed_at, provider_id, user_profiles!encounters_provider_id_fkey(full_name)", { count: "exact" })
     .eq("tenant_id", profile.tenant_id)
     .eq("patient_id", filter.patientId)
     .order("encounter_date", { ascending: false })
@@ -450,6 +451,7 @@ export async function searchPatientEncountersAction(filter: EncounterHistoryFilt
     encounter_type: e.encounter_type,
     chief_complaint: e.chief_complaint,
     status: e.status,
+    signed_at: e.signed_at ?? null,
     provider_name: e.user_profiles?.full_name ?? null,
   }));
   const hasMore = filter.offset + rows.length < (count ?? 0);

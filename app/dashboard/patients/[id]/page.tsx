@@ -7,10 +7,15 @@ import { AllergiesSection } from "./allergies-section";
 import { MedicationsSection } from "./medications-section";
 import { DocumentsSection } from "./documents-section";
 import { ProgressNotesSection } from "./progress-notes-section";
+import { canViewClinicalContent } from "@/lib/permissions";
 import { PortalSection } from "./portal-section";
 import { PatientAlertsBanner } from "./patient-alerts-banner";
 import { AppointmentHistorySection, type AppointmentRow } from "./appointment-history-section";
 import { EncounterHistorySection } from "./encounter-history-section";
+import { CareCoordinationSection } from "./care-coordination-section";
+import { PrescriptionsSection, type PrescriptionRow } from "./prescriptions-section";
+import { LabSection, type LabOrderRow } from "./lab-section";
+import { InsurancePhilhealthSection, type InsurancePlanRow } from "./insurance-philhealth-section";
 import { formatDayLabel, formatTime } from "../../calendar/date-utils";
 
 const ENCOUNTER_PAGE_SIZE = 20;
@@ -28,7 +33,8 @@ function age(dob: string) {
 
 export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, profile } = await requireClinicMember();
+  const { supabase, profile, user } = await requireClinicMember();
+  const canViewClinical = await canViewClinicalContent(supabase, user.id, profile.role);
 
   const { data: patient } = await supabase
     .from("patients")
@@ -50,6 +56,9 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     { count: totalEncounters },
     { data: pastApptsRaw },
     { data: upcomingApptsRaw },
+    { data: prescriptionsRaw },
+    { data: labOrdersRaw },
+    { data: insurancePlansRaw },
   ] = await Promise.all([
     supabase.from("patient_allergies").select("id, allergen, reaction, severity, noted_at").eq("patient_id", id).order("noted_at", { ascending: false }),
     supabase.from("patient_medications").select("id, medication_name, dosage, frequency, started_at, is_active, notes").eq("patient_id", id).order("created_at", { ascending: false }),
@@ -60,7 +69,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .order("created_at", { ascending: false }),
     supabase
       .from("patient_progress_notes")
-      .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, bp_systolic, bp_diastolic, pulse_rate, respiratory_rate, oxygen_saturation, temperature_c, weight_kg, height_cm, created_at, user_profiles(full_name)")
+      .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, bp_systolic, bp_diastolic, pulse_rate, respiratory_rate, oxygen_saturation, temperature_c, weight_kg, height_cm, created_at, amends_note_id, amendment_reason, user_profiles(full_name)")
       .eq("patient_id", id)
       .order("note_date", { ascending: false }),
     // Patient-chart Encounters: most recent first, ONE bounded page up
@@ -69,7 +78,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
     // open their chart (spec's own performance requirement).
     supabase
       .from("encounters")
-      .select("id, encounter_date, encounter_type, chief_complaint, status, user_profiles(full_name)")
+      .select("id, encounter_date, encounter_type, chief_complaint, status, signed_at, user_profiles!encounters_provider_id_fkey(full_name)")
       .eq("tenant_id", profile.tenant_id)
       .eq("patient_id", id)
       .order("encounter_date", { ascending: false })
@@ -96,6 +105,27 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
       .neq("status", "cancelled")
       .order("start_at", { ascending: true })
       .limit(UPCOMING_APPT_LIMIT),
+    supabase
+      .from("prescriptions")
+      .select(
+        "id, status, notes, prescribed_at, user_profiles(full_name), prescription_items(id, drug_name, dosage, form, frequency, duration, quantity, instructions)"
+      )
+      .eq("tenant_id", profile.tenant_id)
+      .eq("patient_id", id)
+      .order("prescribed_at", { ascending: false }),
+    supabase
+      .from("lab_orders")
+      .select(
+        "id, status, priority, notes, ordered_at, user_profiles(full_name), lab_order_items(id, test_name), lab_results(id, result_summary, resulted_at, reviewed_at, user_profiles(full_name))"
+      )
+      .eq("tenant_id", profile.tenant_id)
+      .eq("patient_id", id)
+      .order("ordered_at", { ascending: false }),
+    supabase
+      .from("patient_insurance")
+      .select("id, provider_name, member_number, plan_name, status, effective_date, expiry_date")
+      .eq("patient_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   const [{ data: portalChannels }, { data: portalAccount }, { data: alerts }, { data: providers }, { data: appointmentTypes }] = await Promise.all([
@@ -144,12 +174,79 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const pastAppts: AppointmentRow[] = ((pastApptsRaw as any[]) ?? []).map(toApptRow);
   const upcomingAppts: AppointmentRow[] = ((upcomingApptsRaw as any[]) ?? []).map(toApptRow);
 
+  const prescriptions: PrescriptionRow[] = ((prescriptionsRaw as any[]) ?? []).map((p) => ({
+    id: p.id,
+    status: p.status,
+    notes: p.notes,
+    prescribed_at: p.prescribed_at,
+    prescriber_name: p.user_profiles?.full_name ?? null,
+    items: p.prescription_items ?? [],
+  }));
+
+  const labOrders: LabOrderRow[] = ((labOrdersRaw as any[]) ?? []).map((o) => ({
+    id: o.id,
+    status: o.status,
+    priority: o.priority,
+    notes: o.notes,
+    ordered_at: o.ordered_at,
+    ordering_provider_name: o.user_profiles?.full_name ?? null,
+    items: o.lab_order_items ?? [],
+    results: (o.lab_results ?? []).map((r: any) => ({
+      id: r.id,
+      result_summary: r.result_summary,
+      resulted_at: r.resulted_at,
+      reviewed_at: r.reviewed_at,
+      reviewed_by_name: r.user_profiles?.full_name ?? null,
+    })),
+  }));
+
+  const insurancePlans: InsurancePlanRow[] = (insurancePlansRaw as any[]) ?? [];
+
   const encounters = (encountersPage as any[]) ?? [];
   const lastEncounter = encounters[0] ?? null;
   const nextAppt = upcomingAppts[0] ?? null;
   const initialEncounterHasMore = (totalEncounters ?? 0) > encounters.length;
 
   const fullName = `${patient.last_name}, ${patient.first_name}${patient.middle_name ? " " + patient.middle_name : ""}${patient.suffix ? " " + patient.suffix : ""}`;
+
+  // Care Coordination — Primary/Family Doctor (either an AngelClinic
+  // provider or a curated external one, never both) and the separate
+  // sharing-authorization preference. Small, conditional lookups rather
+  // than folded into the big Promise.all above since at most one of these
+  // branches actually runs for a given patient.
+  let primaryProvider: { kind: "angelclinic" | "external"; name: string; specialty: string | null; clinicName: string | null } | null = null;
+  if (patient.primary_provider_user_id) {
+    const { data: pp } = await supabase.from("user_profiles").select("full_name, title, specialty, tenant_id").eq("id", patient.primary_provider_user_id).maybeSingle();
+    if (pp) {
+      const { data: cs } = await supabase.from("clinic_settings").select("clinic_name").eq("tenant_id", pp.tenant_id).maybeSingle();
+      primaryProvider = { kind: "angelclinic", name: `${pp.title ? pp.title + " " : ""}${pp.full_name}`, specialty: pp.specialty, clinicName: cs?.clinic_name ?? null };
+    }
+  } else if (patient.primary_provider_external_id) {
+    const { data: ep } = await supabase.from("external_providers").select("full_name, specialty, clinic_name").eq("id", patient.primary_provider_external_id).maybeSingle();
+    if (ep) primaryProvider = { kind: "external", name: ep.full_name, specialty: ep.specialty, clinicName: ep.clinic_name };
+  }
+
+  const { data: sharingPrefRaw } = await supabase
+    .from("patient_sharing_preferences")
+    .select("provider_user_id, authorized_at, user_profiles(full_name, title, tenant_id)")
+    .eq("patient_id", patient.id)
+    .eq("status", "active")
+    .maybeSingle();
+  let sharingPreference: { providerUserId: string; providerName: string; clinicName: string | null; authorizedAt: string } | null = null;
+  if (sharingPrefRaw) {
+    const sp: any = sharingPrefRaw;
+    let clinicName: string | null = null;
+    if (sp.user_profiles?.tenant_id) {
+      const { data: cs } = await supabase.from("clinic_settings").select("clinic_name").eq("tenant_id", sp.user_profiles.tenant_id).maybeSingle();
+      clinicName = cs?.clinic_name ?? null;
+    }
+    sharingPreference = {
+      providerUserId: sp.provider_user_id,
+      providerName: `${sp.user_profiles?.title ? sp.user_profiles.title + " " : ""}${sp.user_profiles?.full_name ?? "—"}`,
+      clinicName,
+      authorizedAt: sp.authorized_at,
+    };
+  }
 
   return (
     <div style={{ maxWidth: 820 }}>
@@ -242,11 +339,26 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
+      <div style={{ marginTop: 14 }}>
+        <InsurancePhilhealthSection
+          patientId={patient.id}
+          philhealthNumber={patient.philhealth_number}
+          philhealthMemberType={patient.philhealth_member_type}
+          insurancePlans={insurancePlans}
+        />
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <CareCoordinationSection patientId={patient.id} primaryProvider={primaryProvider} sharingPreference={sharingPreference} />
+      </div>
+
       <AppointmentHistorySection past={pastAppts} upcoming={upcomingAppts} />
 
       <AllergiesSection patientId={patient.id} allergies={(allergies as any) ?? []} />
       <MedicationsSection patientId={patient.id} medications={(medications as any) ?? []} />
-      <ProgressNotesSection patientId={patient.id} notes={(notes as any) ?? []} />
+      <PrescriptionsSection patientId={patient.id} prescriptions={prescriptions} />
+      <LabSection patientId={patient.id} labOrders={labOrders} />
+      <ProgressNotesSection patientId={patient.id} notes={(notes as any) ?? []} canViewClinical={canViewClinical} />
       <DocumentsSection patientId={patient.id} documents={(documents as any) ?? []} />
       <PortalSection
         patientId={patient.id}
@@ -264,6 +376,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           encounter_type: e.encounter_type,
           chief_complaint: e.chief_complaint,
           status: e.status,
+          signed_at: e.signed_at ?? null,
           provider_name: e.user_profiles?.full_name ?? null,
         }))}
         initialHasMore={initialEncounterHasMore}

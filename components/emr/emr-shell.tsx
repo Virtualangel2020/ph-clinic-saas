@@ -21,11 +21,13 @@ const CORE_NAV: NavItem[] = [
   { href: "/dashboard/insurance", label: "Insurance / HMO", short: "Ins" },
   { href: "/dashboard/philhealth", label: "PhilHealth", short: "PH" },
   { href: "/dashboard/reports", label: "Reports", short: "Rpt" },
+  // Patient Portal is a core, always-included part of every AngelClinic
+  // plan — not a paid add-on (see migration data fix + plan_features).
+  { href: "/dashboard/patient-portal", label: "Patient Portal", short: "Portal" },
 ];
 
 type AddonNav = { key: string; href: string; label: string; short: string };
 const ADDON_NAV: AddonNav[] = [
-  { key: "patient_portal", href: "/dashboard/patient-portal", label: "Patient Portal", short: "Portal" },
   { key: "financial_tracker", href: "/dashboard/financials", label: "Financials", short: "Fin" },
   { key: "patient_payments", href: "/dashboard/payments", label: "Payments", short: "Pay" },
   { key: "communications", href: "/dashboard/communications", label: "Communications", short: "Comm" },

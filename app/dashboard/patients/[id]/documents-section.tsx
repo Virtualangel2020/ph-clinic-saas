@@ -17,6 +17,9 @@ type Doc = {
   status_reason: string | null;
 };
 
+// Full label map — used to render EXISTING rows of any type, including
+// older ones filed before Prescriptions/Orders/Results existed as their
+// own modules.
 const TYPE_LABEL: Record<string, string> = {
   labs: "Labs",
   imaging: "Imaging",
@@ -28,6 +31,22 @@ const TYPE_LABEL: Record<string, string> = {
   medications: "Medications / Prescriptions",
   insurance: "Insurance",
   patient_documents: "Patient Documents",
+  other: "Other",
+};
+
+// Selectable when adding a NEW document — deliberately excludes "labs" and
+// "medications", now that Lab Orders/Results and Prescriptions are real
+// structured modules with their own tabs. Filing a new lab result or script
+// here would just recreate the "documents tab is a pile of unsorted
+// results" problem this list is meant to avoid; imaging films/CDs and
+// hospital/ER records still don't have a dedicated module, so they stay.
+const UPLOADABLE_TYPES: Record<string, string> = {
+  referrals: "Referrals",
+  forms: "Forms",
+  hospital_er: "Hospital / ER",
+  imaging: "Imaging",
+  procedures: "Procedures",
+  insurance: "Insurance",
   other: "Other",
 };
 
@@ -127,12 +146,15 @@ export function DocumentsSection({ patientId, documents }: { patientId: string; 
 
       {adding && (
         <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, marginBottom: 10, display: "grid", gap: 8 }}>
-          <input placeholder="Title (e.g. CBC Result — Aug 2026)" value={title} onChange={(e) => setTitle(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
+          <input placeholder="Title (e.g. Referral Letter — Aug 2026)" value={title} onChange={(e) => setTitle(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }} />
           <select value={docType} onChange={(e) => setDocType(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}>
-            {Object.entries(TYPE_LABEL).map(([k, v]) => (
+            {Object.entries(UPLOADABLE_TYPES).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
+          <p style={{ fontSize: 11, color: "#999", margin: "-4px 0 0" }}>
+            Lab results and prescriptions have their own tabs — file those there, not here.
+          </p>
           <textarea placeholder="Description / notes" value={description} onChange={(e) => setDescription(e.target.value)} style={{ border: "1px solid #ddd", borderRadius: 8, padding: "8px 10px", fontSize: 13, minHeight: 50, fontFamily: "inherit" }} />
           <div>
             <input ref={fileRef} type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/webp" style={{ fontSize: 12 }} />

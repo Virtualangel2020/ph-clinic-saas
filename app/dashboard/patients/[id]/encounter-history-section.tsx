@@ -159,7 +159,9 @@ export function EncounterHistorySection({
                 {e.chief_complaint && <span style={{ color: "#666", marginLeft: 8 }}>— {e.chief_complaint}</span>}
                 {e.provider_name && <span style={{ color: "#999", marginLeft: 8, fontSize: 12 }}>· {e.provider_name}</span>}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: e.status === "closed" ? "#1a7f37" : "#8a6100" }}>{e.status === "closed" ? "Completed" : "In Progress"}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: e.signed_at ? "#0c1730" : e.status === "closed" ? "#1a7f37" : "#8a6100" }}>
+                {e.signed_at ? "✓ Signed" : e.status === "closed" ? "Completed" : "In Progress"}
+              </div>
             </Link>
           ))}
         </div>
