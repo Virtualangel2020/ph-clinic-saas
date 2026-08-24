@@ -5,9 +5,10 @@ import { MedicalCertificateTemplateForm } from "./medical-certificate-template-f
 // Part 35-38: Medical Certificate is CORE (not an add-on). This is the
 // template builder half of it — Clinic Admin sets up the fields, clinic
 // branding + provider credentials auto-populate at issuance time. Actual
-// issuance (picking a patient, filling it out, finalize-and-lock,
-// amendment/reissue) is blocked on the patient/encounter chart existing
-// (Phase 2) — that part is NOT built yet, this page only covers setup.
+// issuance (picking a patient, filling it out, generating a numbered,
+// signed PDF, voiding one issued in error) lives in each patient's chart
+// under Clinical > Certificates — see migration
+// medical_certificate_issuance and certificates-section.tsx.
 export default async function MedicalCertificatesSettingsPage() {
   const { supabase, profile } = await requireClinicAdmin();
 
@@ -38,9 +39,10 @@ export default async function MedicalCertificatesSettingsPage() {
         Set up your certificate template now. Clinic branding and the issuing provider's credentials/signature will
         auto-populate every certificate once issuance is available — you won't re-enter them per patient.
       </p>
-      <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: "#7a5c12", marginBottom: 20 }}>
-        Issuing an actual certificate for a patient isn't available yet — that depends on the patient chart, which
-        is coming in a later phase. This page only sets up the template ahead of time.
+      <div style={{ background: "#eaf7ee", border: "1px solid #bfe6c9", borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: "#1a7f37", marginBottom: 20 }}>
+        Issuing is live — open any patient's chart, go to Clinical → Certificates, and issue against a template
+        below. Each certificate gets its own number and PDF, and can be voided (but never deleted) if issued in
+        error.
       </div>
       <MedicalCertificateTemplateForm
         initialTemplates={(templates as any) ?? []}

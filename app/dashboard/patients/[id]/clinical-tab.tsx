@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ActiveProblemsSection, type ProblemRow } from "./active-problems-section";
 import { PrescriptionsSection, type PrescriptionRow } from "./prescriptions-section";
 import { LabSection, type LabOrderRow } from "./lab-section";
+import { CertificatesSection, type CertificateRow } from "./certificates-section";
 
 type EncounterRow = {
   id: string;
@@ -16,11 +17,12 @@ type EncounterRow = {
   provider_name: string | null;
 };
 
-type SubTabKey = "problems" | "prescriptions" | "orders_results" | "encounters";
+type SubTabKey = "problems" | "prescriptions" | "orders_results" | "certificates" | "encounters";
 const SUBTABS: { key: SubTabKey; label: string }[] = [
   { key: "problems", label: "Active Problems" },
   { key: "prescriptions", label: "Prescriptions" },
   { key: "orders_results", label: "Orders & Results" },
+  { key: "certificates", label: "Certificates" },
   { key: "encounters", label: "Recent Encounters" },
 ];
 
@@ -38,12 +40,16 @@ export function ClinicalTab({
   prescriptions,
   labOrders,
   encounters,
+  certificates,
+  certificateTemplates,
 }: {
   patientId: string;
   problems: ProblemRow[];
   prescriptions: PrescriptionRow[];
   labOrders: LabOrderRow[];
   encounters: EncounterRow[];
+  certificates: CertificateRow[];
+  certificateTemplates: { id: string; name: string; fields_config: { key: string; label: string; type: "text" | "textarea" | "date" }[] }[];
 }) {
   const [sub, setSub] = useState<SubTabKey>("problems");
 
@@ -73,6 +79,7 @@ export function ClinicalTab({
       {sub === "problems" && <ActiveProblemsSection patientId={patientId} problems={problems} />}
       {sub === "prescriptions" && <PrescriptionsSection patientId={patientId} prescriptions={prescriptions} />}
       {sub === "orders_results" && <LabSection patientId={patientId} labOrders={labOrders} />}
+      {sub === "certificates" && <CertificatesSection patientId={patientId} certificates={certificates} templates={certificateTemplates} />}
       {sub === "encounters" && <RecentEncounters patientId={patientId} encounters={encounters} />}
     </div>
   );

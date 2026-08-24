@@ -177,6 +177,19 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
   // in DocumentsSection.
   const { data: documentFoldersRaw } = await supabase.from("document_folders").select("key, label").eq("tenant_id", tenantId).order("label");
 
+  // Medical Certificates (Clinical tab) — issued certificates for this
+  // patient, plus the tenant's active templates so the "Issue" form knows
+  // which template + fields to render. See migration
+  // medical_certificate_issuance.
+  const [{ data: certificatesRaw }, { data: certificateTemplatesRaw }] = await Promise.all([
+    supabase
+      .from("medical_certificates")
+      .select("id, certificate_number, template_name, fields_snapshot, values, status, void_reason, voided_at, issued_at, user_profiles!medical_certificates_provider_id_fkey(full_name, title)")
+      .eq("patient_id", patientId)
+      .order("issued_at", { ascending: false }),
+    supabase.from("medical_certificate_templates").select("id, name, fields_config").eq("tenant_id", tenantId).eq("is_active", true).order("name"),
+  ]);
+
   const { data: defaultNoteTemplateRaw } = await supabase
     .from("note_templates")
     .select("sections")
@@ -391,5 +404,18 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     formsEntitled: !!formsEntitlementRaw,
     referrals,
     documentFolders: (documentFoldersRaw as { key: string; label: string }[]) ?? [],
+    certificates: ((certificatesRaw as any[]) ?? []).map((c) => ({
+      id: c.id,
+      certificate_number: c.certificate_number,
+      template_name: c.template_name,
+      fields_snapshot: c.fields_snapshot ?? [],
+      values: c.values ?? {},
+      status: c.status,
+      void_reason: c.void_reason,
+      voided_at: c.voided_at,
+      issued_at: c.issued_at,
+      provider_name: c.user_profiles ? `${c.user_profiles.title ? c.user_profiles.title + " " : ""}${c.user_profiles.full_name}` : null,
+    })),
+    certificateTemplates: (certificateTemplatesRaw as { id: string; name: string; fields_config: { key: string; label: string; type: "text" | "textarea" | "date" }[] }[]) ?? [],
   };
 }

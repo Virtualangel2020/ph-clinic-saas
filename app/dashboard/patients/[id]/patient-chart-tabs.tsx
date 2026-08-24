@@ -145,6 +145,8 @@ export function PatientChartTabs({
             signed_at: e.signed_at ?? null,
             provider_name: e.user_profiles?.full_name ?? null,
           }))}
+          certificates={data.certificates}
+          certificateTemplates={data.certificateTemplates}
         />
       )}
 
