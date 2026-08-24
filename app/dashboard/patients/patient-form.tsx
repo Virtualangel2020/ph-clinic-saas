@@ -28,6 +28,11 @@ type Patient = {
   guardian_relationship: string | null;
   guardian_phone: string | null;
   notes: string | null;
+  occupation: string | null;
+  employer_name: string | null;
+  employer_position: string | null;
+  employer_contact: string | null;
+  employer_address: string | null;
 };
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "9px 11px", fontSize: 13.5, width: "100%" };
@@ -58,6 +63,11 @@ function toInput(p: Patient | null): PatientInput {
     guardianRelationship: p?.guardian_relationship ?? "",
     guardianPhone: p?.guardian_phone ?? "",
     notes: p?.notes ?? "",
+    occupation: p?.occupation ?? "",
+    employerName: p?.employer_name ?? "",
+    employerPosition: p?.employer_position ?? "",
+    employerContact: p?.employer_contact ?? "",
+    employerAddress: p?.employer_address ?? "",
   };
 }
 
@@ -135,6 +145,10 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
             <label style={LABEL_STYLE}>Blood type</label>
             <input style={FIELD_STYLE} value={form.bloodType} onChange={(e) => set("bloodType", e.target.value)} placeholder="O+" />
           </div>
+          <div>
+            <label style={LABEL_STYLE}>Occupation</label>
+            <input style={FIELD_STYLE} value={form.occupation} onChange={(e) => set("occupation", e.target.value)} />
+          </div>
         </div>
       </div>
 
@@ -204,6 +218,28 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
           <div>
             <label style={LABEL_STYLE}>Phone</label>
             <input style={FIELD_STYLE} value={form.guardianPhone} onChange={(e) => set("guardianPhone", e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>Company / Employer (optional)</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          <div>
+            <label style={LABEL_STYLE}>Company name</label>
+            <input style={FIELD_STYLE} value={form.employerName} onChange={(e) => set("employerName", e.target.value)} />
+          </div>
+          <div>
+            <label style={LABEL_STYLE}>Position</label>
+            <input style={FIELD_STYLE} value={form.employerPosition} onChange={(e) => set("employerPosition", e.target.value)} />
+          </div>
+          <div>
+            <label style={LABEL_STYLE}>Company contact</label>
+            <input style={FIELD_STYLE} value={form.employerContact} onChange={(e) => set("employerContact", e.target.value)} />
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={LABEL_STYLE}>Company address</label>
+            <input style={FIELD_STYLE} value={form.employerAddress} onChange={(e) => set("employerAddress", e.target.value)} />
           </div>
         </div>
       </div>

@@ -20,8 +20,8 @@ function StatusPill({ status }: { status: string }) {
 }
 
 // Clinic-wide view across every patient's insurance/HMO plans (see
-// /dashboard/patients/[id] where plans actually live and get added, via
-// insurance-philhealth-section.tsx). Writes go through the RPCs in
+// /dashboard/patients/[id]'s Coverage tab where plans actually live and
+// get added, via coverage-section.tsx). Writes go through the RPCs in
 // ./actions.ts — this page only reads, same pattern as
 // /dashboard/documents.
 export default async function InsurancePage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {

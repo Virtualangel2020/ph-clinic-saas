@@ -2,10 +2,10 @@ import Link from "next/link";
 import { requireClinicMember } from "@/lib/require-clinic-member";
 
 // Clinic-wide view of every active patient's PhilHealth number/member
-// type (see /dashboard/patients/[id] where it actually gets set, via
-// insurance-philhealth-section.tsx). philhealth_number/member_type are
-// plain columns on patients, not a separate table — this page only
-// reads; writes go through ./actions.ts.
+// type (see /dashboard/patients/[id]'s Coverage tab where it actually gets
+// set, via coverage-section.tsx). philhealth_number/member_type are plain
+// columns on patients, not a separate table — this page only reads;
+// writes go through ./actions.ts.
 export default async function PhilhealthPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const { supabase, profile } = await requireClinicMember();
   const { filter } = await searchParams;

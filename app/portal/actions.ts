@@ -1,8 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhMobile } from "@/lib/patient-portal/send";
+import { requirePatientPortal } from "@/lib/require-patient-portal";
 
 // Public (pre-auth) activation flows. No session exists yet at this point
 // — the invite token/OTP itself is the credential (same trust model as any
@@ -76,4 +78,30 @@ export async function activateByOtpAction(accountId: string, code: string, passw
 
   const { error: signInError } = await supabase.auth.signInWithPassword({ phone, password });
   if (signInError) throw new Error("Account activated, but automatic sign-in failed — please sign in manually.");
+}
+
+// ── Authenticated portal actions (spec §15) ───────────────────────────────
+// Everything below requires an active patient_portal_accounts session.
+
+export async function portalDocumentSignedUrlAction(storagePath: string): Promise<string> {
+  const { supabase } = await requirePatientPortal();
+  const { data, error } = await supabase.storage.from("patient-documents").createSignedUrl(storagePath, 300);
+  if (error || !data?.signedUrl) throw new Error(error?.message || "Couldn't generate a link for this file.");
+  return data.signedUrl;
+}
+
+// Patient Forms (spec §13-14): the patient completing their OWN assigned
+// form. Calls the exact same complete_patient_form RPC staff use to
+// complete a form on a patient's behalf — the RPC itself distinguishes
+// the two callers via patient_portal_accounts vs. tenant staff membership.
+export async function completeMyFormAction(formId: string, responses: Record<string, any>, signatureName?: string) {
+  const { supabase } = await requirePatientPortal();
+  const { error } = await supabase.rpc("complete_patient_form", {
+    p_id: formId,
+    p_responses: responses,
+    p_signature_name: signatureName || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/portal/forms");
+  revalidatePath("/portal");
 }

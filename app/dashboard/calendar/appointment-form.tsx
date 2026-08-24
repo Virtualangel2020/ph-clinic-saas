@@ -156,6 +156,11 @@ export function AppointmentForm({
       guardianRelationship: "",
       guardianPhone: "",
       notes: "",
+      occupation: "",
+      employerName: "",
+      employerPosition: "",
+      employerContact: "",
+      employerAddress: "",
     };
     setQuickAddPending(true);
     savePatientAction(input)

@@ -9,15 +9,27 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 // SECURITY DEFINER convention as set_patient in
 // app/dashboard/patients/actions.ts, just scoped to these two columns.
 
-export async function setPhilhealthAction(patientId: string, number: string, memberType: string) {
+export type SetPhilhealthInput = {
+  patientId: string;
+  number: string;
+  memberType: string;
+  status: "" | "active" | "inactive" | "unknown";
+  principalOrDependent: "" | "principal" | "dependent";
+  relationshipToPrincipal: string;
+};
+
+export async function setPhilhealthAction(input: SetPhilhealthInput) {
   await requireClinicMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_philhealth", {
-    p_patient_id: patientId,
-    p_number: number || null,
-    p_member_type: memberType || null,
+    p_patient_id: input.patientId,
+    p_number: input.number || null,
+    p_member_type: input.memberType || null,
+    p_status: input.status || null,
+    p_principal_or_dependent: input.principalOrDependent || null,
+    p_relationship_to_principal: input.relationshipToPrincipal || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/philhealth");
-  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath(`/dashboard/patients/${input.patientId}`);
 }

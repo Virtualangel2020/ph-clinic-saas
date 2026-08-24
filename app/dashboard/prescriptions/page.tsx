@@ -1,32 +1,21 @@
 import Link from "next/link";
 import { requireClinicMember } from "@/lib/require-clinic-member";
+import { RecordRefillButton } from "./record-refill-button";
 
-const STATUS_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  active: { color: "#1a7f37", bg: "#eaf7ee", border: "#bfe6c9", label: "Active" },
-  completed: { color: "var(--text-heading)", bg: "#f0f4ff", border: "#c7d4f5", label: "Completed" },
-  cancelled: { color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9", label: "Cancelled" },
-};
-
-type PrescriptionItem = { id: string; drug_name: string; dosage: string | null; form: string | null; frequency: string | null };
+type PrescriptionItem = { id: string; drug_name: string; dosage: string | null; form: string | null };
 
 type PrescriptionRow = {
   id: string;
   status: string;
-  notes: string | null;
   prescribed_at: string;
+  renewal_type: string;
+  refill_count: number | null;
+  refill_due_at: string | null;
+  reminder_days_before: number | null;
   patients: { id: string; first_name: string; last_name: string } | null;
   user_profiles: { full_name: string | null } | null;
   prescription_items: PrescriptionItem[];
 };
-
-function StatusPill({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.active;
-  return (
-    <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 999, padding: "2px 8px" }}>
-      {s.label}
-    </span>
-  );
-}
 
 function drugSummary(items: PrescriptionItem[]) {
   if (!items || items.length === 0) return "No items";
@@ -35,109 +24,120 @@ function drugSummary(items: PrescriptionItem[]) {
   return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
 }
 
-// Clinic-wide view across every patient's prescriptions (see
-// /dashboard/patients/[id] where prescriptions actually get written, from
-// the chart's own Prescriptions section). Default view shows active +
-// completed; ?status=cancelled (or any single status) narrows to just that.
-export default async function PrescriptionsPage({ searchParams }: { searchParams: { status?: string } }) {
-  const { supabase, profile } = await requireClinicMember();
-  const statusFilter = searchParams.status || "";
+function daysUntil(dateStr: string) {
+  const ms = new Date(dateStr).getTime() - new Date(new Date().toDateString()).getTime();
+  return Math.round(ms / 86400000);
+}
 
-  let query = supabase
+// Refills (spec §25) — the global "Prescriptions" nav entry, renamed and
+// repurposed. Rather than a flat list of every prescription ever written
+// (that view still lives in each patient's own chart), this is a due-soon
+// / due-today / overdue QUEUE over the same `prescriptions` rows, filtered
+// to renewal_type = 'renewable' and status = 'active'. One-time
+// prescriptions never show up here — nothing to renew.
+export default async function RefillsPage({ searchParams }: { searchParams: { bucket?: string } }) {
+  const { supabase, profile } = await requireClinicMember();
+  const bucketFilter = searchParams.bucket || "";
+
+  const { data: prescriptions } = await supabase
     .from("prescriptions")
     .select(
-      "id, status, notes, prescribed_at, patients(id, first_name, last_name), user_profiles(full_name), prescription_items(id, drug_name, dosage, form, frequency)"
+      "id, status, prescribed_at, renewal_type, refill_count, refill_due_at, reminder_days_before, patients(id, first_name, last_name), user_profiles(full_name), prescription_items(id, drug_name, dosage, form)"
     )
     .eq("tenant_id", profile.tenant_id)
-    .order("prescribed_at", { ascending: false });
+    .eq("status", "active")
+    .eq("renewal_type", "renewable")
+    .not("refill_due_at", "is", null)
+    .order("refill_due_at", { ascending: true });
 
-  if (statusFilter) {
-    query = query.eq("status", statusFilter);
-  } else {
-    query = query.in("status", ["active", "completed"]);
-  }
-
-  const { data: prescriptions } = await query;
   const rows = (prescriptions as unknown as PrescriptionRow[]) ?? [];
 
-  const { count: activeCount } = await supabase
-    .from("prescriptions")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", profile.tenant_id)
-    .eq("status", "active");
+  const buckets = { overdue: [] as PrescriptionRow[], due_today: [] as PrescriptionRow[], due_soon: [] as PrescriptionRow[], upcoming: [] as PrescriptionRow[] };
+  for (const p of rows) {
+    const d = daysUntil(p.refill_due_at!);
+    const window = p.reminder_days_before ?? 7;
+    if (d < 0) buckets.overdue.push(p);
+    else if (d === 0) buckets.due_today.push(p);
+    else if (d <= window) buckets.due_soon.push(p);
+    else buckets.upcoming.push(p);
+  }
 
-  const FILTERS: { key: string; label: string }[] = [
-    { key: "", label: "Active + Completed" },
-    { key: "active", label: "Active" },
-    { key: "completed", label: "Completed" },
-    { key: "cancelled", label: "Cancelled" },
+  const BUCKET_META: { key: keyof typeof buckets; label: string; color: string; bg: string; border: string }[] = [
+    { key: "overdue", label: "Overdue", color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9" },
+    { key: "due_today", label: "Due Today", color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9" },
+    { key: "due_soon", label: "Due Soon", color: "#8a6100", bg: "#fff6e6", border: "#f0d998" },
+    { key: "upcoming", label: "Upcoming", color: "#666", bg: "#f2f2f2", border: "#ddd" },
   ];
+
+  const visibleBuckets = bucketFilter ? BUCKET_META.filter((b) => b.key === bucketFilter) : BUCKET_META;
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, marginBottom: 4 }}>Prescriptions</h1>
-      <p style={{ color: "#666", marginBottom: 16, fontSize: 13 }}>
-        Every prescription written across your patients. Add or manage one from a patient's own chart.
+      <h1 style={{ fontSize: 24, marginBottom: 4 }}>Refills</h1>
+      <p style={{ color: "#666", marginBottom: 12, fontSize: 13 }}>
+        Renewable prescriptions across your patients, due soon or overdue. One-time prescriptions and each patient's
+        full prescription history still live in their own chart's Prescriptions tab.
       </p>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "10px 18px" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-heading)" }}>{activeCount ?? 0}</div>
-          <div style={{ fontSize: 11, color: "#888" }}>Active prescriptions</div>
-        </div>
+      <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: "#7a5c12", marginBottom: 18 }}>
+        <strong>Electronic Pharmacy Network — Coming Soon.</strong> Refills recorded here update the patient's own
+        record, but AngelClinic doesn't yet send prescriptions electronically to a pharmacy. For now, please issue a
+        printed or photographed copy when a refill is due.
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        {FILTERS.map((f) => {
-          const isActive = statusFilter === f.key;
-          return (
-            <Link
-              key={f.key || "default"}
-              href={f.key ? `/dashboard/prescriptions?status=${f.key}` : "/dashboard/prescriptions"}
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "5px 12px",
-                borderRadius: 999,
-                textDecoration: "none",
-                border: `1px solid ${isActive ? "#0c1730" : "#ddd"}`,
-                color: isActive ? "white" : "#555",
-                background: isActive ? "#0c1730" : "white",
-              }}
-            >
-              {f.label}
-            </Link>
-          );
-        })}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {BUCKET_META.map((b) => (
+          <Link
+            key={b.key}
+            href={bucketFilter === b.key ? "/dashboard/prescriptions" : `/dashboard/prescriptions?bucket=${b.key}`}
+            style={{
+              background: bucketFilter === b.key ? b.color : "var(--card-bg)",
+              border: `1px solid ${bucketFilter === b.key ? b.color : "var(--card-border)"}`,
+              borderRadius: 10,
+              padding: "10px 16px",
+              textDecoration: "none",
+              minWidth: 90,
+            }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 700, color: bucketFilter === b.key ? "white" : b.color }}>{buckets[b.key].length}</div>
+            <div style={{ fontSize: 11, color: bucketFilter === b.key ? "#fff" : "#888" }}>{b.label}</div>
+          </Link>
+        ))}
       </div>
 
       {rows.length === 0 ? (
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24, color: "#888", fontSize: 13 }}>
-          No prescriptions found — open a patient's chart to write one.
+          No renewable prescriptions on file yet.
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 8 }}>
-          {rows.map((p) => (
-            <Link
-              key={p.id}
-              href={`/dashboard/patients/${p.patients?.id ?? ""}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: "12px 16px", textDecoration: "none", gap: 12 }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
-                  {p.patients ? `${p.patients.last_name}, ${p.patients.first_name}` : "Unknown patient"}
-                  <span style={{ marginLeft: 8 }}>
-                    <StatusPill status={p.status} />
-                  </span>
-                </div>
-                <div style={{ fontSize: 12.5, color: "#333", marginTop: 2 }}>{drugSummary(p.prescription_items)}</div>
-                <div style={{ fontSize: 11.5, color: "#888", marginTop: 2 }}>
-                  {p.user_profiles?.full_name ?? "Unknown prescriber"} · {new Date(p.prescribed_at).toLocaleDateString()}
+        <div style={{ display: "grid", gap: 20 }}>
+          {visibleBuckets.map((b) =>
+            buckets[b.key].length === 0 ? null : (
+              <div key={b.key}>
+                <h2 style={{ fontSize: 13.5, color: b.color, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>{b.label}</h2>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {buckets[b.key].map((p) => (
+                    <div
+                      key={p.id}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--card-bg)", border: `1px solid ${b.border}`, borderRadius: 10, padding: "12px 16px", gap: 12 }}
+                    >
+                      <Link href={`/dashboard/patients/${p.patients?.id ?? ""}?tab=prescriptions`} style={{ textDecoration: "none", color: "inherit", flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>
+                          {p.patients ? `${p.patients.last_name}, ${p.patients.first_name}` : "Unknown patient"}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: "#333", marginTop: 2 }}>{drugSummary(p.prescription_items)}</div>
+                        <div style={{ fontSize: 11.5, color: "#888", marginTop: 2 }}>
+                          {p.user_profiles?.full_name ?? "Unknown prescriber"} · Due {new Date(p.refill_due_at!).toLocaleDateString()}
+                          {p.refill_count !== null ? ` · ${p.refill_count} refill(s) left` : ""}
+                        </div>
+                      </Link>
+                      <RecordRefillButton id={p.id} patientId={p.patients?.id ?? ""} />
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div style={{ color: "#bbb", fontSize: 18 }}>›</div>
-            </Link>
-          ))}
+            )
+          )}
         </div>
       )}
     </div>

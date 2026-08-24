@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { saveIntakeFormTemplateAction, deleteIntakeFormTemplateAction } from "./actions";
+import { useRef, useState, useTransition } from "react";
+import { saveIntakeFormTemplateAction, deleteIntakeFormTemplateAction, duplicateIntakeFormTemplateAction, assignTemplateToPatientFromSettingsAction } from "./actions";
+import { searchPatientsAction, type PatientSearchResult } from "../../patients/actions";
 
 type Category = "intake" | "consent" | "other";
 type FieldType = "text" | "date" | "select" | "checkbox" | "textarea";
@@ -18,6 +19,8 @@ type Template = {
   category: Category;
   fields_config: Field[] | ConsentField[];
   is_active: boolean;
+  version?: number;
+  is_required?: boolean;
 };
 
 const CATEGORY_LABEL: Record<Category, string> = {
@@ -53,6 +56,7 @@ function blankTemplate(category: Category): Template {
       category,
       fields_config: [{ key: "body", type: "richtext", label: "Consent Text", value: DEFAULT_CONSENT_BODY }],
       is_active: true,
+      is_required: false,
     };
   }
   return {
@@ -61,14 +65,21 @@ function blankTemplate(category: Category): Template {
     category,
     fields_config: category === "intake" ? DEFAULT_INTAKE_FIELDS : [],
     is_active: true,
+    is_required: false,
   };
 }
 
-export function FormTemplatesClient({ initialTemplates }: { initialTemplates: Template[] }) {
+export function FormTemplatesClient({ initialTemplates, canAssign = false }: { initialTemplates: Template[]; canAssign?: boolean }) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [editing, setEditing] = useState<Template | null>(null);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignQuery, setAssignQuery] = useState("");
+  const [assignResults, setAssignResults] = useState<PatientSearchResult[]>([]);
+  const [assignSearching, setAssignSearching] = useState(false);
+  const [assignMessage, setAssignMessage] = useState<string | null>(null);
+  const assignTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isConsent = editing?.category === "consent";
   const fields = (editing?.fields_config as Field[]) ?? [];
@@ -134,6 +145,7 @@ export function FormTemplatesClient({ initialTemplates }: { initialTemplates: Te
           category: editing.category,
           fieldsConfig: savedFields,
           isActive: editing.is_active,
+          isRequired: editing.is_required ?? false,
         });
         setTemplates((prev) => {
           if (editing.id) return prev.map((t) => (t.id === editing.id ? editing : t));
@@ -143,6 +155,55 @@ export function FormTemplatesClient({ initialTemplates }: { initialTemplates: Te
         setMessage({ text: "Template saved.", ok: true });
       } catch (e: any) {
         setMessage({ text: `Error: ${e.message}`, ok: false });
+      }
+    });
+  }
+
+  function duplicate(t: Template) {
+    startTransition(async () => {
+      try {
+        await duplicateIntakeFormTemplateAction(t.id);
+        setMessage({ text: `Duplicated "${t.name}" — find the copy below, inactive until you review it.`, ok: true });
+        window.location.reload();
+      } catch (e: any) {
+        setMessage({ text: `Error: ${e.message}`, ok: false });
+      }
+    });
+  }
+
+  function startAssign(t: Template) {
+    setAssigningId(t.id);
+    setAssignQuery("");
+    setAssignResults([]);
+    setAssignMessage(null);
+  }
+
+  function onAssignQueryChange(value: string) {
+    setAssignQuery(value);
+    if (assignTimer.current) clearTimeout(assignTimer.current);
+    if (value.trim().length < 2) {
+      setAssignResults([]);
+      return;
+    }
+    assignTimer.current = setTimeout(async () => {
+      setAssignSearching(true);
+      try {
+        setAssignResults(await searchPatientsAction(value));
+      } finally {
+        setAssignSearching(false);
+      }
+    }, 250);
+  }
+
+  function assignTo(t: Template, patient: PatientSearchResult) {
+    startTransition(async () => {
+      try {
+        await assignTemplateToPatientFromSettingsAction(t.id, patient.id);
+        setAssignMessage(`Assigned to ${patient.last_name}, ${patient.first_name}.`);
+        setAssignResults([]);
+        setAssignQuery("");
+      } catch (e: any) {
+        setAssignMessage(`Error: ${e.message}`);
       }
     });
   }
@@ -171,40 +232,84 @@ export function FormTemplatesClient({ initialTemplates }: { initialTemplates: Te
         )}
         <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
           {templates.map((t) => (
-            <div
-              key={t.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "10px 12px",
-                border: "1px solid #eee",
-                borderRadius: 8,
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{t.name}</div>
-                <div style={{ fontSize: 11.5, color: "#999" }}>
-                  {CATEGORY_LABEL[t.category]} ·{" "}
-                  {t.category === "consent" ? "Text document" : `${t.fields_config.length} field(s)`} ·{" "}
-                  {t.is_active ? "Active" : "Inactive"}
+            <div key={t.id} style={{ border: "1px solid #eee", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>
+                    {t.name}
+                    {t.is_required && <span style={{ marginLeft: 6, fontSize: 10, color: "#a12a2a", fontWeight: 700 }}>REQUIRED</span>}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#999" }}>
+                    {CATEGORY_LABEL[t.category]} ·{" "}
+                    {t.category === "consent" ? "Text document" : `${t.fields_config.length} field(s)`} · v{t.version ?? 1} ·{" "}
+                    {t.is_active ? "Active" : "Inactive"}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {canAssign && t.is_active && t.id && (
+                    <button
+                      onClick={() => startAssign(t)}
+                      style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}
+                    >
+                      Assign to patient
+                    </button>
+                  )}
+                  <button
+                    onClick={() => duplicate(t)}
+                    disabled={pending || !t.id}
+                    style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: pending ? "default" : "pointer" }}
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={() => startEdit(t)}
+                    style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => remove(t)}
+                    disabled={pending}
+                    style={{ background: "none", border: "1px solid #f0c8c8", color: "#a12a2a", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: pending ? "default" : "pointer" }}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => startEdit(t)}
-                  style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => remove(t)}
-                  disabled={pending}
-                  style={{ background: "none", border: "1px solid #f0c8c8", color: "#a12a2a", borderRadius: 7, padding: "6px 12px", fontSize: 12, cursor: pending ? "default" : "pointer" }}
-                >
-                  Delete
-                </button>
-              </div>
+
+              {assigningId === t.id && (
+                <div style={{ marginTop: 10, background: "#f7f7f9", border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
+                  <input
+                    autoFocus
+                    placeholder="Search patient by name, DOB, or Patient ID…"
+                    value={assignQuery}
+                    onChange={(e) => onAssignQueryChange(e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--input-border)", borderRadius: 7, padding: "7px 10px", fontSize: 12.5 }}
+                  />
+                  {assignSearching && <p style={{ fontSize: 11.5, color: "#999", margin: "6px 0 0" }}>Searching…</p>}
+                  {assignResults.length > 0 && (
+                    <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
+                      {assignResults.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => assignTo(t, p)}
+                          disabled={pending}
+                          style={{ textAlign: "left", background: "white", border: "1px solid #eee", borderRadius: 6, padding: "6px 10px", fontSize: 12, cursor: pending ? "default" : "pointer" }}
+                        >
+                          {p.last_name}, {p.first_name} <span style={{ color: "#999" }}>· {p.patient_code ?? "—"}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {assignMessage && <p style={{ fontSize: 11.5, color: assignMessage.startsWith("Error") ? "#a12a2a" : "#1a7f37", margin: "6px 0 0" }}>{assignMessage}</p>}
+                  <button
+                    onClick={() => setAssigningId(null)}
+                    style={{ marginTop: 8, background: "none", border: "none", color: "#888", fontSize: 11.5, cursor: "pointer", padding: 0 }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -244,10 +349,16 @@ export function FormTemplatesClient({ initialTemplates }: { initialTemplates: Te
               onChange={(e) => setEditing({ ...editing, name: e.target.value })}
               style={{ padding: "9px 11px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13.5 }}
             />
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-              <input type="checkbox" checked={editing.is_active} onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
-              Active
-            </label>
+            <div style={{ display: "flex", gap: 18 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={editing.is_active} onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} />
+                Active
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={!!editing.is_required} onChange={(e) => setEditing({ ...editing, is_required: e.target.checked })} />
+                Required for every patient
+              </label>
+            </div>
           </div>
 
           {isConsent ? (

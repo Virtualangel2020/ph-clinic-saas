@@ -12,12 +12,15 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 
 export type LabTestInput = { testName: string };
 
+export type OrderType = "lab" | "imaging" | "procedure" | "referral_related" | "other";
+
 export async function addLabOrderAction(
   patientId: string,
   encounterId: string | null,
   priority: string,
   notes: string,
-  tests: LabTestInput[]
+  tests: LabTestInput[],
+  orderType: OrderType = "lab"
 ): Promise<string> {
   await requireClinicMember();
   const supabase = await createClient();
@@ -27,6 +30,7 @@ export async function addLabOrderAction(
     p_priority: priority || "routine",
     p_notes: notes || null,
     p_tests: tests.filter((t) => t.testName.trim()).map((t) => ({ testName: t.testName.trim() })),
+    p_order_type: orderType || "lab",
   });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/orders");
@@ -65,6 +69,18 @@ export async function markLabResultReviewedAction(id: string, patientId: string)
   await requireClinicMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("mark_lab_result_reviewed", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/results");
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// General New → Reviewed → Released (or → Follow-up) transition backing
+// the global Results workspace's status workflow (spec §20). Same
+// lab_results rows mark_lab_result_reviewed above already touches.
+export async function setLabResultStatusAction(id: string, patientId: string, status: "new" | "reviewed" | "released" | "follow_up") {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_lab_result_status", { p_id: id, p_status: status });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/results");
   revalidatePath(`/dashboard/patients/${patientId}`);

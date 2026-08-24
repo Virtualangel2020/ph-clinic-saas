@@ -13,22 +13,39 @@ import { FormTemplatesClient } from "./forms-client";
 export default async function FormsSettingsPage() {
   const { supabase, profile } = await requireClinicAdmin();
 
-  const { data: templates } = await supabase
-    .from("intake_form_templates")
-    .select("id, name, category, fields_config, is_active")
-    .eq("tenant_id", profile.tenant_id)
-    .order("created_at");
+  const [{ data: templates }, { data: entitlement }] = await Promise.all([
+    supabase
+      .from("intake_form_templates")
+      .select("id, name, category, fields_config, is_active, version, is_required")
+      .eq("tenant_id", profile.tenant_id)
+      .order("created_at"),
+    supabase
+      .from("tenant_entitlements")
+      .select("feature_key")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("feature_key", "forms_acknowledgements")
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
 
   return (
     <div style={{ maxWidth: 760 }}>
       <BackLink href="/dashboard/settings" label="Settings" />
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Forms & Registration</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
-        Define the intake and consent form templates your clinic uses. These are for printing and reference — and for
-        the patient portal once that's available — but they don't yet auto-generate the in-app "New Patient" form,
-        which currently uses its own fixed set of fields.
+        Define the intake and consent form templates your clinic uses. These are for printing and reference, and —
+        on plans with Patient Forms enabled — can be assigned directly to a patient's chart or Patient Portal for
+        them to complete electronically. They don't auto-generate the in-app "New Patient" form, which currently
+        uses its own fixed set of fields.
       </p>
-      <FormTemplatesClient initialTemplates={(templates as any) ?? []} />
+      {!entitlement && (
+        <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: "#7a5c12", marginBottom: 18 }}>
+          Patient Forms (assigning these to a patient's chart or Patient Portal) isn&apos;t included on this clinic&apos;s
+          current plan yet — templates below can still be built and printed for reference. Reach out to Virtual
+          Angel Systems to add the full add-on.
+        </div>
+      )}
+      <FormTemplatesClient initialTemplates={(templates as any) ?? []} canAssign={!!entitlement} />
     </div>
   );
 }

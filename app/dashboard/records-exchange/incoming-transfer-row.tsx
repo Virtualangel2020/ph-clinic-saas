@@ -43,6 +43,11 @@ const EMPTY_NEW_PATIENT: PatientInput = {
   guardianRelationship: "",
   guardianPhone: "",
   notes: "",
+  occupation: "",
+  employerName: "",
+  employerPosition: "",
+  employerContact: "",
+  employerAddress: "",
 };
 
 // Incoming Records review row (spec §15) — Review -> Accept/Decline ->

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireClinicMember } from "@/lib/require-clinic-member";
 import { sendPortalEmail, sendPortalSms } from "@/lib/patient-portal/send";
+import { parseFlexibleDate } from "@/lib/dates/parse-flexible-date";
 
 async function siteOrigin() {
   const h = await headers();
@@ -25,28 +26,87 @@ export type PatientSearchResult = {
   middle_name: string | null;
   last_name: string;
   date_of_birth: string;
+  sex: string;
   mobile_phone: string | null;
+  patient_code: string | null;
   is_active: boolean;
 };
 
-// Backs the global search box in the top nav (components/emr/emr-shell.tsx
-// -> global-search.tsx). A plain .select() scoped by tenant_id, same as
-// every other list read in this app — RLS is the backstop, this filter is
-// just for relevance. PostgREST's .or() filter string treats "," and ")"
-// as syntax, so those are stripped from the raw query before building it.
+const SEARCH_COLUMNS = "id, first_name, middle_name, last_name, date_of_birth, sex, mobile_phone, patient_code, is_active";
+
+// Backs the global search box in the top nav (components/emr/global-search)
+// AND the master-detail Patients list. A plain .select() scoped by
+// tenant_id, same as every other list read in this app — RLS is the
+// backstop, this filter is just for relevance. PostgREST's .or() filter
+// string treats "," and ")" as syntax, so those are stripped from the raw
+// query before building it.
+//
+// Matches on: first/last/full name (substring), mobile number (substring),
+// Patient ID (substring — works whether staff type "AC-1048" or just
+// "1048"), and date of birth. DOB search matters specifically because
+// names get misspelled or collide (two "Maria Santos") — parseFlexibleDate
+// accepts MM/DD/YYYY, ISO, and "Month D, YYYY" so staff don't have to
+// remember one exact format.
 export async function searchPatientsAction(query: string): Promise<PatientSearchResult[]> {
   const { supabase, profile } = await requireClinicMember();
   const q = query.trim().replace(/[,()]/g, "").slice(0, 60);
   if (!q) return [];
 
+  const dob = parseFlexibleDate(q);
+  const orParts = [
+    `first_name.ilike.%${q}%`,
+    `middle_name.ilike.%${q}%`,
+    `last_name.ilike.%${q}%`,
+    `mobile_phone.ilike.%${q}%`,
+    `patient_code.ilike.%${q}%`,
+  ];
+  if (dob) orParts.push(`date_of_birth.eq.${dob}`);
+
+  // A full "First Last" query needs its own AND'd pair — a single-token
+  // ilike above won't match "maria santos" against separate first/last
+  // columns, so run that as a second query and merge, deduped by id.
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const fullNamePromise =
+    tokens.length >= 2
+      ? supabase
+          .from("patients")
+          .select(SEARCH_COLUMNS)
+          .eq("tenant_id", profile.tenant_id)
+          .or(
+            [
+              `and(first_name.ilike.%${tokens[0]}%,last_name.ilike.%${tokens.slice(1).join(" ")}%)`,
+              `and(last_name.ilike.%${tokens[0]}%,first_name.ilike.%${tokens.slice(1).join(" ")}%)`,
+            ].join(",")
+          )
+          .limit(8)
+      : Promise.resolve({ data: [] as any[], error: null });
+
+  const [{ data, error }, { data: fullNameData, error: fullNameError }] = await Promise.all([
+    supabase.from("patients").select(SEARCH_COLUMNS).eq("tenant_id", profile.tenant_id).or(orParts.join(",")).order("last_name").limit(8),
+    fullNamePromise,
+  ]);
+
+  if (error) throw new Error(error.message);
+  if (fullNameError) throw new Error(fullNameError.message);
+
+  const merged = new Map<string, PatientSearchResult>();
+  for (const row of [...((data as any[]) ?? []), ...((fullNameData as any[]) ?? [])]) merged.set(row.id, row);
+  return Array.from(merged.values()).slice(0, 12);
+}
+
+// Recent Patients — the list-page default before any search term is
+// typed. Most-recently-active-in-this-clinic ordering (last updated, e.g.
+// via a chart edit) reads better here than alphabetical for a "who have I
+// been seeing" glance; falls back to newest-created for ties.
+export async function recentPatientsAction(limit = 15): Promise<PatientSearchResult[]> {
+  const { supabase, profile } = await requireClinicMember();
   const { data, error } = await supabase
     .from("patients")
-    .select("id, first_name, middle_name, last_name, date_of_birth, mobile_phone, is_active")
+    .select(SEARCH_COLUMNS)
     .eq("tenant_id", profile.tenant_id)
-    .or(`first_name.ilike.%${q}%,middle_name.ilike.%${q}%,last_name.ilike.%${q}%,mobile_phone.ilike.%${q}%`)
-    .order("last_name")
-    .limit(8);
-
+    .eq("is_active", true)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
   if (error) throw new Error(error.message);
   return (data as any) ?? [];
 }
@@ -75,6 +135,11 @@ export type PatientInput = {
   guardianRelationship: string;
   guardianPhone: string;
   notes: string;
+  occupation: string;
+  employerName: string;
+  employerPosition: string;
+  employerContact: string;
+  employerAddress: string;
 };
 
 export async function savePatientAction(input: PatientInput): Promise<string> {
@@ -104,6 +169,11 @@ export async function savePatientAction(input: PatientInput): Promise<string> {
     p_guardian_relationship: input.guardianRelationship || null,
     p_guardian_phone: input.guardianPhone || null,
     p_notes: input.notes || null,
+    p_occupation: input.occupation || null,
+    p_employer_name: input.employerName || null,
+    p_employer_position: input.employerPosition || null,
+    p_employer_contact: input.employerContact || null,
+    p_employer_address: input.employerAddress || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/patients");
@@ -193,6 +263,9 @@ export async function addDocumentAction(formData: FormData) {
   const title = String(formData.get("title") || "");
   const docType = String(formData.get("docType") || "other");
   const description = String(formData.get("description") || "");
+  const documentDate = String(formData.get("documentDate") || "");
+  const source = String(formData.get("source") || "");
+  const providerId = String(formData.get("providerId") || "");
   const file = formData.get("file") as File | null;
 
   if (!patientId) throw new Error("Missing patient.");
@@ -225,6 +298,9 @@ export async function addDocumentAction(formData: FormData) {
     p_storage_path: storagePath,
     p_mime_type: mimeType,
     p_file_size_bytes: fileSizeBytes,
+    p_document_date: documentDate || null,
+    p_source: source || null,
+    p_provider_id: providerId || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
@@ -456,4 +532,42 @@ export async function searchPatientEncountersAction(filter: EncounterHistoryFilt
   }));
   const hasMore = filter.offset + rows.length < (count ?? 0);
   return { rows, hasMore };
+}
+
+// ── Patient Forms (spec §13-14) ───────────────────────────────────────────
+// Assign/complete/retire a form INSTANCE for one patient. The template
+// library itself (create/duplicate/edit/activate) lives in
+// app/dashboard/settings/forms — these three just call the patient_forms
+// RPCs from migration patient_forms_addon_templates_and_instances. Nothing
+// here duplicates the template system; assign_form_to_patient snapshots the
+// template server-side.
+
+export async function assignFormToPatientAction(patientId: string, templateId: string, isRequired?: boolean) {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("assign_form_to_patient", {
+    p_patient_id: patientId,
+    p_template_id: templateId,
+    p_is_required: isRequired ?? null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath("/dashboard/patients");
+}
+
+export async function completePatientFormAction(formId: string, patientId: string, responses: Record<string, any>, signatureName?: string) {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("complete_patient_form", {
+    p_id: formId,
+    p_responses: responses,
+    p_signature_name: signatureName || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function expirePatientFormAction(formId: string, patientId: string) {
+  const { supabase } = await requireClinicMember();
+  const { error } = await supabase.rpc("expire_patient_form", { p_id: formId });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
 }

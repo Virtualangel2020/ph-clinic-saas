@@ -14,7 +14,7 @@ const CORE_NAV: NavItem[] = [
   { href: "/dashboard/calendar", label: "Calendar", short: "Cal" },
   { href: "/dashboard/encounters", label: "Encounters", short: "Enc" },
   { href: "/dashboard/referrals", label: "Referrals", short: "Ref" },
-  { href: "/dashboard/prescriptions", label: "Prescriptions", short: "Rx" },
+  { href: "/dashboard/prescriptions", label: "Refills", short: "Refills" },
   { href: "/dashboard/orders", label: "Orders", short: "Ord" },
   { href: "/dashboard/results", label: "Results", short: "Res" },
   { href: "/dashboard/documents", label: "Documents", short: "Doc" },

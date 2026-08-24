@@ -5,10 +5,26 @@ import { useRouter } from "next/navigation";
 import {
   addLabOrderAction,
   addLabResultAction,
-  markLabResultReviewedAction,
   setLabOrderStatusAction,
+  setLabResultStatusAction,
   type LabTestInput,
+  type OrderType,
 } from "../../orders/actions";
+
+const ORDER_TYPE_LABEL: Record<OrderType, string> = {
+  lab: "Lab",
+  imaging: "Imaging",
+  procedure: "Procedure",
+  referral_related: "Referral-related",
+  other: "Other",
+};
+
+const RESULT_STATUS_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  new: { color: "#8a6100", bg: "#fff6e6", border: "#f0d998", label: "New" },
+  reviewed: { color: "var(--text-heading)", bg: "#f0f4ff", border: "#c7d4f5", label: "Reviewed" },
+  released: { color: "#1a7f37", bg: "#eaf7ee", border: "#bfe6c9", label: "Released" },
+  follow_up: { color: "#a12a2a", bg: "#fbeaea", border: "#f0c9c9", label: "Follow-up" },
+};
 
 // Patient-chart Lab Orders & Results section. Combines both concerns
 // (ordering a panel of tests, and recording/reviewing the results that
@@ -23,6 +39,8 @@ export type LabResultRow = {
   result_summary: string | null;
   resulted_at: string;
   reviewed_at: string | null;
+  status: string; // new | reviewed | released | follow_up
+  released_at: string | null;
   reviewed_by_name: string | null;
 };
 
@@ -30,6 +48,7 @@ export type LabOrderRow = {
   id: string;
   status: string; // ordered | collected | completed | cancelled
   priority: string; // routine | stat
+  order_type: string; // lab | imaging | procedure | referral_related | other
   notes: string | null;
   ordered_at: string;
   ordering_provider_name: string | null;
@@ -77,6 +96,7 @@ function PriorityPill({ priority }: { priority: string }) {
 export function LabSection({ patientId, labOrders }: { patientId: string; labOrders: LabOrderRow[] }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
+  const [orderType, setOrderType] = useState<OrderType>("lab");
   const [tests, setTests] = useState<string[]>([""]);
   const [priority, setPriority] = useState("routine");
   const [notes, setNotes] = useState("");
@@ -105,8 +125,9 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
     startTransition(async () => {
       try {
         const payload: LabTestInput[] = cleaned.map((testName) => ({ testName }));
-        await addLabOrderAction(patientId, null, priority, notes, payload);
+        await addLabOrderAction(patientId, null, priority, notes, payload, orderType);
         setTests([""]);
+        setOrderType("lab");
         setPriority("routine");
         setNotes("");
         setAdding(false);
@@ -120,9 +141,9 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <h2 style={{ fontSize: 15 }}>Lab orders &amp; results</h2>
+        <h2 style={{ fontSize: 15 }}>Orders &amp; Results</h2>
         <button onClick={() => setAdding((v) => !v)} style={{ fontSize: 12.5, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
-          {adding ? "Cancel" : "+ Order labs"}
+          {adding ? "Cancel" : "+ New Order"}
         </button>
       </div>
 
@@ -131,11 +152,27 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
       {adding && (
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, marginBottom: 10, padding: 14, display: "grid", gap: 10 }}>
           <div>
-            <div style={labelStyle}>Tests</div>
+            <div style={labelStyle}>Order Type</div>
+            <select value={orderType} onChange={(e) => setOrderType(e.target.value as OrderType)} style={FIELD_STYLE}>
+              {(Object.keys(ORDER_TYPE_LABEL) as OrderType[]).map((t) => (
+                <option key={t} value={t}>
+                  {ORDER_TYPE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div style={labelStyle}>{orderType === "lab" ? "Tests" : "Items"}</div>
             <div style={{ display: "grid", gap: 6 }}>
               {tests.map((t, i) => (
                 <div key={i} style={{ display: "flex", gap: 6 }}>
-                  <input placeholder="e.g. CBC, Lipid panel" value={t} onChange={(e) => updateTest(i, e.target.value)} style={FIELD_STYLE} />
+                  <input
+                    placeholder={orderType === "lab" ? "e.g. CBC, Lipid panel" : orderType === "imaging" ? "e.g. Chest X-ray" : "e.g. Wound dressing"}
+                    value={t}
+                    onChange={(e) => updateTest(i, e.target.value)}
+                    style={FIELD_STYLE}
+                  />
                   {tests.length > 1 && (
                     <button onClick={() => removeTestRow(i)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 16, padding: "0 6px" }}>
                       ×
@@ -145,7 +182,7 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
               ))}
             </div>
             <button onClick={addTestRow} style={{ marginTop: 6, fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
-              + Add another test
+              + Add another {orderType === "lab" ? "test" : "item"}
             </button>
           </div>
 
@@ -223,14 +260,14 @@ function LabOrderCard({ order, patientId }: { order: LabOrderRow; patientId: str
     });
   }
 
-  function markReviewed(resultId: string) {
+  function setResultStatus(resultId: string, status: "new" | "reviewed" | "released" | "follow_up") {
     setError(null);
     startTransition(async () => {
       try {
-        await markLabResultReviewedAction(resultId, patientId);
+        await setLabResultStatusAction(resultId, patientId, status);
         router.refresh();
       } catch (e: any) {
-        setError(e.message || "Couldn't mark this result reviewed.");
+        setError(e.message || "Couldn't update this result.");
       }
     });
   }
@@ -246,7 +283,10 @@ function LabOrderCard({ order, patientId }: { order: LabOrderRow; patientId: str
             Ordered {new Date(order.ordered_at).toLocaleDateString()} by {order.ordering_provider_name ?? "staff"}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: "#555", background: "#f2f2f2", border: "1px solid #ddd", borderRadius: 999, padding: "2px 8px" }}>
+            {ORDER_TYPE_LABEL[(order.order_type as OrderType) ?? "lab"] ?? order.order_type}
+          </span>
           <PriorityPill priority={order.priority} />
           <StatusPill status={order.status} />
         </div>
@@ -271,35 +311,41 @@ function LabOrderCard({ order, patientId }: { order: LabOrderRow; patientId: str
 
       {hasResult && (
         <div style={{ display: "grid", gap: 8, marginTop: 4 }}>
-          {order.results.map((r) => (
-            <div key={r.id} style={{ background: "#f7f7f9", border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    color: r.reviewed_at ? "#1a7f37" : "#8a6100",
-                    background: r.reviewed_at ? "#eaf7ee" : "#fff6e6",
-                    border: `1px solid ${r.reviewed_at ? "#bfe6c9" : "#f0d998"}`,
-                    borderRadius: 999,
-                    padding: "2px 8px",
-                  }}
-                >
-                  {r.reviewed_at ? "Reviewed" : "Unreviewed"}
-                </span>
-                {!r.reviewed_at && (
-                  <button onClick={() => markReviewed(r.id)} disabled={pending} style={linkButtonStyle}>
-                    Mark reviewed
-                  </button>
-                )}
+          {order.results.map((r) => {
+            const s = RESULT_STATUS_STYLE[r.status] ?? RESULT_STATUS_STYLE.new;
+            return (
+              <div key={r.id} style={{ background: "#f7f7f9", border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 999, padding: "2px 8px" }}>
+                    {s.label}
+                  </span>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {r.status === "new" && (
+                      <button onClick={() => setResultStatus(r.id, "reviewed")} disabled={pending} style={linkButtonStyle}>
+                        Mark reviewed
+                      </button>
+                    )}
+                    {r.status === "reviewed" && (
+                      <button onClick={() => setResultStatus(r.id, "released")} disabled={pending} style={linkButtonStyle}>
+                        Release to patient
+                      </button>
+                    )}
+                    {r.status !== "follow_up" && (
+                      <button onClick={() => setResultStatus(r.id, "follow_up")} disabled={pending} style={{ ...linkButtonStyle, color: "#a12a2a" }}>
+                        Needs follow-up
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {r.result_summary && <div style={{ fontSize: 12.5, marginTop: 6, whiteSpace: "pre-wrap" }}>{r.result_summary}</div>}
+                <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>
+                  Resulted {new Date(r.resulted_at).toLocaleDateString()}
+                  {r.reviewed_at ? ` · Reviewed by ${r.reviewed_by_name ?? "staff"} on ${new Date(r.reviewed_at).toLocaleDateString()}` : ""}
+                  {r.released_at ? ` · Released ${new Date(r.released_at).toLocaleDateString()}` : ""}
+                </div>
               </div>
-              {r.result_summary && <div style={{ fontSize: 12.5, marginTop: 6, whiteSpace: "pre-wrap" }}>{r.result_summary}</div>}
-              <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>
-                Resulted {new Date(r.resulted_at).toLocaleDateString()}
-                {r.reviewed_at ? ` · Reviewed by ${r.reviewed_by_name ?? "staff"} on ${new Date(r.reviewed_at).toLocaleDateString()}` : ""}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
