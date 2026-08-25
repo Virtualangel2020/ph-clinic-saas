@@ -64,9 +64,9 @@ export function NoteTemplatePreview({
       <div style={{ marginTop: 32, textAlign: "right" }}>
         {signatureImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={signatureImageUrl} alt="Signature" style={{ maxHeight: 44, maxWidth: 200, marginLeft: "auto", marginBottom: 4, display: "block" }} />
+          <img src={signatureImageUrl} alt="Signature" style={{ maxHeight: 64, maxWidth: 280, marginLeft: "auto", marginBottom: 4, display: "block" }} />
         ) : (
-          <div style={{ borderBottom: "1px solid #999", width: 220, marginLeft: "auto", marginBottom: 4, height: 34 }} />
+          <div style={{ borderBottom: "1px solid #999", width: 280, marginLeft: "auto", marginBottom: 4, height: 44 }} />
         )}
         <div style={{ fontWeight: 700 }}>{providerName || "Provider name"}</div>
         {providerCredentials && <div style={{ fontSize: 11, color: "#777" }}>{providerCredentials}</div>}

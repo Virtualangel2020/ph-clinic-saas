@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   amendmentBadge: { fontSize: 8, fontWeight: 700, color: "#8a6100", backgroundColor: "#fff6e6", padding: "2 6", borderRadius: 3, marginBottom: 4, alignSelf: "flex-start" },
   noteDivider: { borderTop: "0.5 solid #ddd", marginTop: 8, marginBottom: 8 },
   signatureBlock: { marginTop: 12, paddingTop: 8, borderTop: "0.5 solid #ccc", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
-  signatureImage: { width: 120, height: 40, objectFit: "contain" },
+  signatureImage: { width: 168, height: 56, objectFit: "contain" },
   signatureMeta: { fontSize: 8.5, color: "#555", marginTop: 2 },
   unsignedNote: { fontSize: 8.5, color: "#a12a2a", fontStyle: "italic", marginTop: 12 },
   footer: { position: "absolute", bottom: 24, left: 36, right: 36, fontSize: 7.5, color: "#aaa", textAlign: "center", borderTop: "0.5 solid #eee", paddingTop: 6 },
