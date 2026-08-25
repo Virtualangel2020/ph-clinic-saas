@@ -312,6 +312,7 @@ export function CalendarView({
       anchor={anchor}
       view={view}
       providers={providers}
+      availabilityColors={availabilityColors}
       hiddenProviderIds={hiddenProviderIds}
       onToggleProvider={(id) =>
         setHiddenProviderIds((prev) => {
@@ -339,6 +340,7 @@ function CalendarSidebar({
   hiddenProviderIds,
   onToggleProvider,
   timeBlocks,
+  availabilityColors,
 }: {
   anchor: string;
   view: "day" | "week" | "month";
@@ -346,6 +348,7 @@ function CalendarSidebar({
   hiddenProviderIds: Set<string>;
   onToggleProvider: (id: string) => void;
   timeBlocks: TimeBlockDisplay[];
+  availabilityColors: Record<string, string>;
 }) {
   const [miniMonth, setMiniMonth] = useState(anchor.slice(0, 7) + "-01");
   const [blockFormOpen, setBlockFormOpen] = useState(false);
@@ -418,6 +421,19 @@ function CalendarSidebar({
           </div>
         )}
       </div>
+
+      {view === "day" && (
+        <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 12, display: "flex", gap: 16, fontSize: 11.5, color: "#666" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: availabilityColors.available ?? "#e5e7eb", border: "1px solid #d8d8db", flexShrink: 0 }} />
+            Available
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: availabilityColors.unavailable ?? "#4b5563", flexShrink: 0 }} />
+            Unavailable / blocked
+          </div>
+        </div>
+      )}
 
       <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -620,14 +636,23 @@ function GridEventBlock({
 // on top of the light band, e.g. a lunch break). Only rendered once a
 // provider has actual working hours configured (see availability.ts) —
 // unconfigured providers get no shading at all rather than a false "fully
-// unavailable" read.
+// unavailable" read. A provider's configured ranges are the ONLY source of
+// "available" — everything outside them (and any block layered on top) is
+// unavailable by default, so this needs no separate "is this slot open"
+// flag anywhere else; it just reflects what's already configured.
+//
+// Opacities are tuned so the two states are unmistakably different at a
+// glance (per explicit user feedback that the previous low-opacity wash
+// made available and blocked slots look almost identical) rather than for
+// subtlety — available reads as a clean light tint, unavailable/blocked as
+// a clearly darker one.
 function AvailabilityShading({ avail, availabilityColors }: { avail: DayAvailability | undefined; availabilityColors: Record<string, string> }) {
   if (!avail || !avail.configured) return null;
   const availColor = availabilityColors.available ?? "#e5e7eb";
   const unavailColor = availabilityColors.unavailable ?? "#4b5563";
   return (
     <>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: GRID_HEIGHT, background: unavailColor, opacity: 0.16, zIndex: 0, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: GRID_HEIGHT, background: unavailColor, opacity: 0.6, zIndex: 0, pointerEvents: "none" }} />
       {avail.ranges.map((r, i) => (
         <div
           key={i}
@@ -638,7 +663,7 @@ function AvailabilityShading({ avail, availabilityColors }: { avail: DayAvailabi
             right: 0,
             height: (r.endMin - r.startMin) * PX_PER_MIN,
             background: availColor,
-            opacity: 0.4,
+            opacity: 0.85,
             zIndex: 0,
             pointerEvents: "none",
           }}
@@ -655,7 +680,7 @@ function AvailabilityShading({ avail, availabilityColors }: { avail: DayAvailabi
             right: 0,
             height: Math.max(4, (b.endMin - b.startMin) * PX_PER_MIN),
             background: unavailColor,
-            opacity: 0.4,
+            opacity: 0.6,
             zIndex: 1,
             pointerEvents: "none",
           }}
