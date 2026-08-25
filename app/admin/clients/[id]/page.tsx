@@ -32,7 +32,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     supabase.from("addons").select("id, name, slug, feature_key, addon_prices(billing_cycle, price_php)").eq("is_active", true).order("name"),
     supabase
       .from("subscription_addons")
-      .select("addon_id, status, billing_cycle, subscriptions!inner(tenant_id)")
+      .select("addon_id, status, billing_cycle, included_via_addon_id, subscriptions!inner(tenant_id)")
       .eq("subscriptions.tenant_id", id)
       .eq("status", "active"),
     supabase
@@ -74,6 +74,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         plans={plans ?? []}
         addons={addons ?? []}
         activeAddonIds={(subscriptionAddons ?? []).map((sa: any) => sa.addon_id)}
+        includedViaMap={Object.fromEntries((subscriptionAddons ?? []).map((sa: any) => [sa.addon_id, sa.included_via_addon_id ?? null]))}
         activeDiscount={discount ?? null}
       />
 

@@ -7,7 +7,7 @@ import { SignOutButton } from "@/app/portal/sign-out-button";
 
 // Shared shell for every /portal/* page (spec §15's base Patient Portal
 // architecture): a small tab strip so a patient can move between My
-// Profile, My Appointments, My Forms, My Records, Records &
+// Profile, My Appointments, My Messages, My Forms, My Records, Records &
 // Authorizations, My Results, and My Prescriptions without re-navigating
 // through a menu each time. Deliberately plain — this is patient-facing,
 // not staff tooling, so it stays lightweight rather than reusing the
@@ -15,6 +15,7 @@ import { SignOutButton } from "@/app/portal/sign-out-button";
 const PORTAL_NAV = [
   { href: "/portal", label: "My Profile" },
   { href: "/portal/appointments", label: "My Appointments" },
+  { href: "/portal/messages", label: "My Messages" },
   { href: "/portal/forms", label: "My Forms" },
   { href: "/portal/billing", label: "My Billing" },
   { href: "/portal/records", label: "My Records" },

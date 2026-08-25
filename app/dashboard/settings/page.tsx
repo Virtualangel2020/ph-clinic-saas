@@ -15,6 +15,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
       { href: "/dashboard/settings/clinic-profile", label: "Clinic Profile & Branding", desc: "Name, logo, address, contact — auto-applied to every document." },
       { href: "/dashboard/settings/schedules", label: "Schedules", desc: "Provider working hours and availability." },
       { href: "/dashboard/settings/calendar", label: "Calendar", desc: "Appointment types, colors, and availability colors." },
+      { href: "/dashboard/settings/patient-access", label: "Patient Access & Payments", desc: "Booking, fees, HMO/YAKAP, messaging, and cancellation policy." },
     ],
   },
   {

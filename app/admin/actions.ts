@@ -62,6 +62,22 @@ export async function setTenantAddonAction(
   revalidatePath(`/admin/clients/${tenantId}`);
 }
 
+// Cancelling Online Payments (patient_payments) needs one extra decision
+// when Financial (financial_tracker) is only active because Online
+// Payments bundled it in (spec §16) — "Would you like to continue using
+// Financial?" p_keepFinancial answers that; it's ignored (harmlessly) if
+// Financial wasn't bundle-only to begin with. Financial ledger data is
+// never touched either way — this only ever changes entitlement rows.
+export async function cancelOnlinePaymentsAddonAction(tenantId: string, keepFinancial: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_cancel_online_payments_addon", {
+    p_tenant_id: tenantId,
+    p_keep_financial: keepFinancial,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/clients/${tenantId}`);
+}
+
 export async function setTenantStatusAction(tenantId: string, status: string) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_tenant_status", {

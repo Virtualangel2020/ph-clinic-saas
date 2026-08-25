@@ -9,6 +9,7 @@ import {
   setTenantDiscountAction,
   setTenantTestFlagAction,
   setTenantProviderSeatsAction,
+  cancelOnlinePaymentsAddonAction,
 } from "@/app/admin/actions";
 
 type Plan = { id: string; name: string; slug: string; plan_prices: { billing_cycle: string; price_php: number }[] };
@@ -27,12 +28,14 @@ export function ClientEditor({
   plans,
   addons,
   activeAddonIds,
+  includedViaMap,
   activeDiscount,
 }: {
   tenant: any;
   plans: Plan[];
   addons: Addon[];
   activeAddonIds: string[];
+  includedViaMap: Record<string, string | null>;
   activeDiscount: { id: string; discount_percent: number; note: string | null; created_at: string } | null;
 }) {
   const router = useRouter();
@@ -41,6 +44,15 @@ export function ClientEditor({
   const [cycle, setCycle] = useState<(typeof CYCLES)[number]>((sub?.billing_cycle as any) ?? "monthly");
   const [status, setStatus] = useState(sub?.status ?? "active");
   const [activeAddons, setActiveAddons] = useState<Set<string>>(new Set(activeAddonIds));
+  const [financialChoicePrompt, setFinancialChoicePrompt] = useState(false);
+
+  const patientPaymentsAddon = addons.find((a) => a.feature_key === "patient_payments");
+  const financialAddon = addons.find((a) => a.feature_key === "financial_tracker");
+  // Financial is "bundled" (included with Online Payments, not billed on
+  // its own) exactly when it's active and its included_via_addon_id
+  // points at the Online Payments addon — see migration
+  // online_payments_financial_bundling.
+  const financialIsBundled = !!financialAddon && activeAddons.has(financialAddon.id) && includedViaMap[financialAddon.id] === patientPaymentsAddon?.id;
   const [discountPercent, setDiscountPercent] = useState(activeDiscount?.discount_percent?.toString() ?? "");
   const [discountNote, setDiscountNote] = useState("");
   const [isTest, setIsTest] = useState<boolean>(!!tenant.is_test);
@@ -147,15 +159,48 @@ export function ClientEditor({
   }
 
   function toggleAddon(addonId: string, enabled: boolean) {
+    // Disabling Online Payments while Financial is only active because
+    // Online Payments bundled it in needs an explicit "keep using
+    // Financial?" answer first (§16) — don't fire the cancel yet.
+    if (!enabled && patientPaymentsAddon && addonId === patientPaymentsAddon.id && financialIsBundled) {
+      setFinancialChoicePrompt(true);
+      return;
+    }
+
     setActiveAddons((prev) => {
       const next = new Set(prev);
       enabled ? next.add(addonId) : next.delete(addonId);
+      // Turning Online Payments ON auto-includes Financial — reflect that
+      // optimistically too, so the UI doesn't lag until the next refresh.
+      if (enabled && patientPaymentsAddon && addonId === patientPaymentsAddon.id && financialAddon) {
+        next.add(financialAddon.id);
+      }
       return next;
     });
     startTransition(async () => {
       try {
         await setTenantAddonAction(tenant.id, addonId, enabled);
         setMessage(`${enabled ? "Enabled" : "Disabled"} add-on.`);
+        router.refresh();
+      } catch (e: any) {
+        setMessage(`Error: ${e.message}`);
+      }
+    });
+  }
+
+  function resolveFinancialChoice(keepFinancial: boolean) {
+    setFinancialChoicePrompt(false);
+    setActiveAddons((prev) => {
+      const next = new Set(prev);
+      if (patientPaymentsAddon) next.delete(patientPaymentsAddon.id);
+      if (!keepFinancial && financialAddon) next.delete(financialAddon.id);
+      return next;
+    });
+    startTransition(async () => {
+      try {
+        await cancelOnlinePaymentsAddonAction(tenant.id, keepFinancial);
+        setMessage(keepFinancial ? "Disabled Online Payments — Financial kept active on its own." : "Disabled Online Payments and Financial.");
+        router.refresh();
       } catch (e: any) {
         setMessage(`Error: ${e.message}`);
       }
@@ -334,9 +379,30 @@ export function ClientEditor({
       </Card>
 
       <Card title="Add-ons (individually toggled for this client)">
+        {financialChoicePrompt && (
+          <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 8, padding: "12px 14px", marginBottom: 12, fontSize: 12.5, color: "#7a5c12" }}>
+            <div style={{ marginBottom: 8 }}>
+              This client currently gets <strong>Financial included with Online Payments</strong>. Would you like to continue using Financial on its own
+              {financialAddon ? ` (${priceFor(financialAddon.addon_prices, cycle)} / ${cycle})` : ""}?
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => resolveFinancialChoice(true)} disabled={pending} style={{ ...buttonStyle, background: "#1a7f37" }}>
+                Yes — keep Financial
+              </button>
+              <button onClick={() => resolveFinancialChoice(false)} disabled={pending} style={{ ...buttonStyle, background: "#a12a2a" }}>
+                No — end both
+              </button>
+              <button onClick={() => setFinancialChoicePrompt(false)} disabled={pending} style={{ ...buttonStyle, background: "#888" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         <div style={{ display: "grid", gap: 8 }}>
           {addons.map((a) => {
             const isOn = activeAddons.has(a.id);
+            const bundledVia = includedViaMap[a.id] ? addons.find((x) => x.id === includedViaMap[a.id]) : null;
+            const isBundled = isOn && !!bundledVia;
             return (
               <label
                 key={a.id}
@@ -354,12 +420,18 @@ export function ClientEditor({
                   <input
                     type="checkbox"
                     checked={isOn}
-                    disabled={pending}
+                    disabled={pending || isBundled}
+                    title={isBundled ? `Included automatically with ${bundledVia?.name} — disable that instead` : undefined}
                     onChange={(e) => toggleAddon(a.id, e.target.checked)}
                   />
                   {a.name}
+                  {isBundled && (
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "1px 8px" }}>
+                      Included with {bundledVia?.name}
+                    </span>
+                  )}
                 </span>
-                <span style={{ color: "#888" }}>{priceFor(a.addon_prices, cycle)} / {cycle}</span>
+                <span style={{ color: "#888" }}>{isBundled ? "—" : `${priceFor(a.addon_prices, cycle)} / ${cycle}`}</span>
               </label>
             );
           })}

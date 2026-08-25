@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SiteNav } from "@/components/public/site-nav";
 import { SiteFooter } from "@/components/public/site-footer";
@@ -7,19 +6,13 @@ import { DirectorySearch } from "./directory-search";
 const NAVY = "#0c1730";
 const GOLD = "#e6c66b";
 
-// Turned off for now at Angel's request — she wants to focus on the core
-// system until there are more providers on AngelClinic or the brand is
-// better known, then revisit this. renderDirectory() below still has the
-// full working page (schema, admin Provider Directory tool at
-// app/admin/providers-directory, and the /find-a-doctor UI are all
-// untouched) — turning this back on later is: call renderDirectory()
-// here instead of redirecting, and restore the two nav links in
-// site-nav.tsx/site-footer.tsx.
+// Find a Doctor (spec §28) — re-enabled with the new Booking/Payment-
+// Coverage/Specialty/Location filters, on top of the SAME
+// public_list_directory_providers RPC (now extended with the raw
+// clinic-default + provider-override columns those filters need) — not a
+// second directory. Providers still control whether they're listed here
+// at all (public_directory_enabled), unchanged.
 export default async function FindADoctorPage() {
-  redirect("/");
-}
-
-async function renderDirectory() {
   const supabase = await createClient();
 
   const [{ data: providers }, { data: externalProviders }] = await Promise.all([
@@ -57,7 +50,3 @@ async function renderDirectory() {
     </div>
   );
 }
-
-// Referenced so it isn't flagged as dead code / an unused export while
-// disabled — see the comment above FindADoctorPage.
-void renderDirectory;

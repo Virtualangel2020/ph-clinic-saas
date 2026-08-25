@@ -114,6 +114,7 @@ export default async function PortalHomePage() {
 
       <div style={{ marginTop: 14, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
         {[
+          { href: "/portal/messages", label: "My Messages" },
           { href: "/portal/forms", label: "My Forms" },
           { href: "/portal/billing", label: "My Billing" },
           { href: "/portal/records", label: "My Records" },
