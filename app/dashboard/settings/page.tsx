@@ -37,6 +37,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
     title: "Account",
     items: [
       { href: "/dashboard/billing", label: "Subscription & Billing", desc: "Your plan, add-ons, and invoices." },
+      { href: "/dashboard/settings/payments", label: "Payments", desc: "Accept online payments from patients via PayMongo." },
       { href: "/dashboard/settings/customer-care", label: "Customer Care", desc: "Message the Virtual Angel Systems support team." },
       { href: "/dashboard/settings/notifications", label: "Notifications", desc: "Which events raise an alert." },
       { href: "/dashboard/settings/appearance", label: "Appearance", desc: "Light, dark, or system theme." },

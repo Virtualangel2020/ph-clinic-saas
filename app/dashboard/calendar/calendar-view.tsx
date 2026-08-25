@@ -197,7 +197,7 @@ export function CalendarView({
           <NavButton href={nextHref}>›</NavButton>
           <div style={{ fontWeight: 700, fontSize: 15, marginLeft: 8 }}>{rangeLabel}</div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", border: "1px solid var(--input-border)", borderRadius: 8, overflow: "hidden" }}>
             {(["day", "week", "month"] as const).map((v) => (
               <Link

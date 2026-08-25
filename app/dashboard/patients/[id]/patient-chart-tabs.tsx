@@ -163,6 +163,7 @@ export function PatientChartTabs({
           philhealthPrincipalOrDependent={patient.philhealth_principal_or_dependent}
           philhealthRelationshipToPrincipal={patient.philhealth_relationship_to_principal}
           insurancePlans={data.insurancePlans}
+          onlinePaymentsAvailable={data.onlinePaymentsAvailable}
         />
       )}
 
@@ -219,6 +220,7 @@ export function PatientChartTabs({
           medications={data.medications as any}
           primaryProvider={data.primaryProvider}
           sharingPreference={data.sharingPreference}
+          pendingSharingRequest={data.pendingSharingRequest}
         />
       )}
     </div>

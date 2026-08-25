@@ -274,6 +274,25 @@ export async function setAllowDoubleBookingAction(enabled: boolean) {
   revalidatePath("/dashboard/calendar");
 }
 
+// ── Payments (PayMongo) ──────────────────────────────────────────────
+export async function setAcceptOnlinePaymentsAction(enabled: boolean) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("set_accept_online_payments", { p_enabled: enabled });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/payments");
+}
+
+// Demo-only (§51) — resets one demo patient's invoice back to Unpaid so a
+// sales demo can be repeated. The RPC itself refuses unless the charge
+// belongs to a tenants.is_test tenant, so this can never touch a real
+// clinic even if someone finds/guesses the action.
+export async function resetDemoPatientInvoiceAction(chargeId: string) {
+  const { supabase } = await requireClinicAdmin();
+  const { error } = await supabase.rpc("admin_reset_demo_patient_invoice", { p_charge_id: chargeId });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/settings/payments");
+}
+
 // Provider working hours (Phase 2, extended for patient-bookable
 // availability). Multiple ranges per day of week are allowed — e.g. a
 // lunch break splits Monday into "8-12" and "1-5" as two separate rows —

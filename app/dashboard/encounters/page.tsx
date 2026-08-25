@@ -123,7 +123,7 @@ export default async function EncountersPage({
           <SearchPanel providers={(providers as any) ?? []} appointmentTypes={(appointmentTypes as any) ?? []} clinicName={clinicName} />
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 20, alignItems: "start" }}>
+        <div className="encounters-grid" style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 20, alignItems: "start" }}>
           <MonthMiniCalendar monthAnchor={monthAnchor} selectedDate={date} encounterDates={encounterDates} />
 
           <div>
@@ -144,6 +144,12 @@ export default async function EncountersPage({
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 700px) {
+          .encounters-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

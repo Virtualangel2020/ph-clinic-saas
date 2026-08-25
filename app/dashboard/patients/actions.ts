@@ -686,6 +686,57 @@ export async function recordPatientChargePaymentAction(
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
+// "Pay Online" (Billing tab) — staff-initiated PayMongo Checkout Session
+// for one specific open charge. Uses AngelClinic's own PayMongo account
+// (same PAYMONGO_SECRET_KEY as the platform's subscription billing — see
+// lib/patient-paymongo.ts for why that's fine for now and what changes
+// later if a clinic gets its own merchant account). Does NOT mark
+// anything paid itself — it only creates a hosted checkout link and
+// records the attempt; the webhook (app/api/webhooks/paymongo/route.ts)
+// is the only thing that ever records a real payment, once PayMongo
+// confirms it.
+export async function startPatientChargeOnlinePaymentAction(chargeId: string, patientId: string): Promise<string> {
+  const { profile } = await requireClinicMember();
+  const supabase = await createClient();
+  const { createPatientChargeCheckoutSession } = await import("@/lib/patient-paymongo");
+
+  const { data: clinicSettings } = await supabase.from("clinic_settings").select("accept_online_payments").eq("tenant_id", profile.tenant_id).maybeSingle();
+  if (!clinicSettings?.accept_online_payments) {
+    throw new Error("Online payments aren't turned on yet — enable this under Settings → Payments.");
+  }
+
+  const { data: charge, error: chargeError } = await supabase
+    .from("patient_charges")
+    .select("id, description, amount_php, status, patient_id")
+    .eq("id", chargeId)
+    .eq("patient_id", patientId)
+    .single();
+  if (chargeError || !charge) throw new Error("Charge not found.");
+  if (charge.status === "void") throw new Error("This charge has been voided.");
+
+  const { data: existingPayments } = await supabase.from("patient_charge_payments").select("amount_php").eq("charge_id", chargeId);
+  const alreadyPaid = ((existingPayments as any[]) ?? []).reduce((sum, p) => sum + Number(p.amount_php), 0);
+  const remaining = Number(charge.amount_php) - alreadyPaid;
+  if (remaining <= 0) throw new Error("This charge is already fully paid.");
+
+  const origin = await siteOrigin();
+  const { sessionId, checkoutUrl } = await createPatientChargeCheckoutSession({
+    description: charge.description,
+    amountPhp: remaining,
+    successUrl: `${origin}/dashboard/patients/${patientId}?tab=billing&paid=1`,
+  });
+
+  const { error: recordError } = await supabase.rpc("record_patient_charge_checkout_session", {
+    p_charge_id: chargeId,
+    p_amount_php: remaining,
+    p_checkout_session_id: sessionId,
+    p_checkout_url: checkoutUrl,
+  });
+  if (recordError) throw new Error(recordError.message);
+
+  return checkoutUrl;
+}
+
 // Medical Certificate issuance (spec follow-up: "do it like it's a real
 // one already"). Same pattern as referrals' PDF letter: issue via the RPC
 // gateway (locks in a certificate number + a snapshot of the template's

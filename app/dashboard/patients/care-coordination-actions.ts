@@ -95,3 +95,16 @@ export async function revokeSharingPreferenceAction(patientId: string) {
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
+
+// Records & Authorizations (spec §44) — asks the patient to review and
+// authorize sharing themselves from their Patient Portal, instead of
+// staff authorizing it immediately. A separate, additive path alongside
+// setSharingPreferenceAction above — that one is untouched and still
+// authorizes instantly for patients without a portal account.
+export async function requestSharingAuthorizationAction(patientId: string, providerUserId: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_patient_sharing_authorization", { p_patient_id: patientId, p_provider_user_id: providerUserId });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}

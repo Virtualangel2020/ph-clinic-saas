@@ -16,6 +16,7 @@ const PORTAL_NAV = [
   { href: "/portal", label: "My Profile" },
   { href: "/portal/appointments", label: "My Appointments" },
   { href: "/portal/forms", label: "My Forms" },
+  { href: "/portal/billing", label: "My Billing" },
   { href: "/portal/records", label: "My Records" },
   { href: "/portal/authorizations", label: "Records & Authorizations" },
   { href: "/portal/results", label: "My Results" },

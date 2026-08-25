@@ -12,10 +12,16 @@ export function PatientHistoryTab(props: {
   medications: React.ComponentProps<typeof MedicationsSection>["medications"];
   primaryProvider: React.ComponentProps<typeof CareCoordinationSection>["primaryProvider"];
   sharingPreference: React.ComponentProps<typeof CareCoordinationSection>["sharingPreference"];
+  pendingSharingRequest: React.ComponentProps<typeof CareCoordinationSection>["pendingSharingRequest"];
 }) {
   return (
     <div>
-      <CareCoordinationSection patientId={props.patientId} primaryProvider={props.primaryProvider} sharingPreference={props.sharingPreference} />
+      <CareCoordinationSection
+        patientId={props.patientId}
+        primaryProvider={props.primaryProvider}
+        sharingPreference={props.sharingPreference}
+        pendingSharingRequest={props.pendingSharingRequest}
+      />
       <AllergiesSection patientId={props.patientId} allergies={props.allergies} />
       <MedicationsSection patientId={props.patientId} medications={props.medications} />
     </div>

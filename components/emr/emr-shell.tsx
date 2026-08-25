@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { GlobalSearch } from "./global-search";
 
 type NavItem = { href: string; label: string; short: string };
@@ -245,11 +246,7 @@ export function EmrShell({
             </Link>
           ))}
         </div>
-        {!isMobile && (
-          <div style={{ fontSize: 12, color: "#888", borderLeft: "1px solid #eee", paddingLeft: 14, whiteSpace: "nowrap" }}>
-            {clinicName} · {userLabel}
-          </div>
-        )}
+        {!isMobile && <AccountMenu clinicName={clinicName} userLabel={userLabel} />}
       </header>
 
       <main
@@ -263,10 +260,111 @@ export function EmrShell({
         }}
       >
         {isMobile && (
-          <div style={{ fontSize: 11.5, color: "#999", marginBottom: 12 }}>{clinicName} · {userLabel}</div>
+          <div style={{ marginBottom: 12 }}>
+            <AccountMenu clinicName={clinicName} userLabel={userLabel} align="left" />
+          </div>
         )}
         {children}
       </main>
+    </div>
+  );
+}
+
+// Clicking the clinic name / user label (top-right on desktop, top-left of
+// the page content on mobile) opens a small account menu — Settings and
+// Log out. Previously this was just static text with no way to sign out
+// short of clearing cookies by hand.
+function AccountMenu({ clinicName, userLabel, align = "right" }: { clinicName: string; userLabel: string; align?: "left" | "right" }) {
+  const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  async function logOut() {
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
+  return (
+    <div ref={ref} style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "none",
+          border: "none",
+          borderLeft: align === "right" ? "1px solid #eee" : "none",
+          paddingLeft: align === "right" ? 14 : 0,
+          fontSize: align === "right" ? 12 : 11.5,
+          color: align === "right" ? "#888" : "#999",
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {clinicName} · {userLabel}
+        <span style={{ fontSize: 9, color: "#aaa" }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            [align]: 0,
+            minWidth: 180,
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            overflow: "hidden",
+            zIndex: 30,
+          } as React.CSSProperties}
+        >
+          <div style={{ padding: "10px 14px", fontSize: 11.5, color: "#999", borderBottom: "1px solid var(--card-border)" }}>
+            {clinicName}
+          </div>
+          <Link
+            href="/dashboard/settings"
+            onClick={() => setOpen(false)}
+            style={{ display: "block", padding: "10px 14px", fontSize: 13, color: "var(--text-body)", textDecoration: "none" }}
+          >
+            Settings
+          </Link>
+          <button
+            onClick={logOut}
+            disabled={signingOut}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              padding: "10px 14px",
+              fontSize: 13,
+              color: "#a12a2a",
+              background: "none",
+              border: "none",
+              borderTop: "1px solid var(--card-border)",
+              cursor: signingOut ? "default" : "pointer",
+              opacity: signingOut ? 0.6 : 1,
+            }}
+          >
+            {signingOut ? "Logging out…" : "Log out"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -105,10 +105,9 @@ export default async function PortalHomePage() {
             <h2 style={{ fontSize: 13.5, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>My Balance</h2>
             <div style={{ fontSize: 22, fontWeight: 700, color: balance > 0 ? "#a12a2a" : "#1a7f37" }}>{peso(balance)}</div>
             <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{balance > 0 ? "Balance due" : "Paid in full"}</div>
-            <p style={{ fontSize: 11.5, color: "#aaa", marginTop: 12 }}>
-              This reflects what your clinic has recorded. Online payment isn&apos;t available yet — please settle your
-              balance at the clinic.
-            </p>
+            <Link href="/portal/billing" style={{ display: "inline-block", marginTop: 12, fontSize: 12, color: "var(--text-heading, #0c1730)", fontWeight: 600, textDecoration: "none" }}>
+              View billing →
+            </Link>
           </div>
         )}
       </div>
@@ -116,6 +115,7 @@ export default async function PortalHomePage() {
       <div style={{ marginTop: 14, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
         {[
           { href: "/portal/forms", label: "My Forms" },
+          { href: "/portal/billing", label: "My Billing" },
           { href: "/portal/records", label: "My Records" },
           { href: "/portal/authorizations", label: "Records & Authorizations" },
           { href: "/portal/results", label: "My Results" },

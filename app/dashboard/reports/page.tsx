@@ -207,7 +207,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: { ra
 
       {/* ── Visit volume ───────────────────────────────────────────────── */}
       <Section title="Visit volume">
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, alignItems: "start" }}>
+        <div className="reports-visit-grid" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, alignItems: "start" }}>
           <div>
             <SubHeading>By provider</SubHeading>
             {byProviderRows.length > 0 ? (
@@ -272,6 +272,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: { ra
           />
         </div>
       </Section>
+
+      <style>{`
+        @media (max-width: 700px) {
+          .reports-visit-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

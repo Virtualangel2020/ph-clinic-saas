@@ -5,6 +5,7 @@ import type { PrescriptionRow } from "@/app/dashboard/patients/[id]/prescription
 import type { LabOrderRow } from "@/app/dashboard/patients/[id]/lab-section";
 import type { InsurancePlanRow } from "@/app/dashboard/patients/[id]/coverage-section";
 import type { ReferralRow } from "@/app/dashboard/patients/[id]/referrals-section";
+import { paymongoMode } from "@/lib/patient-paymongo";
 
 // Single source of truth for "everything about one patient's chart."
 // Extracted from patients/[id]/page.tsx so the standalone chart route AND
@@ -320,6 +321,23 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     };
   }
 
+  // Records & Authorizations — a request sent to the patient that's
+  // still awaiting their review in the Patient Portal (§44). Separate
+  // from sharingPreference above (that one only ever reflects an
+  // already-active authorization).
+  const { data: sharingPendingRaw } = await supabase
+    .from("patient_sharing_preferences")
+    .select("id, provider_user_id, user_profiles(full_name, title)")
+    .eq("patient_id", patient.id)
+    .eq("status", "pending")
+    .maybeSingle();
+  const pendingSharingRequest: { id: string; providerName: string } | null = sharingPendingRaw
+    ? {
+        id: (sharingPendingRaw as any).id,
+        providerName: `${(sharingPendingRaw as any).user_profiles?.title ? (sharingPendingRaw as any).user_profiles.title + " " : ""}${(sharingPendingRaw as any).user_profiles?.full_name ?? "—"}`,
+      }
+    : null;
+
   // Active Problems (Clinical tab).
   const activeProblems = ((problemsRaw as any[]) ?? []).map((p) => ({
     id: p.id,
@@ -356,6 +374,13 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
   const billingStatus: "no_charges" | "unpaid" | "partial" | "paid" =
     totalCharged === 0 ? "no_charges" : balance === 0 ? "paid" : totalPaid > 0 ? "partial" : "unpaid";
   const billing = { charges, payments, totalCharged, totalPaid, balance, status: billingStatus };
+
+  // Whether the "Pay Online" button should appear at all — the clinic has
+  // turned it on AND PayMongo is actually configured (see
+  // /dashboard/settings/payments and lib/patient-paymongo.ts). Cheap: no
+  // extra round trip, paymongoMode() just reads an env var.
+  const { data: onlinePaymentsSettings } = await supabase.from("clinic_settings").select("accept_online_payments").eq("tenant_id", tenantId).maybeSingle();
+  const onlinePaymentsAvailable = !!onlinePaymentsSettings?.accept_online_payments && paymongoMode() !== "not_configured";
 
   // "Referred by" (Overview > Profile) — auto-populated from an
   // accepted/completed INCOMING internal referral for this patient when
@@ -399,6 +424,8 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     nextAppt,
     primaryProvider,
     sharingPreference,
+    pendingSharingRequest,
+    onlinePaymentsAvailable,
     patientForms: (patientFormsRaw as any[]) ?? [],
     activeFormTemplates: (activeFormTemplatesRaw as any[]) ?? [],
     formsEntitled: !!formsEntitlementRaw,

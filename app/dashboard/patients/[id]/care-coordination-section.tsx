@@ -7,6 +7,7 @@ import {
   setPrimaryProviderAction,
   setSharingPreferenceAction,
   revokeSharingPreferenceAction,
+  requestSharingAuthorizationAction,
   type DirectoryProvider,
   type ExternalDirectoryProvider,
 } from "../care-coordination-actions";
@@ -16,20 +17,31 @@ const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border
 type PrimaryProvider = { kind: "angelclinic"; name: string; specialty: string | null; clinicName: string | null } | { kind: "external"; name: string; specialty: string | null; clinicName: string | null } | null;
 
 type SharingPreference = { providerUserId: string; providerName: string; clinicName: string | null; authorizedAt: string } | null;
+type PendingSharingRequest = { id: string; providerName: string } | null;
 
 // Care Coordination (spec §8-11): Primary/Family Doctor selection and
 // progress-note sharing authorization are shown together because they're
 // both about who else is involved in this patient's care, but they are
 // deliberately independent actions below — selecting a primary doctor
 // never sets or implies sharing authorization.
-export function CareCoordinationSection({ patientId, primaryProvider, sharingPreference }: { patientId: string; primaryProvider: PrimaryProvider; sharingPreference: SharingPreference }) {
+export function CareCoordinationSection({
+  patientId,
+  primaryProvider,
+  sharingPreference,
+  pendingSharingRequest,
+}: {
+  patientId: string;
+  primaryProvider: PrimaryProvider;
+  sharingPreference: SharingPreference;
+  pendingSharingRequest: PendingSharingRequest;
+}) {
   return (
     <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
       <h2 style={{ fontSize: 15, marginBottom: 12 }}>Care Coordination</h2>
       <div style={{ display: "grid", gap: 16 }}>
         <PrimaryProviderRow patientId={patientId} current={primaryProvider} />
         <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 14 }}>
-          <SharingPreferenceRow patientId={patientId} current={sharingPreference} />
+          <SharingPreferenceRow patientId={patientId} current={sharingPreference} pending={pendingSharingRequest} />
         </div>
       </div>
     </div>
@@ -117,8 +129,9 @@ function PrimaryProviderRow({ patientId, current }: { patientId: string; current
   );
 }
 
-function SharingPreferenceRow({ patientId, current }: { patientId: string; current: SharingPreference }) {
+function SharingPreferenceRow({ patientId, current, pending: pendingRequest }: { patientId: string; current: SharingPreference; pending: PendingSharingRequest }) {
   const [editing, setEditing] = useState(false);
+  const [requestMode, setRequestMode] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -126,8 +139,10 @@ function SharingPreferenceRow({ patientId, current }: { patientId: string; curre
     setError(null);
     startTransition(async () => {
       try {
-        await setSharingPreferenceAction(patientId, provider.id);
+        if (requestMode) await requestSharingAuthorizationAction(patientId, provider.id);
+        else await setSharingPreferenceAction(patientId, provider.id);
         setEditing(false);
+        setRequestMode(false);
       } catch (e: any) {
         setError(e.message);
       }
@@ -155,6 +170,18 @@ function SharingPreferenceRow({ patientId, current }: { patientId: string; curre
         when an encounter is completed. Nothing is ever shared automatically.
       </p>
 
+      {pendingRequest && (
+        <div style={{ background: "#fff8e6", border: "1px solid #e6c66b", borderRadius: 8, padding: "8px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 12.5, color: "#7a5c12" }}>
+            Awaiting patient review — request sent to authorize <strong>{pendingRequest.providerName}</strong>. They&apos;ll
+            see this in their Patient Portal under Records &amp; Authorizations.
+          </div>
+          <button onClick={revoke} disabled={pending} style={{ fontSize: 11.5, color: "#a12a2a", background: "none", border: "none", cursor: "pointer", fontWeight: 600, whiteSpace: "nowrap", marginLeft: 8 }}>
+            Cancel request
+          </button>
+        </div>
+      )}
+
       {current ? (
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 13.5 }}>
@@ -175,12 +202,27 @@ function SharingPreferenceRow({ patientId, current }: { patientId: string; curre
             </button>
           </div>
         </div>
-      ) : editing ? null : (
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setEditing(true)} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+      ) : editing || pendingRequest ? null : (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            onClick={() => {
+              setRequestMode(false);
+              setEditing(true);
+            }}
+            style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
             Yes — set up
           </button>
-          <span style={{ fontSize: 12, color: "#999", alignSelf: "center" }}>No sharing preference set.</span>
+          <button
+            onClick={() => {
+              setRequestMode(true);
+              setEditing(true);
+            }}
+            style={{ background: "none", color: "var(--text-heading)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            Ask patient to authorize instead
+          </button>
+          <span style={{ fontSize: 12, color: "#999" }}>No sharing preference set.</span>
         </div>
       )}
 
@@ -188,7 +230,22 @@ function SharingPreferenceRow({ patientId, current }: { patientId: string; curre
 
       {editing && (
         <div style={{ marginTop: 10 }}>
+          {requestMode && (
+            <p style={{ fontSize: 11.5, color: "#8a6100", marginTop: 0, marginBottom: 8 }}>
+              The patient will need to review and authorize this themselves from their Patient Portal — it won&apos;t
+              take effect until they do.
+            </p>
+          )}
           <ProviderSearch onPickAngelClinic={choose} pending={pending} angelClinicOnly />
+          <button
+            onClick={() => {
+              setEditing(false);
+              setRequestMode(false);
+            }}
+            style={{ marginTop: 8, fontSize: 11.5, color: "#999", background: "none", border: "none", cursor: "pointer" }}
+          >
+            Cancel
+          </button>
         </div>
       )}
     </div>

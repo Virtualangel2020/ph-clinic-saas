@@ -7,6 +7,7 @@ import {
   addPatientChargeAction,
   voidPatientChargeAction,
   recordPatientChargePaymentAction,
+  startPatientChargeOnlinePaymentAction,
 } from "../actions";
 import { CoverageSection, type InsurancePlanRow } from "./coverage-section";
 
@@ -81,6 +82,7 @@ export function BillingSection({
   philhealthPrincipalOrDependent,
   philhealthRelationshipToPrincipal,
   insurancePlans,
+  onlinePaymentsAvailable,
 }: {
   patientId: string;
   billTypes: string[];
@@ -93,6 +95,7 @@ export function BillingSection({
   philhealthPrincipalOrDependent: string | null;
   philhealthRelationshipToPrincipal: string | null;
   insurancePlans: InsurancePlanRow[];
+  onlinePaymentsAvailable: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -161,7 +164,7 @@ export function BillingSection({
         </div>
       </div>
 
-      <BillingLedger patientId={patientId} billing={billing} providers={providers} />
+      <BillingLedger patientId={patientId} billing={billing} providers={providers} onlinePaymentsAvailable={onlinePaymentsAvailable} />
 
       <PhilhealthAndHmo
         patientId={patientId}
@@ -191,10 +194,12 @@ function BillingLedger({
   patientId,
   billing,
   providers,
+  onlinePaymentsAvailable,
 }: {
   patientId: string;
   billing: BillingData;
   providers: { id: string; full_name: string; title: string | null }[];
+  onlinePaymentsAvailable: boolean;
 }) {
   const router = useRouter();
   const [addingCharge, setAddingCharge] = useState(false);
@@ -204,6 +209,25 @@ function BillingLedger({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [payOnlineBusyId, setPayOnlineBusyId] = useState<string | null>(null);
+
+  // Opens PayMongo Checkout in a new tab for staff to show/send to the
+  // patient. Never marks anything Paid here — only the verified webhook
+  // (app/api/webhooks/paymongo/route.ts) does that once PayMongo confirms.
+  function payOnline(chargeId: string) {
+    setError(null);
+    setPayOnlineBusyId(chargeId);
+    startTransition(async () => {
+      try {
+        const url = await startPatientChargeOnlinePaymentAction(chargeId, patientId);
+        window.open(url, "_blank", "noopener,noreferrer");
+      } catch (e: any) {
+        setError(e.message || "Couldn't start an online payment for this charge.");
+      } finally {
+        setPayOnlineBusyId(null);
+      }
+    });
+  }
 
   function saveCharge() {
     const amount = Number(charge.description.trim() ? charge.amount : NaN);
@@ -348,6 +372,15 @@ function BillingLedger({
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontWeight: 700 }}>{peso(c.amount_php)}</span>
+                {c.status !== "void" && onlinePaymentsAvailable && (
+                  <button
+                    onClick={() => payOnline(c.id)}
+                    disabled={pending && payOnlineBusyId === c.id}
+                    style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
+                  >
+                    {pending && payOnlineBusyId === c.id ? "Opening…" : "Pay Online"}
+                  </button>
+                )}
                 {c.status !== "void" && (
                   <button onClick={() => voidCharge(c.id)} disabled={pending && busyId === c.id} style={{ background: "none", border: "none", color: "#a12a2a", cursor: "pointer", fontSize: 11.5 }}>
                     Void
@@ -365,7 +398,17 @@ function BillingLedger({
                   {p.reference ? ` · Ref ${p.reference}` : ""} · {new Date(p.paid_at).toLocaleDateString()}
                 </span>
               </div>
-              <span style={{ fontWeight: 700, color: "#1a7f37" }}>{peso(p.amount_php)}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontWeight: 700, color: "#1a7f37" }}>{peso(p.amount_php)}</span>
+                <a
+                  href={`/api/billing/receipt-pdf?paymentId=${p.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 11, fontWeight: 600, color: "#1a7f37", textDecoration: "none" }}
+                >
+                  Receipt
+                </a>
+              </div>
             </div>
           ))}
         </div>

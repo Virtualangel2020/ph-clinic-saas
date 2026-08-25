@@ -89,6 +89,21 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  // Two entirely separate merchants can both create checkout sessions —
+  // AngelClinic billing a CLINIC (invoices) or a clinic billing a PATIENT
+  // (patient_charge_online_payments). Check the patient-billing table
+  // first since it's the newer/narrower case; whichever matches (at most
+  // one will) is the one this event is for.
+  const { data: onlinePayment } = await admin
+    .from("patient_charge_online_payments")
+    .select("id, tenant_id, charge_id, patient_id, amount_php, status, resulting_payment_id")
+    .eq("checkout_session_id", session.id)
+    .maybeSingle();
+
+  if (onlinePayment) {
+    return handlePatientChargePayment(admin, onlinePayment, session);
+  }
+
   const { data: invoice, error: invoiceError } = await admin
     .from("invoices")
     .select("id, tenant_id, amount_php, discount_php")
@@ -96,8 +111,8 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (invoiceError || !invoice) {
-    console.error("PayMongo webhook: no invoice matches checkout session", session.id, invoiceError?.message);
-    return NextResponse.json({ received: true, error: "no matching invoice" });
+    console.error("PayMongo webhook: no invoice or patient charge matches checkout session", session.id, invoiceError?.message);
+    return NextResponse.json({ received: true, error: "no matching invoice or charge" });
   }
 
   const methodMap: Record<string, string> = { gcash: "gcash", paymaya: "paymaya", card: "card" };
@@ -137,6 +152,56 @@ export async function POST(request: Request) {
     entity_type: "payments",
     entity_id: paymentRow.id,
     new_value: { amount_php: amountPaid, method, checkout_session_id: session.id },
+  });
+
+  return NextResponse.json({ received: true, recorded: true });
+}
+
+// Patient billing side of the webhook (§29): records the SAME underlying
+// payment once into patient_charge_payments — the Patient Portal's
+// Billing page, the clinic's Patient Chart Billing tab, and the Financial
+// dashboard all read that one row, so there's nothing to keep in sync
+// separately. `resulting_payment_id` is the duplicate-delivery guard:
+// PayMongo can and does retry webhook delivery, and this makes a second
+// delivery for the same checkout session a safe no-op instead of a
+// second payment.
+async function handlePatientChargePayment(admin: ReturnType<typeof createAdminClient>, onlinePayment: any, session: { id?: string; amount: number | null; method: string | null }) {
+  if (onlinePayment.resulting_payment_id || onlinePayment.status === "paid") {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  const amountPaid = session.amount ?? Number(onlinePayment.amount_php);
+
+  const { data: paymentRow, error: paymentError } = await admin
+    .from("patient_charge_payments")
+    .insert({
+      tenant_id: onlinePayment.tenant_id,
+      patient_id: onlinePayment.patient_id,
+      charge_id: onlinePayment.charge_id,
+      amount_php: amountPaid,
+      method: "paymongo",
+      reference: session.id,
+    })
+    .select()
+    .single();
+
+  if (paymentError) {
+    console.error("PayMongo webhook: failed to record patient charge payment", paymentError.message);
+    return NextResponse.json({ received: true, error: "failed to record payment" });
+  }
+
+  await admin
+    .from("patient_charge_online_payments")
+    .update({ status: "paid", paid_at: new Date().toISOString(), resulting_payment_id: paymentRow.id })
+    .eq("id", onlinePayment.id);
+
+  await admin.from("audit_logs").insert({
+    tenant_id: onlinePayment.tenant_id,
+    actor_user_id: null,
+    action: "paymongo_webhook_patient_payment",
+    entity_type: "patient_charge_payments",
+    entity_id: paymentRow.id,
+    new_value: { amount_php: amountPaid, method: "paymongo", checkout_session_id: session.id, charge_id: onlinePayment.charge_id },
   });
 
   return NextResponse.json({ received: true, recorded: true });
