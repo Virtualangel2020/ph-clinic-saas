@@ -30,8 +30,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     );
   }
 
-  const [{ data: patient }, { data: documents }, { data: providers }, { data: documentFolders }] = await Promise.all([
-    supabase.from("patients").select("id, first_name, last_name, middle_name, date_of_birth, sex, patient_code, is_active").eq("id", patientId).eq("tenant_id", profile.tenant_id).maybeSingle(),
+  const [{ data: patient }, { data: documents }, { data: providers }, { data: documentFolders }, { data: documentSharesRaw }] = await Promise.all([
+    supabase.from("patients").select("id, first_name, last_name, middle_name, date_of_birth, sex, patient_code, is_active, records_sharing_mode").eq("id", patientId).eq("tenant_id", profile.tenant_id).maybeSingle(),
     supabase
       .from("patient_documents")
       // See lib/patients/get-patient-chart-data.ts — patient_documents has
@@ -44,9 +44,24 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       .order("created_at", { ascending: false }),
     supabase.from("user_profiles").select("id, full_name, title").eq("tenant_id", profile.tenant_id).eq("role", "doctor").eq("is_active", true).order("full_name"),
     supabase.from("document_folders").select("key, label").eq("tenant_id", profile.tenant_id).order("label"),
+    supabase
+      .from("patient_document_shares")
+      .select(
+        "document_id, consent_confirmed, created_at, shared_with:user_profiles!patient_document_shares_shared_with_provider_id_fkey(full_name, title), shared_by_user:user_profiles!patient_document_shares_shared_by_fkey(full_name)"
+      )
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!patient) notFound();
+
+  const documentShares = ((documentSharesRaw as any[]) ?? []).map((s) => ({
+    document_id: s.document_id,
+    consent_confirmed: s.consent_confirmed,
+    created_at: s.created_at,
+    provider_name: s.shared_with ? `${s.shared_with.title ? s.shared_with.title + " " : ""}${s.shared_with.full_name}` : "—",
+    shared_by_name: s.shared_by_user?.full_name ?? null,
+  }));
 
   return (
     <div>
@@ -68,7 +83,14 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <DocumentsSection patientId={patient.id} documents={(documents as any) ?? []} providers={(providers as any) ?? []} customFolders={(documentFolders as any) ?? []} />
+        <DocumentsSection
+          patientId={patient.id}
+          documents={(documents as any) ?? []}
+          providers={(providers as any) ?? []}
+          customFolders={(documentFolders as any) ?? []}
+          documentShares={documentShares}
+          recordsSharingMode={(patient as any).records_sharing_mode ?? "needs_consent"}
+        />
       </div>
     </div>
   );

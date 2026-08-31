@@ -44,6 +44,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     { data: allergies },
     { data: medications },
     { data: documents },
+    { data: documentSharesRaw },
     { data: notes },
     { data: encountersPage },
     { count: totalEncounters },
@@ -70,6 +71,17 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       // visible error anywhere. Naming the constraint disambiguates it.
       .select(
         "id, title, doc_type, description, created_at, storage_path, mime_type, file_size_bytes, status, status_reason, document_date, source, user_profiles!patient_documents_created_by_fkey(full_name)"
+      )
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false }),
+    // Who each document has been shared with (Documents tab "send to
+    // provider" feature) — same 2-FKs-to-user_profiles trap as above
+    // (shared_with_provider_id AND shared_by both reference
+    // user_profiles), so both embeds below name their constraint.
+    supabase
+      .from("patient_document_shares")
+      .select(
+        "document_id, consent_confirmed, created_at, shared_with:user_profiles!patient_document_shares_shared_with_provider_id_fkey(full_name, title), shared_by_user:user_profiles!patient_document_shares_shared_by_fkey(full_name)"
       )
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false }),
@@ -412,6 +424,13 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     allergies: (allergies as any[]) ?? [],
     medications: (medications as any[]) ?? [],
     documents: (documents as any[]) ?? [],
+    documentShares: ((documentSharesRaw as any[]) ?? []).map((s) => ({
+      document_id: s.document_id,
+      consent_confirmed: s.consent_confirmed,
+      created_at: s.created_at,
+      provider_name: s.shared_with ? `${s.shared_with.title ? s.shared_with.title + " " : ""}${s.shared_with.full_name}` : "—",
+      shared_by_name: s.shared_by_user?.full_name ?? null,
+    })),
     notes: (notes as any[]) ?? [],
     encounters,
     totalEncounters: totalEncounters ?? 0,

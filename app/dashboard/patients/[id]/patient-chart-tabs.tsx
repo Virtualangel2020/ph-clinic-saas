@@ -204,7 +204,14 @@ export function PatientChartTabs({
       {tab === "referrals" && <ReferralsSection patientId={patient.id} referrals={data.referrals} />}
 
       {tab === "documents" && (
-        <DocumentsSection patientId={patient.id} documents={data.documents as any} providers={data.providers} customFolders={data.documentFolders} />
+        <DocumentsSection
+          patientId={patient.id}
+          documents={data.documents as any}
+          providers={data.providers}
+          customFolders={data.documentFolders}
+          documentShares={data.documentShares as any}
+          recordsSharingMode={(patient as any).records_sharing_mode ?? "needs_consent"}
+        />
       )}
 
       {tab === "forms" && (
