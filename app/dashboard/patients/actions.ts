@@ -310,6 +310,13 @@ export async function addDocumentAction(formData: FormData) {
     p_provider_id: providerId || null,
   });
   if (error) throw new Error(error.message);
+  // Both the standalone chart route AND the master-detail hub
+  // (/dashboard/patients?patient=<id>&tab=documents — the actual
+  // destination of the "Patients" nav link, see patient-chart-pane.tsx)
+  // render this same data, so both must be revalidated or a save made
+  // from the master-detail pane silently won't show up until a full
+  // reload. "layout" also covers /dashboard/patients/[id] in one call.
+  revalidatePath("/dashboard/patients", "layout");
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/documents");
 }
@@ -343,6 +350,7 @@ export async function setDocumentStatusAction(id: string, patientId: string, sta
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_patient_document_status", { p_id: id, p_status: status, p_reason: reason || null });
   if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/patients", "layout");
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/documents");
 }
