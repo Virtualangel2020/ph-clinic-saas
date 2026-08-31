@@ -2,13 +2,10 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  addDocumentAction,
-  addDocumentFolderAction,
-  getDocumentSignedUrlAction,
-  setPatientRecordsSharingModeAction,
-  shareDocumentsWithProviderAction,
-} from "../actions";
+import { addDocumentAction, addDocumentFolderAction, getDocumentSignedUrlAction } from "../actions";
+import { sendDocumentRecordsTransferAction } from "../../encounters/records-exchange-actions";
+import { searchAngelClinicProvidersAction, checkSharingAuthorizedAction, type DirectoryProvider } from "../care-coordination-actions";
+import { foldersWithCustom, uploadableTypesWithCustom } from "@/lib/documents/folder-taxonomy";
 
 type Doc = {
   id: string;
@@ -28,51 +25,14 @@ type Doc = {
 
 type Provider = { id: string; full_name: string; title?: string | null };
 
-type DocShare = {
-  document_id: string;
-  consent_confirmed: boolean;
-  created_at: string;
-  provider_name: string;
-  shared_by_name: string | null;
-};
-
-type RecordsSharingMode = "allowed" | "needs_consent";
-
-// Folder taxonomy (spec §11) — one flat level, deliberately not nested
-// further ("Do not make the structure overly complicated"). Each folder
-// maps to one or more doc_type values so older rows (filed under a
-// slightly different historical type) still land somewhere sensible.
-const FOLDERS: { key: string; label: string; docTypes: string[]; blurb: string }[] = [
-  { key: "forms", label: "Forms", docTypes: ["forms"], blurb: "Patient-completed forms and consents." },
-  { key: "ids", label: "IDs", docTypes: ["ids"], blurb: "Government ID or other identification." },
-  { key: "insurance", label: "HMO / Insurance", docTypes: ["insurance"], blurb: "Insurance/HMO card, verification, and authorization documents." },
-  { key: "philhealth", label: "PhilHealth", docTypes: ["philhealth"], blurb: "PhilHealth membership/supporting documents." },
-  { key: "labs", label: "Labs", docTypes: ["labs"], blurb: "Scanned/external lab reports. Structured results live under the Orders & Results tab." },
-  { key: "imaging", label: "Imaging", docTypes: ["imaging"], blurb: "X-ray, ultrasound, CT, MRI, mammography, or other imaging reports." },
-  { key: "progress_notes", label: "Progress Notes", docTypes: ["progress_notes"], blurb: "Internal notes or external notes received from another provider." },
-  { key: "referrals", label: "Referrals", docTypes: ["referrals"], blurb: "Referral orders, letters, and received/sent referral documents." },
-  { key: "hospital_er", label: "Hospital / ER Records", docTypes: ["hospital_er"], blurb: "" },
-  { key: "procedures", label: "Procedures", docTypes: ["procedures"], blurb: "" },
-  { key: "medications", label: "Prescriptions / Medication Documents", docTypes: ["medications"], blurb: "Scanned/external prescription documents. Provider-issued prescriptions live under the Prescriptions tab." },
-  { key: "medical_certificates", label: "Medical Certificates", docTypes: ["medical_certificates"], blurb: "" },
-  { key: "patient_documents", label: "Patient-Uploaded Documents", docTypes: ["patient_documents"], blurb: "Filed by the patient through the Patient Portal." },
-  { key: "other", label: "Other", docTypes: ["other"], blurb: "" },
-];
-
-const UPLOADABLE_TYPES: Record<string, string> = {
-  forms: "Forms",
-  ids: "IDs",
-  insurance: "HMO / Insurance",
-  philhealth: "PhilHealth",
-  labs: "Labs (scanned report)",
-  imaging: "Imaging",
-  progress_notes: "Progress Notes",
-  referrals: "Referrals",
-  hospital_er: "Hospital / ER",
-  procedures: "Procedures",
-  medications: "Prescriptions / Medication Documents",
-  medical_certificates: "Medical Certificates",
-  other: "Other",
+// One row per (document, transfer) it was ever sent out on via Records
+// Exchange — see lib/patients/get-patient-chart-data.ts and
+// app/dashboard/documents/page.tsx for the query. Only outgoing sends from
+// THIS patient's chart show up here (sending_tenant_id-scoped by RLS).
+type DocTransfer = {
+  source_document_id: string;
+  filed_document_id: string | null;
+  transfer: { status: string; receiving_provider_name: string | null; receiving_clinic_name: string | null; sent_at: string } | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -82,6 +42,12 @@ const STATUS_LABEL: Record<string, string> = {
   administrative_correction: "Administrative Correction",
   superseded: "Superseded",
   archived: "Archived",
+};
+
+const TRANSFER_STATUS_LABEL: Record<string, string> = {
+  sent: "Awaiting their review",
+  accepted: "Accepted",
+  declined: "Declined",
 };
 
 function formatSize(bytes: number | null | undefined) {
@@ -95,26 +61,33 @@ function isPreviewableImage(mime: string | null) {
 }
 
 // Patient Documents — collapsible folder tree on the left, inline preview
-// + sharing on the right (spec follow-up: "Documents should show folders
-// on the left, preview on the right, with download and send-to-provider
-// options"). Same underlying patient_documents rows the global Documents
-// tab shows after a patient is selected there (see
+// + send-to-provider on the right (spec follow-up: "Documents should show
+// folders on the left, preview on the right, with download and send-to-
+// provider options"). Same underlying patient_documents rows the global
+// Documents tab shows after a patient is selected there (see
 // app/dashboard/documents/page.tsx) — this is the one implementation both
 // places render, not a fork.
+//
+// "Send to provider" goes through Records Exchange (spec follow-up: "like
+// in the provider message... as long as the provider has the same
+// system") — the same cross-clinic transfer/accept/file architecture
+// already built for Encounters, extended (migration
+// records_exchange_document_attachments) to carry individual document
+// files. That's also where the receiving provider goes to find what was
+// sent to them: the "M" (Provider messages) badge in the top nav now links
+// to /dashboard/records-exchange.
 export function DocumentsSection({
   patientId,
   documents,
   providers = [],
   customFolders = [],
-  documentShares = [],
-  recordsSharingMode = "needs_consent",
+  sentTransfers = [],
 }: {
   patientId: string;
   documents: Doc[];
   providers?: Provider[];
   customFolders?: { key: string; label: string }[];
-  documentShares?: DocShare[];
-  recordsSharingMode?: RecordsSharingMode;
+  sentTransfers?: DocTransfer[];
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -145,18 +118,18 @@ export function DocumentsSection({
   // send from the selection bar — same modal, different target id list).
   const [shareTargetIds, setShareTargetIds] = useState<string[] | null>(null);
   const [shareStep, setShareStep] = useState<"pick" | "confirm">("pick");
-  const [shareProviderId, setShareProviderId] = useState("");
+  const [shareQuery, setShareQuery] = useState("");
+  const [shareResults, setShareResults] = useState<DirectoryProvider[]>([]);
+  const [shareSearching, setShareSearching] = useState(false);
+  const [shareSearched, setShareSearched] = useState(false);
+  const [pickedProvider, setPickedProvider] = useState<DirectoryProvider | null>(null);
+  const [shareAuthorized, setShareAuthorized] = useState(false);
+  const [shareNote, setShareNote] = useState("");
   const [shareError, setShareError] = useState<string | null>(null);
   const [sharePending, setSharePending] = useState(false);
 
-  // Records-sharing consent toggle (patient-profile setting).
-  const [modeSaving, setModeSaving] = useState(false);
-
-  // Built-in folders + this tenant's custom folders (spec follow-up:
-  // "provider can add more folders depends on what they need to
-  // organize"), placed just before the catch-all "Other" folder.
-  const allFolders = [...FOLDERS.slice(0, -1), ...customFolders.map((f) => ({ key: f.key, label: f.label, docTypes: [f.key], blurb: "" })), FOLDERS[FOLDERS.length - 1]];
-  const allUploadableTypes: Record<string, string> = { ...UPLOADABLE_TYPES, ...Object.fromEntries(customFolders.map((f) => [f.key, f.label])) };
+  const allFolders = foldersWithCustom(customFolders);
+  const allUploadableTypes = uploadableTypesWithCustom(customFolders);
 
   const visible = documents.filter((d) => (showResolved ? true : d.status === "active"));
 
@@ -165,8 +138,8 @@ export function DocumentsSection({
     return visible.filter((d) => folder.docTypes.includes(d.doc_type));
   }
 
-  function sharesFor(docId: string) {
-    return documentShares.filter((s) => s.document_id === docId);
+  function transfersFor(docId: string) {
+    return sentTransfers.filter((t) => t.source_document_id === docId && t.transfer);
   }
 
   function saveFolder() {
@@ -277,7 +250,12 @@ export function DocumentsSection({
     if (ids.length === 0) return;
     setShareTargetIds(ids);
     setShareStep("pick");
-    setShareProviderId("");
+    setShareQuery("");
+    setShareResults([]);
+    setShareSearched(false);
+    setPickedProvider(null);
+    setShareAuthorized(false);
+    setShareNote("");
     setShareError(null);
   }
 
@@ -286,53 +264,44 @@ export function DocumentsSection({
     setShareError(null);
   }
 
-  function proceedFromPick() {
-    if (!shareProviderId) {
-      setShareError("Choose a provider first.");
-      return;
-    }
-    setShareError(null);
-    if (recordsSharingMode === "allowed") {
-      doShare(false);
-    } else {
-      setShareStep("confirm");
+  async function runShareSearch() {
+    setShareSearching(true);
+    try {
+      setShareResults(await searchAngelClinicProvidersAction(shareQuery));
+      setShareSearched(true);
+    } catch (e: any) {
+      setShareError(e.message || "Search failed.");
+    } finally {
+      setShareSearching(false);
     }
   }
 
-  function doShare(consentConfirmed: boolean) {
-    if (!shareTargetIds || !shareProviderId) return;
+  async function pickProvider(p: DirectoryProvider) {
+    setPickedProvider(p);
+    setShareError(null);
+    setShareAuthorized(await checkSharingAuthorizedAction(patientId, p.id));
+    setShareStep("confirm");
+  }
+
+  function sendShare() {
+    if (!shareTargetIds || !pickedProvider) return;
     setSharePending(true);
     setShareError(null);
     startTransition(async () => {
       try {
-        await shareDocumentsWithProviderAction(patientId, shareTargetIds, shareProviderId, consentConfirmed);
+        await sendDocumentRecordsTransferAction(patientId, shareTargetIds, pickedProvider.id, shareNote);
         setSharePending(false);
         setShareTargetIds(null);
         setSelectedIds(new Set());
         router.refresh();
       } catch (e: any) {
         setSharePending(false);
-        setShareError(e.message || "Couldn't share these records.");
+        setShareError(e.message || "Couldn't send these records.");
       }
     });
   }
 
-  function changeSharingMode(mode: RecordsSharingMode) {
-    setModeSaving(true);
-    startTransition(async () => {
-      try {
-        await setPatientRecordsSharingModeAction(patientId, mode);
-        router.refresh();
-      } catch (e: any) {
-        alert(e.message || "Couldn't update the sharing setting.");
-      } finally {
-        setModeSaving(false);
-      }
-    });
-  }
-
-  const shareModalProviderName = providers.find((p) => p.id === shareProviderId);
-  const shareModalProviderLabel = shareModalProviderName ? `${shareModalProviderName.title ? shareModalProviderName.title + " " : ""}${shareModalProviderName.full_name}` : "";
+  const shareTargetDocs = documents.filter((d) => shareTargetIds?.includes(d.id));
 
   return (
     <div>
@@ -342,38 +311,6 @@ export function DocumentsSection({
           <input type="checkbox" checked={showResolved} onChange={(e) => setShowResolved(e.target.checked)} />
           Show entered-in-error / archived
         </label>
-      </div>
-
-      {/* Records-sharing consent — patient-profile setting controlling
-          whether "send to provider" below needs a consent confirmation. */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 8,
-          background: "#f7f7f9",
-          border: "1px solid #eee",
-          borderRadius: 8,
-          padding: "8px 12px",
-          marginBottom: 12,
-          fontSize: 12.5,
-        }}
-      >
-        <span style={{ color: "#555" }}>
-          <strong style={{ color: "var(--text-heading)" }}>Records sharing:</strong>{" "}
-          {recordsSharingMode === "allowed" ? "Share with other treating providers without asking each time" : "Ask for the patient's consent before every share"}
-        </span>
-        <select
-          value={recordsSharingMode}
-          disabled={modeSaving}
-          onChange={(e) => changeSharingMode(e.target.value as RecordsSharingMode)}
-          style={{ border: "1px solid var(--input-border)", borderRadius: 6, padding: "4px 8px", fontSize: 12 }}
-        >
-          <option value="needs_consent">Needs consent from patient first</option>
-          <option value="allowed">Allowed — patient has consented</option>
-        </select>
       </div>
 
       {selectedIds.size > 0 && (
@@ -495,7 +432,7 @@ export function DocumentsSection({
                     ) : (
                       <div style={{ display: "grid", gap: 6 }}>
                         {docs.map((d) => {
-                          const shares = sharesFor(d.id);
+                          const transfers = transfersFor(d.id);
                           const isSelectedPreview = selectedDoc?.id === d.id;
                           return (
                             <div
@@ -525,8 +462,10 @@ export function DocumentsSection({
                                   {d.storage_path ? ` · ${d.mime_type ?? ""} ${formatSize(d.file_size_bytes)}` : " · Metadata only"}
                                 </div>
                                 {d.description && <div style={{ color: "#666", fontSize: 12, marginTop: 2 }}>{d.description}</div>}
-                                {shares.length > 0 && (
-                                  <div style={{ color: "#4a7a4a", fontSize: 11, marginTop: 3 }}>Shared with {shares.map((s) => s.provider_name).join(", ")}</div>
+                                {transfers.length > 0 && (
+                                  <div style={{ color: "#4a7a4a", fontSize: 11, marginTop: 3 }}>
+                                    Sent to {transfers.map((t, i) => `${t.transfer!.receiving_provider_name ?? "a provider"}${t.transfer!.status !== "sent" ? ` (${TRANSFER_STATUS_LABEL[t.transfer!.status] ?? t.transfer!.status})` : ""}`).join(", ")}
+                                  </div>
                                 )}
                               </div>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "flex-end" }}>
@@ -629,14 +568,16 @@ export function DocumentsSection({
                   )}
                 </div>
 
-                {sharesFor(selectedDoc.id).length > 0 && (
+                {transfersFor(selectedDoc.id).length > 0 && (
                   <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Shared with</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Sent to</div>
                     <div style={{ display: "grid", gap: 4 }}>
-                      {sharesFor(selectedDoc.id).map((s, i) => (
+                      {transfersFor(selectedDoc.id).map((t, i) => (
                         <div key={i} style={{ fontSize: 12, color: "#555" }}>
-                          {s.provider_name} — {new Date(s.created_at).toLocaleDateString()}
-                          {s.shared_by_name ? ` · sent by ${s.shared_by_name}` : ""}
+                          {t.transfer!.receiving_provider_name ?? "a provider"}
+                          {t.transfer!.receiving_clinic_name ? ` (${t.transfer!.receiving_clinic_name})` : ""} — {new Date(t.transfer!.sent_at).toLocaleDateString()}
+                          {" · "}
+                          {t.filed_document_id ? "Filed by them" : TRANSFER_STATUS_LABEL[t.transfer!.status] ?? t.transfer!.status}
                         </div>
                       ))}
                     </div>
@@ -648,70 +589,112 @@ export function DocumentsSection({
         </div>
       </div>
 
-      {/* Send-to-provider modal */}
+      {/* Send-to-provider modal — searches every AngelClinic provider,
+          same clinic or a different one; picking a provider doesn't send
+          anything, the confirm step is the actual point of no return
+          (mirrors app/dashboard/encounters/encounter-selection-list.tsx's
+          SendToProviderPanel, generalized to multi-document + an optional
+          note). */}
       {shareTargetIds && (
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}
           onClick={closeShareModal}
         >
           <div
-            style={{ background: "var(--card-bg)", borderRadius: 12, padding: 20, width: "100%", maxWidth: 420, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}
+            style={{ background: "var(--card-bg)", borderRadius: 12, padding: 20, width: "100%", maxWidth: 440, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: 15, marginBottom: 4 }}>
-              Send {shareTargetIds.length > 1 ? `${shareTargetIds.length} documents` : "document"} to a provider
-            </h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <h3 style={{ fontSize: 15, margin: 0 }}>
+                Send {shareTargetIds.length > 1 ? `${shareTargetIds.length} documents` : "document"} to a provider
+              </h3>
+              <button onClick={closeShareModal} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12 }}>Cancel</button>
+            </div>
 
             {shareStep === "pick" ? (
-              <div>
-                <p style={{ fontSize: 12.5, color: "#666", marginBottom: 10 }}>Choose which provider should be able to see this in the patient&apos;s chart.</p>
-                <select
-                  value={shareProviderId}
-                  onChange={(e) => setShareProviderId(e.target.value)}
-                  style={{ width: "100%", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, boxSizing: "border-box", marginBottom: 10 }}
-                >
-                  <option value="">Select a provider…</option>
-                  {providers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title ? `${p.title} ` : ""}
-                      {p.full_name}
-                    </option>
-                  ))}
-                </select>
-                {shareError && <div style={{ color: "#a12a2a", fontSize: 12.5, marginBottom: 8 }}>{shareError}</div>}
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button onClick={closeShareModal} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
-                    Cancel
-                  </button>
-                  <button onClick={proceedFromPick} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer" }}>
-                    {recordsSharingMode === "allowed" ? "Send" : "Continue"}
+              <div style={{ marginTop: 8 }}>
+                <p style={{ fontSize: 12.5, color: "#666", marginBottom: 10 }}>
+                  Search any AngelClinic provider — this clinic or another clinic on AngelClinic. They&apos;ll see this in their Records Exchange inbox.
+                </p>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input
+                    value={shareQuery}
+                    onChange={(e) => setShareQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && runShareSearch()}
+                    placeholder="Search by name, specialty, or clinic…"
+                    style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, flex: 1 }}
+                  />
+                  <button onClick={runShareSearch} disabled={shareSearching} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                    {shareSearching ? "…" : "Search"}
                   </button>
                 </div>
+                {shareSearched && (
+                  <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid #eee", borderRadius: 8 }}>
+                    {shareResults.length === 0 && <div style={{ padding: 12, fontSize: 12.5, color: "#999" }}>No providers found.</div>}
+                    {shareResults.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => pickProvider(p)}
+                        style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "var(--card-bg)", cursor: "pointer", fontSize: 13 }}
+                      >
+                        {p.title ? `${p.title} ` : ""}{p.full_name}
+                        <div style={{ fontSize: 11, color: "#888" }}>{[p.specialty, p.clinic_name].filter(Boolean).join(" · ")}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {shareError && <div style={{ color: "#a12a2a", fontSize: 12.5, marginTop: 8 }}>{shareError}</div>}
               </div>
             ) : (
-              <div>
-                <div style={{ background: "#fff6e6", border: "1px solid #e6c66b", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 12.5, color: "#7a5c12" }}>
-                  This patient&apos;s records-sharing setting requires consent before every share. Have you asked{" "}
-                  <strong>the patient</strong> for consent to send {shareTargetIds.length > 1 ? "these records" : "this record"} to{" "}
-                  <strong>{shareModalProviderLabel}</strong>?
+              pickedProvider && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ display: "grid", gap: 6, fontSize: 13, marginBottom: 10 }}>
+                    <Row label="Documents" value={shareTargetDocs.map((d) => d.title).join(", ")} />
+                    <Row label="Receiving provider" value={`${pickedProvider.title ? pickedProvider.title + " " : ""}${pickedProvider.full_name}${pickedProvider.clinic_name ? ` (${pickedProvider.clinic_name})` : ""}`} />
+                    <Row
+                      label="Authorization"
+                      value={shareAuthorized ? "✓ Patient has authorized sharing with this provider" : "Not on file"}
+                    />
+                  </div>
+
+                  {!shareAuthorized && (
+                    <div style={{ background: "#fff6e6", border: "1px solid #e6c66b", borderRadius: 8, padding: 12, marginBottom: 10, fontSize: 12.5, color: "#7a5c12" }}>
+                      There&apos;s no sharing authorization on file for this patient and provider. Have you asked <strong>the patient</strong> for consent to send{" "}
+                      {shareTargetIds.length > 1 ? "these records" : "this record"} to <strong>{pickedProvider.full_name}</strong>?
+                    </div>
+                  )}
+
+                  <textarea
+                    placeholder="Add a note for them (optional)"
+                    value={shareNote}
+                    onChange={(e) => setShareNote(e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, minHeight: 56, fontFamily: "inherit", marginBottom: 10 }}
+                  />
+
+                  {shareError && <div style={{ color: "#a12a2a", fontSize: 12.5, marginBottom: 8 }}>{shareError}</div>}
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button onClick={() => setShareStep("pick")} disabled={sharePending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
+                      Back
+                    </button>
+                    <button onClick={sendShare} disabled={sharePending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: sharePending ? 0.6 : 1 }}>
+                      {sharePending ? "Sending…" : shareAuthorized ? "Send Securely" : "Yes, consent obtained — send"}
+                    </button>
+                  </div>
                 </div>
-                {shareError && <div style={{ color: "#a12a2a", fontSize: 12.5, marginBottom: 8 }}>{shareError}</div>}
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button onClick={() => setShareStep("pick")} disabled={sharePending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
-                    Back
-                  </button>
-                  <button onClick={closeShareModal} disabled={sharePending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
-                    Cancel
-                  </button>
-                  <button onClick={() => doShare(true)} disabled={sharePending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: sharePending ? 0.6 : 1 }}>
-                    {sharePending ? "Sending…" : "Yes, consent obtained — send"}
-                  </button>
-                </div>
-              </div>
+              )
             )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+      <span style={{ color: "#888", flexShrink: 0 }}>{label}</span>
+      <span style={{ fontWeight: 600, color: "var(--text-heading)", textAlign: "right" }}>{value}</span>
     </div>
   );
 }

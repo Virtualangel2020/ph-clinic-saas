@@ -13,28 +13,41 @@ export default async function RecordsExchangePage({ searchParams }: { searchPara
   const { supabase, profile } = await requireClinicMember();
   const tab = searchParams.tab === "sent" ? "sent" : "incoming";
 
-  const [{ data: incoming }, { data: sent }, { data: patients }] = await Promise.all([
+  const [{ data: incoming }, { data: sent }, { data: patients }, { data: documentFolders }] = await Promise.all([
     supabase
       .from("records_exchange_transfers")
       .select(
-        "id, patient_name, patient_dob, record_count, authorization_verified, status, sent_at, accepted_at, sending_provider_name, sending_clinic_name, filed_patient_id"
+        "id, patient_name, patient_dob, record_count, authorization_verified, status, sent_at, accepted_at, sending_provider_name, sending_clinic_name, filed_patient_id, source, note"
       )
       .eq("receiving_tenant_id", profile.tenant_id)
       .order("sent_at", { ascending: false }),
     supabase
       .from("records_exchange_transfers")
-      .select("id, patient_name, patient_dob, record_count, status, sent_at, accepted_at, declined_at, receiving_provider_name, receiving_clinic_name")
+      .select("id, patient_name, patient_dob, record_count, status, sent_at, accepted_at, declined_at, receiving_provider_name, receiving_clinic_name, source, note")
       .eq("sending_tenant_id", profile.tenant_id)
       .order("sent_at", { ascending: false }),
     supabase.from("patients").select("id, first_name, middle_name, last_name, date_of_birth, mobile_phone").eq("tenant_id", profile.tenant_id).eq("is_active", true).order("last_name").order("first_name"),
+    supabase.from("document_folders").select("key, label").eq("tenant_id", profile.tenant_id).order("label"),
   ]);
+
+  const transferIds = [...(incoming ?? []).map((t: any) => t.id), ...(sent ?? []).map((t: any) => t.id)];
+  const { data: attachments } = transferIds.length
+    ? await supabase
+        .from("records_exchange_transfer_documents")
+        .select("id, transfer_id, source_document_id, title, doc_type, description, document_date, storage_path, mime_type, file_size_bytes, filed_document_id")
+        .in("transfer_id", transferIds)
+    : { data: [] as any[] };
+
+  function attachmentsFor(transferId: string) {
+    return ((attachments as any[]) ?? []).filter((a) => a.transfer_id === transferId);
+  }
 
   return (
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>Records Exchange</h1>
       <p style={{ color: "#666", marginBottom: 16, fontSize: 13 }}>
         Secure, internal AngelClinic-to-AngelClinic record sharing — never email. Send from a patient's Encounters
-        list; review and file what other clinics send you here.
+        or Documents tab; review and file what other providers send you here.
       </p>
 
       <div style={{ display: "flex", gap: 4, borderBottom: "1px solid #e2e2e5", marginBottom: 16 }}>
@@ -48,16 +61,16 @@ export default async function RecordsExchangePage({ searchParams }: { searchPara
         ) : (
           <div style={{ display: "grid", gap: 10 }}>
             {(incoming as any[]).map((t) => (
-              <IncomingTransferRow key={t.id} transfer={t} patients={(patients as any) ?? []} />
+              <IncomingTransferRow key={t.id} transfer={t} patients={(patients as any) ?? []} attachments={attachmentsFor(t.id)} customFolders={(documentFolders as any) ?? []} />
             ))}
           </div>
         )
       ) : (sent ?? []).length === 0 ? (
-        <Empty text="Nothing sent yet — send records to another AngelClinic provider from a patient's Encounters list." />
+        <Empty text="Nothing sent yet — send records to another AngelClinic provider from a patient's Encounters or Documents tab." />
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {(sent as any[]).map((t) => (
-            <SentTransferRow key={t.id} transfer={t} />
+            <SentTransferRow key={t.id} transfer={t} attachments={attachmentsFor(t.id)} />
           ))}
         </div>
       )}

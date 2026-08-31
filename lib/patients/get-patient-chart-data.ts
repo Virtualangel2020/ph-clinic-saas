@@ -44,7 +44,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     { data: allergies },
     { data: medications },
     { data: documents },
-    { data: documentSharesRaw },
+    { data: sentTransfersRaw },
     { data: notes },
     { data: encountersPage },
     { count: totalEncounters },
@@ -74,17 +74,16 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       )
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false }),
-    // Who each document has been shared with (Documents tab "send to
-    // provider" feature) — same 2-FKs-to-user_profiles trap as above
-    // (shared_with_provider_id AND shared_by both reference
-    // user_profiles), so both embeds below name their constraint.
+    // Which documents have been sent out via Records Exchange (Documents
+    // tab "Send to provider" feature) — outgoing only; RLS on
+    // records_exchange_transfer_documents already limits this to transfers
+    // this tenant sent or received, and filtering by transfer.patient_id
+    // below keeps it to this specific patient's outgoing sends.
     supabase
-      .from("patient_document_shares")
-      .select(
-        "document_id, consent_confirmed, created_at, shared_with:user_profiles!patient_document_shares_shared_with_provider_id_fkey(full_name, title), shared_by_user:user_profiles!patient_document_shares_shared_by_fkey(full_name)"
-      )
-      .eq("patient_id", patientId)
-      .order("created_at", { ascending: false }),
+      .from("records_exchange_transfer_documents")
+      .select("source_document_id, filed_document_id, transfer:records_exchange_transfers!inner(status, receiving_provider_name, receiving_clinic_name, sent_at, patient_id, source)")
+      .eq("transfer.patient_id", patientId)
+      .eq("transfer.source", "documents"),
     supabase
       .from("patient_progress_notes")
       .select("id, note_date, chief_complaint, subjective, objective, assessment, plan, bp_systolic, bp_diastolic, pulse_rate, respiratory_rate, oxygen_saturation, temperature_c, weight_kg, height_cm, created_at, amends_note_id, amendment_reason, user_profiles(full_name)")
@@ -424,13 +423,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     allergies: (allergies as any[]) ?? [],
     medications: (medications as any[]) ?? [],
     documents: (documents as any[]) ?? [],
-    documentShares: ((documentSharesRaw as any[]) ?? []).map((s) => ({
-      document_id: s.document_id,
-      consent_confirmed: s.consent_confirmed,
-      created_at: s.created_at,
-      provider_name: s.shared_with ? `${s.shared_with.title ? s.shared_with.title + " " : ""}${s.shared_with.full_name}` : "—",
-      shared_by_name: s.shared_by_user?.full_name ?? null,
-    })),
+    documentSentTransfers: (sentTransfersRaw as any[]) ?? [],
     notes: (notes as any[]) ?? [],
     encounters,
     totalEncounters: totalEncounters ?? 0,

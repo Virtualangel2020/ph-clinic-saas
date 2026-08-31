@@ -5,9 +5,12 @@ import {
   acceptRecordsTransferAction,
   declineRecordsTransferAction,
   fileRecordsTransferAction,
-  getTransferPdfUrlAction,
+  fileTransferDocumentAction,
+  type TransferDocumentAttachment,
 } from "../encounters/records-exchange-actions";
 import type { PatientInput } from "../patients/actions";
+import { foldersWithCustom, uploadableTypesWithCustom } from "@/lib/documents/folder-taxonomy";
+import { TransferPreview } from "./transfer-preview";
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; color: string; label: string }> = {
   sent: { bg: "#fff6e6", border: "#f0d998", color: "#8a6100", label: "Awaiting your review" },
@@ -53,16 +56,20 @@ const EMPTY_NEW_PATIENT: PatientInput = {
 };
 
 // Incoming Records review row (spec §15) — Review -> Accept/Decline ->
-// File to Patient. Mirrors SentTransferRow's layout/status-badge styling
-// but adds the two-stage action flow: while status is "sent" the receiver
-// can Accept or Decline; once "accepted" (and not yet filed) a compact
-// patient-match panel appears so staff can file the incoming PDF straight
-// into this clinic's own patient-documents (never left sitting loose in a
-// generic inbox — see the user's explicit "documents tab should be
-// cleared" instruction elsewhere in this build).
+// File to Patient. While status is "sent" the receiver can Accept or
+// Decline; once "accepted" (and not yet filed) a compact patient-match
+// panel appears so staff can file the incoming record(s) straight into
+// this clinic's own patient-documents. A documents-source transfer (spec
+// follow-up: "Athenahealth-style" per-document linking) lets the receiver
+// pick a destination FOLDER per attachment — different files in the same
+// transfer often belong in different places (e.g. an ID plus a lab
+// report) — whereas an encounters-source transfer is still the single
+// combined PDF filed as one "Referrals" document, unchanged from before.
 export function IncomingTransferRow({
   transfer,
   patients,
+  attachments,
+  customFolders,
 }: {
   transfer: {
     id: string;
@@ -76,8 +83,12 @@ export function IncomingTransferRow({
     sending_provider_name: string;
     sending_clinic_name: string | null;
     filed_patient_id: string | null;
+    source: "encounters" | "documents";
+    note: string | null;
   };
   patients: Patient[];
+  attachments: TransferDocumentAttachment[];
+  customFolders: { key: string; label: string }[];
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -86,9 +97,13 @@ export function IncomingTransferRow({
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [newPatient, setNewPatient] = useState<PatientInput>(EMPTY_NEW_PATIENT);
+  const [attachmentFolders, setAttachmentFolders] = useState<Record<string, string>>({});
+  const [filedIds, setFiledIds] = useState<Set<string>>(new Set());
 
   const s = STATUS_STYLE[transfer.status] ?? STATUS_STYLE.sent;
   const alreadyFiled = !!transfer.filed_patient_id;
+  const allFolders = foldersWithCustom(customFolders);
+  const uploadableTypes = uploadableTypesWithCustom(customFolders);
 
   const suggestions = patients
     .filter((p) => {
@@ -100,18 +115,6 @@ export function IncomingTransferRow({
       return `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) || `${p.last_name} ${p.first_name}`.toLowerCase().includes(q);
     })
     .slice(0, 6);
-
-  function viewPdf() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        const url = await getTransferPdfUrlAction(transfer.id);
-        window.open(url, "_blank", "noopener,noreferrer");
-      } catch (e: any) {
-        setError(e.message);
-      }
-    });
-  }
 
   function accept() {
     setError(null);
@@ -136,17 +139,40 @@ export function IncomingTransferRow({
     });
   }
 
+  function folderFor(attachmentId: string, suggestedDocType: string | null) {
+    return attachmentFolders[attachmentId] ?? (suggestedDocType && suggestedDocType in uploadableTypes ? suggestedDocType : "other");
+  }
+
   function fileIt() {
     setError(null);
     startTransition(async () => {
       try {
-        await fileRecordsTransferAction(
-          transfer.id,
-          mode === "match" ? selectedId || null : null,
-          mode === "new" ? newPatient : null,
-          transfer.sending_clinic_name || "another clinic",
-          transfer.sending_provider_name
-        );
+        if (transfer.source === "documents") {
+          const targetPatientId = mode === "match" ? selectedId || null : null;
+          const newlyFiled = new Set(filedIds);
+          for (const a of attachments) {
+            if (a.filed_document_id || filedIds.has(a.id)) continue;
+            if (!a.storage_path) continue;
+            await fileTransferDocumentAction(
+              transfer.id,
+              { id: a.id, storagePath: a.storage_path, title: a.title, docType: folderFor(a.id, a.doc_type), description: a.description, documentDate: a.document_date, mimeType: a.mime_type },
+              targetPatientId,
+              mode === "new" ? newPatient : null,
+              transfer.sending_clinic_name || "another clinic",
+              transfer.sending_provider_name
+            );
+            newlyFiled.add(a.id);
+          }
+          setFiledIds(newlyFiled);
+        } else {
+          await fileRecordsTransferAction(
+            transfer.id,
+            mode === "match" ? selectedId || null : null,
+            mode === "new" ? newPatient : null,
+            transfer.sending_clinic_name || "another clinic",
+            transfer.sending_provider_name
+          );
+        }
         setFiling(false);
       } catch (e: any) {
         setError(e.message);
@@ -154,27 +180,31 @@ export function IncomingTransferRow({
     });
   }
 
+  const unfiledAttachments = attachments.filter((a) => !a.filed_document_id && !filedIds.has(a.id) && a.storage_path);
+  const allAttachmentsFiled = transfer.source === "documents" && attachments.length > 0 && attachments.every((a) => a.filed_document_id || filedIds.has(a.id));
+
   return (
     <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)" }}>{transfer.patient_name}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)" }}>
+            {transfer.patient_name} <span style={{ fontWeight: 400, color: "#888" }}>· DOB {new Date(transfer.patient_dob).toLocaleDateString()}</span>
+          </div>
           <div style={{ fontSize: 12, color: "#888" }}>
-            DOB {new Date(transfer.patient_dob).toLocaleDateString()} · From Dr. {transfer.sending_provider_name}
+            From Dr. {transfer.sending_provider_name}
             {transfer.sending_clinic_name ? ` · ${transfer.sending_clinic_name}` : ""} · {transfer.record_count} record
             {transfer.record_count === 1 ? "" : "s"} · Sent {new Date(transfer.sent_at).toLocaleDateString()}
           </div>
+          {transfer.note && <div style={{ fontSize: 12, color: "#555", marginTop: 4, fontStyle: "italic" }}>&ldquo;{transfer.note}&rdquo;</div>}
           <div style={{ fontSize: 11, color: transfer.authorization_verified ? "#1a7f37" : "#a12a2a", marginTop: 2 }}>
             {transfer.authorization_verified ? "✓ Patient authorized sharing with this provider" : "⚠ No active sharing authorization on file"}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, border: `1px solid ${s.border}`, borderRadius: 999, padding: "3px 10px" }}>
-            {alreadyFiled ? "Filed" : s.label}
+            {alreadyFiled || allAttachmentsFiled ? "Filed" : s.label}
           </span>
-          <button onClick={viewPdf} disabled={pending} style={{ fontSize: 12, color: "var(--text-heading)", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
-            View PDF
-          </button>
+          <TransferPreview transferId={transfer.id} source={transfer.source} attachments={attachments} />
           {transfer.status === "sent" && (
             <>
               <button
@@ -193,7 +223,7 @@ export function IncomingTransferRow({
               </button>
             </>
           )}
-          {transfer.status === "accepted" && !alreadyFiled && !filing && (
+          {transfer.status === "accepted" && !alreadyFiled && !allAttachmentsFiled && !filing && (
             <button
               onClick={() => setFiling(true)}
               style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#0c1730", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
@@ -264,13 +294,35 @@ export function IncomingTransferRow({
             </div>
           )}
 
+          {transfer.source === "documents" && unfiledAttachments.length > 0 && (
+            <div style={{ marginTop: 12, display: "grid", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3 }}>Choose a folder for each file</div>
+              {unfiledAttachments.map((a) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 12.5, border: "1px solid #eee", borderRadius: 8, padding: "6px 10px" }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+                  <select
+                    value={folderFor(a.id, a.doc_type)}
+                    onChange={(e) => setAttachmentFolders((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                    style={{ ...FIELD_STYLE, width: "auto", flexShrink: 0 }}
+                  >
+                    {allFolders.filter((f) => f.key in uploadableTypes).map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <button
               onClick={fileIt}
               disabled={pending || (mode === "match" ? !selectedId : !newPatient.firstName || !newPatient.lastName || !newPatient.dateOfBirth)}
               style={{ fontSize: 12.5, fontWeight: 700, color: "white", background: "#0c1730", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}
             >
-              {pending ? "Filing…" : "File This Record"}
+              {pending ? "Filing…" : transfer.source === "documents" && attachments.length > 1 ? "File These Records" : "File This Record"}
             </button>
             <button
               onClick={() => setFiling(false)}

@@ -355,41 +355,16 @@ export async function setDocumentStatusAction(id: string, patientId: string, sta
   revalidatePath("/dashboard/documents");
 }
 
-// Records-sharing consent mode (patient-profile toggle): 'allowed' lets
-// staff send this patient's records to another treating provider with no
-// prompt; 'needs_consent' (the safe default) makes share_patient_documents
-// refuse the share unless the sending provider confirms they've asked the
-// patient first — see the confirm step in documents-section.tsx.
-export async function setPatientRecordsSharingModeAction(patientId: string, mode: "allowed" | "needs_consent") {
-  await requireClinicMember();
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("set_patient_records_sharing_mode", { p_patient_id: patientId, p_mode: mode });
-  if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/patients", "layout");
-  revalidatePath(`/dashboard/patients/${patientId}`);
-  revalidatePath("/dashboard/documents");
-}
-
-// "Send to provider" (single doc from the preview pane, or multi-select
-// bulk send) — one RPC call shares every selected document with one
-// provider. The RPC itself re-checks the patient's records_sharing_mode
-// server-side; consentConfirmed here only matters when that mode is
-// 'needs_consent', and the UI must have already shown the confirm prompt
-// before calling this with consentConfirmed: true.
-export async function shareDocumentsWithProviderAction(patientId: string, documentIds: string[], providerId: string, consentConfirmed: boolean): Promise<number> {
-  const { supabase } = await requireClinicMember();
-  const { data, error } = await supabase.rpc("share_patient_documents", {
-    p_patient_id: patientId,
-    p_document_ids: documentIds,
-    p_provider_id: providerId,
-    p_consent_confirmed: consentConfirmed,
-  });
-  if (error) throw new Error(error.message);
-  revalidatePath("/dashboard/patients", "layout");
-  revalidatePath(`/dashboard/patients/${patientId}`);
-  revalidatePath("/dashboard/documents");
-  return data as number;
-}
+// NOTE: an earlier same-tenant-only "send to provider" mechanism
+// (setPatientRecordsSharingModeAction / shareDocumentsWithProviderAction,
+// backed by patients.records_sharing_mode + patient_document_shares) lived
+// here and was removed — it never went live and duplicated the richer,
+// pre-existing patient_sharing_preferences authorization model. Sending a
+// document to another provider (same clinic or a different AngelClinic
+// clinic) now goes through Records Exchange instead — see
+// sendDocumentRecordsTransferAction in
+// app/dashboard/encounters/records-exchange-actions.ts, used from
+// documents-section.tsx's "Send to provider" modal.
 
 export type VitalsInput = {
   bpSystolic: string;

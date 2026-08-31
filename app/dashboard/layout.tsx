@@ -56,7 +56,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq("sender_type", "platform")
     .is("read_at", null);
 
-  const jellybeanCounts = { R: 0, M: 0, P: 0, T: 0, A: pendingApptRequests ?? 0, D: 0, C: unreadSupportMessages ?? 0 };
+  // "M" (Provider messages) — records_exchange_transfers awaiting this
+  // clinic's review (status = 'sent', they haven't accepted/declined yet).
+  // See app/dashboard/records-exchange/page.tsx, the page this badge links to.
+  const { count: pendingRecordsExchange } = await supabase
+    .from("records_exchange_transfers")
+    .select("id", { count: "exact", head: true })
+    .eq("receiving_tenant_id", profile.tenant_id)
+    .eq("status", "sent");
+
+  const jellybeanCounts = { R: 0, M: pendingRecordsExchange ?? 0, P: 0, T: 0, A: pendingApptRequests ?? 0, D: 0, C: unreadSupportMessages ?? 0 };
 
   return (
     <EmrShell

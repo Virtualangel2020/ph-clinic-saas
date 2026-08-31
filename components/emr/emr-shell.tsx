@@ -15,6 +15,7 @@ const CORE_NAV: NavItem[] = [
   { href: "/dashboard/calendar", label: "Calendar", short: "Cal" },
   { href: "/dashboard/encounters", label: "Encounters", short: "Enc" },
   { href: "/dashboard/referrals", label: "Referrals", short: "Ref" },
+  { href: "/dashboard/records-exchange", label: "Records Exchange", short: "RecEx" },
   { href: "/dashboard/prescriptions", label: "Refills", short: "Refills" },
   { href: "/dashboard/orders", label: "Orders", short: "Ord" },
   { href: "/dashboard/results", label: "Results", short: "Res" },
@@ -36,7 +37,7 @@ const ADDON_NAV: AddonNav[] = [
 
 const JELLYBEANS = [
   { key: "R", label: "Referrals", href: "/dashboard/referrals?tab=inbox" },
-  { key: "M", label: "Provider messages", href: "/dashboard/communications?tab=messages" },
+  { key: "M", label: "Provider messages (Records Exchange)", href: "/dashboard/records-exchange?tab=incoming" },
   { key: "P", label: "Patient messages", href: "/dashboard/patient-portal?tab=messages" },
   { key: "T", label: "Telephone encounters", href: "/dashboard/communications?tab=calls" },
   { key: "A", label: "Appointment requests", href: "/dashboard/appointment-requests" },

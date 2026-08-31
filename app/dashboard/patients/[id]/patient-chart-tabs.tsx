@@ -209,8 +209,7 @@ export function PatientChartTabs({
           documents={data.documents as any}
           providers={data.providers}
           customFolders={data.documentFolders}
-          documentShares={data.documentShares as any}
-          recordsSharingMode={(patient as any).records_sharing_mode ?? "needs_consent"}
+          sentTransfers={data.documentSentTransfers as any}
         />
       )}
 
