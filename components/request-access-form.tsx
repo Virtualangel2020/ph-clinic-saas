@@ -88,7 +88,7 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
         <input required placeholder="Clinic name" value={clinicName} onChange={(e) => setClinicName(e.target.value)} style={input} />
         <input required placeholder="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} style={input} />
         <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
-        <input <input required placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} /> value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
+        <input required placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
       </div>
 
       <div style={{ marginBottom: 12 }}>
