@@ -6,7 +6,6 @@ import {
   addDocumentAction,
   addDocumentFolderAction,
   getDocumentSignedUrlAction,
-  setDocumentStatusAction,
   setPatientRecordsSharingModeAction,
   shareDocumentsWithProviderAction,
 } from "../actions";
@@ -274,22 +273,6 @@ export function DocumentsSection({
     }
   }
 
-  function changeStatus(id: string) {
-    const status = prompt(
-      "Set status to one of: entered_in_error, duplicate, administrative_correction, superseded, archived\n\n(this replaces deletion — the document stays on record with this status)"
-    );
-    if (!status) return;
-    if (!Object.keys(STATUS_LABEL).includes(status)) {
-      alert("Not a valid status.");
-      return;
-    }
-    const reason = prompt("Reason (optional):") || "";
-    startTransition(async () => {
-      await setDocumentStatusAction(id, patientId, status, reason);
-      router.refresh();
-    });
-  }
-
   function openShareModal(ids: string[]) {
     if (ids.length === 0) return;
     setShareTargetIds(ids);
@@ -553,11 +536,6 @@ export function DocumentsSection({
                                 {d.storage_path && (
                                   <button onClick={() => openShareModal([d.id])} style={{ background: "none", border: "none", color: "#8a6100", cursor: "pointer", fontSize: 12 }}>
                                     Send
-                                  </button>
-                                )}
-                                {d.status === "active" && (
-                                  <button onClick={() => changeStatus(d.id)} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12 }}>
-                                    Change status
                                   </button>
                                 )}
                               </div>
