@@ -61,8 +61,15 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     supabase.from("patient_medications").select("id, medication_name, dosage, frequency, started_at, is_active, notes").eq("patient_id", patientId).order("created_at", { ascending: false }),
     supabase
       .from("patient_documents")
+      // patient_documents has THREE separate FKs to user_profiles
+      // (created_by, provider_id, status_changed_by) — a bare
+      // "user_profiles(full_name)" embed is ambiguous and PostgREST
+      // rejects the whole query with a PGRST201 error, which this
+      // Promise.all silently swallows (only `data` is destructured, not
+      // `error`), so every document on the chart disappeared with no
+      // visible error anywhere. Naming the constraint disambiguates it.
       .select(
-        "id, title, doc_type, description, created_at, storage_path, mime_type, file_size_bytes, status, status_reason, document_date, source, user_profiles(full_name)"
+        "id, title, doc_type, description, created_at, storage_path, mime_type, file_size_bytes, status, status_reason, document_date, source, user_profiles!patient_documents_created_by_fkey(full_name)"
       )
       .eq("patient_id", patientId)
       .order("created_at", { ascending: false }),

@@ -34,7 +34,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
     supabase.from("patients").select("id, first_name, last_name, middle_name, date_of_birth, sex, patient_code, is_active").eq("id", patientId).eq("tenant_id", profile.tenant_id).maybeSingle(),
     supabase
       .from("patient_documents")
-      .select("id, title, doc_type, description, created_at, storage_path, mime_type, file_size_bytes, status, status_reason, document_date, source, user_profiles(full_name)")
+      // See lib/patients/get-patient-chart-data.ts — patient_documents has
+      // 3 separate FKs to user_profiles, so this embed must name the
+      // constraint or PostgREST rejects the whole query (silently, since
+      // only `data` is read below).
+      .select("id, title, doc_type, description, created_at, storage_path, mime_type, file_size_bytes, status, status_reason, document_date, source, user_profiles!patient_documents_created_by_fkey(full_name)")
       .eq("patient_id", patientId)
       .eq("tenant_id", profile.tenant_id)
       .order("created_at", { ascending: false }),
