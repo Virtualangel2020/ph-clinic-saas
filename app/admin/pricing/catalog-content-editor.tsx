@@ -3,8 +3,29 @@
 import { useState, useTransition } from "react";
 import { setPlanContentAction, setAddonContentAction, setFeatureDescriptionAction } from "@/app/admin/actions";
 
-type Plan = { id: string; name: string; tagline: string | null; description: string | null };
-type Addon = { id: string; name: string; description: string | null; recommended_for: string | null };
+type Plan = { id: string; name: string; tagline: string | null; description: string | null; is_active?: boolean };
+type Addon = { id: string; name: string; description: string | null; recommended_for: string | null; is_active?: boolean };
+
+function InactiveBadge() {
+  return (
+    <span
+      style={{
+        marginLeft: 8,
+        fontSize: 10,
+        fontWeight: 700,
+        color: "#a12a2a",
+        background: "#fff0f0",
+        border: "1px solid #f3c6c6",
+        borderRadius: 4,
+        padding: "1px 6px",
+        textTransform: "uppercase",
+        letterSpacing: 0.3,
+      }}
+    >
+      Inactive
+    </span>
+  );
+}
 type Feature = { feature_key: string; label: string; description: string | null };
 
 // Every field here is what the public pricing page and the "View
@@ -44,8 +65,11 @@ function PlanRow({ plan }: { plan: Plan }) {
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14 }}>
-      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{plan.name}</div>
+    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, opacity: plan.is_active === false ? 0.6 : 1 }}>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
+        {plan.name}
+        {plan.is_active === false && <InactiveBadge />}
+      </div>
       <input
         placeholder='Tagline — e.g. "Best for small clinics needing the essentials"'
         value={tagline}
@@ -101,8 +125,11 @@ function AddonRow({ addon }: { addon: Addon }) {
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14 }}>
-      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{addon.name}</div>
+    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 10, padding: 14, opacity: addon.is_active === false ? 0.6 : 1 }}>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
+        {addon.name}
+        {addon.is_active === false && <InactiveBadge />}
+      </div>
       <textarea
         placeholder="What this add-on does, in plain language a non-technical clinic owner would understand"
         value={description}

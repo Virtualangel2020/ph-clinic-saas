@@ -14,11 +14,11 @@ export default async function PricingPage() {
   const [{ data: plans }, { data: addons }, { data: carePlans }, { data: billingSettings }, { data: features }] = await Promise.all([
     supabase
       .from("plans")
-      .select("id, name, sort_order, tagline, description, plan_prices(billing_cycle, price_php)")
+      .select("id, name, sort_order, tagline, description, is_active, plan_prices(billing_cycle, price_php)")
       .order("sort_order"),
     supabase
       .from("addons")
-      .select("id, name, description, recommended_for, addon_prices(billing_cycle, price_php)")
+      .select("id, name, description, recommended_for, is_active, addon_prices(billing_cycle, price_php)")
       .order("name"),
     supabase.from("care_plans").select("*").order("kind"),
     supabase.from("billing_settings").select("*").single(),
@@ -37,7 +37,8 @@ export default async function PricingPage() {
         <h2 style={{ fontSize: 16, marginBottom: 10 }}>Plan prices</h2>
         <p style={{ color: "#888", fontSize: 12, marginBottom: 10 }}>
           "Order" controls the sequence plans appear in on the public pricing page (lowest number first) — it
-          doesn't have to match price order.
+          doesn't have to match price order. Plans marked <strong>Inactive</strong> are retired: they're hidden from
+          the public pricing page and get-started flow, shown here only so their historical pricing stays visible.
         </p>
         <PriceGrid kind="plan" items={(plans as any) ?? []} />
       </div>
@@ -55,7 +56,8 @@ export default async function PricingPage() {
         <h2 style={{ fontSize: 16, marginBottom: 10 }}>Add-on prices</h2>
         <p style={{ color: "#888", fontSize: 12, marginBottom: 10 }}>
           Leave a billing option blank (no price) if that add-on shouldn't be offered that way — for example,
-          priority support or hosting usually shouldn't be a one-time purchase.
+          priority support or hosting usually shouldn't be a one-time purchase. Add-ons marked{" "}
+          <strong>Inactive</strong> are retired and hidden from customers.
         </p>
         <PriceGrid kind="addon" items={(addons as any) ?? []} />
       </div>

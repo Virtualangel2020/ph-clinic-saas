@@ -15,7 +15,7 @@ const CYCLES = [
   { value: "one_time", label: "One-time" },
 ] as const;
 
-type Item = { id: string; name: string; sort_order?: number; plan_prices?: any[]; addon_prices?: any[] };
+type Item = { id: string; name: string; sort_order?: number; is_active?: boolean; plan_prices?: any[]; addon_prices?: any[] };
 
 export function PriceGrid({ kind, items }: { kind: "plan" | "addon"; items: Item[] }) {
   return (
@@ -44,8 +44,28 @@ function ItemRow({ kind, item }: { kind: "plan" | "addon"; item: Item }) {
   const prices = kind === "plan" ? item.plan_prices ?? [] : item.addon_prices ?? [];
 
   return (
-    <tr style={{ borderTop: "1px solid #eee" }}>
-      <td style={{ padding: "10px 16px", fontWeight: 600, verticalAlign: "top" }}>{item.name}</td>
+    <tr style={{ borderTop: "1px solid #eee", opacity: item.is_active === false ? 0.6 : 1 }}>
+      <td style={{ padding: "10px 16px", fontWeight: 600, verticalAlign: "top" }}>
+        {item.name}
+        {item.is_active === false && (
+          <span
+            style={{
+              marginLeft: 8,
+              fontSize: 10,
+              fontWeight: 700,
+              color: "#a12a2a",
+              background: "#fff0f0",
+              border: "1px solid #f3c6c6",
+              borderRadius: 4,
+              padding: "1px 6px",
+              textTransform: "uppercase",
+              letterSpacing: 0.3,
+            }}
+          >
+            Inactive
+          </span>
+        )}
+      </td>
       {kind === "plan" && (
         <td style={{ padding: "10px 16px", verticalAlign: "top" }}>
           <SortOrderCell planId={item.id} initialOrder={item.sort_order ?? 0} />

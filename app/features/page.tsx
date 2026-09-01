@@ -39,8 +39,8 @@ const CATEGORIES: { title: string; body: string; items: string[] }[] = [
   },
   {
     title: "Communication",
-    body: "Keep your team talking to each other without leaving the chart.",
-    items: ["Provider messaging", "Telephone encounters", "Alerts", "Notifications"],
+    body: "Keep your team talking to each other — and give patients a direct line in too.",
+    items: ["Provider messaging", "Telephone encounters", "Alerts", "Notifications", "Patient portal & secure messaging"],
   },
   {
     title: "Clinic Operations",
@@ -50,7 +50,6 @@ const CATEGORIES: { title: string; body: string; items: string[] }[] = [
 ];
 
 const ADDONS = [
-  { name: "Patient Portal + Patient Communication", body: "Let patients see their own records and message your clinic directly." },
   { name: "Financial Tracker", body: "Track clinic revenue and expenses alongside your clinical data." },
   { name: "Patient Payments (PayMongo)", body: "Accept online payments from patients directly." },
   { name: "Advanced Analytics", body: "Deeper operational and clinical reporting." },
@@ -58,6 +57,8 @@ const ADDONS = [
   { name: "SMS", body: "Reach patients by text — credits configurable by Virtual Angel Systems, not a flat guess." },
   { name: "WhatsApp", body: "Message patients and referral partners over WhatsApp." },
   { name: "Multi-Branch", body: "Run more than one clinic location under one account." },
+  { name: "Custom Domain", body: "Connect your clinic's own domain instead of the default AngelClinic address." },
+  { name: "Customer Care", body: "A persistent, direct message line to the Virtual Angel Systems support team, right in your dashboard." },
 ];
 
 export default function FeaturesPage() {
