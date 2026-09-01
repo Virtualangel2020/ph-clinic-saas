@@ -7,9 +7,11 @@ const GOLD = "#e6c66b";
 
 // Every claim on this page describes something actually built in this
 // codebase as of this writing. Do NOT add claims here (AES-256, ISO
-// certifications, HIPAA/PhilHealth certification, etc.) without the
+// certifications, Data Privacy Act/NPC registration, etc.) without the
 // underlying control actually existing — this page is meant to stay
 // exactly as honest as the audit_logs/RLS/RPC architecture it describes.
+// AngelClinic serves Philippine clinics only — don't reintroduce US-market
+// compliance framing (HIPAA, etc.) here.
 const CONTROLS = [
   {
     title: "Data isolation between clinics",
@@ -66,12 +68,6 @@ export default async function SecurityPage() {
               <p style={{ color: "#666", fontSize: 13.5, lineHeight: 1.6, margin: 0 }}>{c.body}</p>
             </div>
           ))}
-        </div>
-
-        <div style={{ background: "#f4f1ea", border: "1px solid #ece5d6", borderRadius: 12, padding: "18px 20px", fontSize: 13, color: "#555", lineHeight: 1.6 }}>
-          We haven't pursued formal certifications (such as HIPAA or ISO 27001) yet, and we don't claim them. If a
-          specific compliance requirement matters for your clinic, reach out on the{" "}
-          <a href="/request-demo" style={{ color: "#0c1730", fontWeight: 600 }}>Request a Demo</a> page and we'll talk it through honestly.
         </div>
       </main>
 
