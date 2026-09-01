@@ -151,9 +151,7 @@ export async function fileTransferDocumentAction(
   transferId: string,
   attachment: { id: string; storagePath: string; title: string; docType: string; description: string | null; documentDate: string | null; mimeType: string | null },
   targetPatientId: string | null,
-  newPatient: PatientInput | null,
-  sendingClinicName: string,
-  sendingProviderName: string
+  newPatient: PatientInput | null
 ): Promise<void> {
   const { supabase, profile } = await requireClinicMember();
 
@@ -162,6 +160,7 @@ export async function fileTransferDocumentAction(
     patientId = await savePatientAction(newPatient);
   }
   if (!patientId) throw new Error("Select or create the patient this record belongs to.");
+  if (!attachment.title.trim()) throw new Error("Give this record a title before filing it.");
 
   const { data: signed, error: signError } = await supabase.storage.from("records-exchange-transfers").createSignedUrl(attachment.storagePath, 120);
   if (signError || !signed?.signedUrl) throw new Error(signError?.message || "Couldn't read the incoming file.");
@@ -174,11 +173,17 @@ export async function fileTransferDocumentAction(
   const { error: uploadError } = await supabase.storage.from("patient-documents").upload(storagePath, bytes, { contentType: attachment.mimeType || "application/octet-stream" });
   if (uploadError) throw new Error(uploadError.message);
 
+  // Title, folder (doc_type), and description are exactly what the
+  // receiving staff member set in the filing form — no forced "Received
+  // from Dr. X via Records Exchange" boilerplate. Provenance (who sent it)
+  // still lives on the transfer record itself, visible in the Records
+  // Exchange inbox, so nothing is actually lost by not stamping it into
+  // every filed document's description too.
   const { data: docIdRaw, error: docError } = await supabase.rpc("add_patient_document", {
     p_patient_id: patientId,
-    p_title: attachment.title,
+    p_title: attachment.title.trim(),
     p_doc_type: attachment.docType,
-    p_description: `${attachment.description ? attachment.description + " — " : ""}Received from Dr. ${sendingProviderName} (${sendingClinicName}) via Records Exchange.`,
+    p_description: attachment.description || null,
     p_storage_path: storagePath,
     p_mime_type: attachment.mimeType,
     p_file_size_bytes: bytes.byteLength,
@@ -214,14 +219,14 @@ export async function fileTransferDocumentAction(
 // Patient") to pick which of THIS clinic's patients the incoming record
 // belongs under, copies the PDF into this tenant's own patient-documents
 // bucket (same storage convention as every other document), and files it
-// via the existing add_patient_document RPC labeled "External Record" so
-// it's never confused with something originated in-house.
+// via the existing add_patient_document RPC — title and destination folder
+// are whatever the receiving staff member chose in the filing form.
 export async function fileRecordsTransferAction(
   transferId: string,
   targetPatientId: string | null,
   newPatient: PatientInput | null,
-  sendingClinicName: string,
-  sendingProviderName: string
+  title: string,
+  docType: string
 ): Promise<void> {
   const { supabase, profile } = await requireClinicMember();
 
@@ -230,6 +235,7 @@ export async function fileRecordsTransferAction(
     patientId = await savePatientAction(newPatient);
   }
   if (!patientId) throw new Error("Select or create the patient this record belongs to.");
+  if (!title.trim()) throw new Error("Give this record a title before filing it.");
 
   const { data: signed, error: signError } = await supabase.storage.from("records-exchange-transfers").createSignedUrl(`${transferId}/record.pdf`, 120);
   if (signError || !signed?.signedUrl) throw new Error(signError?.message || "Couldn't read the incoming record.");
@@ -241,11 +247,14 @@ export async function fileRecordsTransferAction(
   const { error: uploadError } = await supabase.storage.from("patient-documents").upload(storagePath, pdfBytes, { contentType: "application/pdf" });
   if (uploadError) throw new Error(uploadError.message);
 
+  // Title and folder come straight from what the receiving staff member
+  // set in the filing form — no forced boilerplate description. Provenance
+  // still lives on the transfer record, visible in the Records Exchange
+  // inbox itself.
   const { data: docIdRaw, error: docError } = await supabase.rpc("add_patient_document", {
     p_patient_id: patientId,
-    p_title: `External Record — from Dr. ${sendingProviderName} (${sendingClinicName})`,
-    p_doc_type: "referrals",
-    p_description: "Received via AngelClinic Records Exchange.",
+    p_title: title.trim(),
+    p_doc_type: docType,
     p_storage_path: storagePath,
     p_mime_type: "application/pdf",
     p_file_size_bytes: pdfBytes.byteLength,

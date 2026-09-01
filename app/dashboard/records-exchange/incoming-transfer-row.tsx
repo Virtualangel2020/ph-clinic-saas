@@ -98,12 +98,15 @@ export function IncomingTransferRow({
   const [selectedId, setSelectedId] = useState("");
   const [newPatient, setNewPatient] = useState<PatientInput>(EMPTY_NEW_PATIENT);
   const [attachmentFolders, setAttachmentFolders] = useState<Record<string, string>>({});
+  const [attachmentTitles, setAttachmentTitles] = useState<Record<string, string>>({});
   const [filedIds, setFiledIds] = useState<Set<string>>(new Set());
 
   const s = STATUS_STYLE[transfer.status] ?? STATUS_STYLE.sent;
   const alreadyFiled = !!transfer.filed_patient_id;
   const allFolders = foldersWithCustom(customFolders);
   const uploadableTypes = uploadableTypesWithCustom(customFolders);
+
+  const defaultPdfTitle = `External Record — from Dr. ${transfer.sending_provider_name}${transfer.sending_clinic_name ? ` (${transfer.sending_clinic_name})` : ""}`;
 
   const suggestions = patients
     .filter((p) => {
@@ -139,27 +142,44 @@ export function IncomingTransferRow({
     });
   }
 
-  function folderFor(attachmentId: string, suggestedDocType: string | null) {
-    return attachmentFolders[attachmentId] ?? (suggestedDocType && suggestedDocType in uploadableTypes ? suggestedDocType : "other");
+  function folderFor(itemId: string, suggestedDocType: string | null) {
+    return attachmentFolders[itemId] ?? (suggestedDocType && suggestedDocType in uploadableTypes ? suggestedDocType : "other");
   }
+
+  function titleFor(itemId: string, suggestedTitle: string) {
+    return attachmentTitles[itemId] ?? suggestedTitle;
+  }
+
+  const unfiledAttachments = attachments.filter((a) => !a.filed_document_id && !filedIds.has(a.id) && a.storage_path);
+  const allAttachmentsFiled = transfer.source === "documents" && attachments.length > 0 && attachments.every((a) => a.filed_document_id || filedIds.has(a.id));
+
+  // Unified "what's about to be filed" list — a real per-document row for
+  // a documents-source transfer, or one synthetic row standing in for the
+  // single combined PDF on an encounters-source transfer. Either way the
+  // receiver gets an editable title (spec follow-up: "I can rename the
+  // file too") and a folder picker per file before anything is filed —
+  // no more forced title/folder, no forced "Received from Dr. X…"
+  // boilerplate.
+  const fileItems =
+    transfer.source === "documents"
+      ? unfiledAttachments.map((a) => ({ id: a.id, defaultTitle: a.title, defaultDocType: a.doc_type }))
+      : alreadyFiled
+        ? []
+        : [{ id: "pdf", defaultTitle: defaultPdfTitle, defaultDocType: "referrals" }];
 
   function fileIt() {
     setError(null);
     startTransition(async () => {
       try {
+        const targetPatientId = mode === "match" ? selectedId || null : null;
         if (transfer.source === "documents") {
-          const targetPatientId = mode === "match" ? selectedId || null : null;
           const newlyFiled = new Set(filedIds);
-          for (const a of attachments) {
-            if (a.filed_document_id || filedIds.has(a.id)) continue;
-            if (!a.storage_path) continue;
+          for (const a of unfiledAttachments) {
             await fileTransferDocumentAction(
               transfer.id,
-              { id: a.id, storagePath: a.storage_path, title: a.title, docType: folderFor(a.id, a.doc_type), description: a.description, documentDate: a.document_date, mimeType: a.mime_type },
+              { id: a.id, storagePath: a.storage_path!, title: titleFor(a.id, a.title), docType: folderFor(a.id, a.doc_type), description: a.description, documentDate: a.document_date, mimeType: a.mime_type },
               targetPatientId,
-              mode === "new" ? newPatient : null,
-              transfer.sending_clinic_name || "another clinic",
-              transfer.sending_provider_name
+              mode === "new" ? newPatient : null
             );
             newlyFiled.add(a.id);
           }
@@ -167,10 +187,10 @@ export function IncomingTransferRow({
         } else {
           await fileRecordsTransferAction(
             transfer.id,
-            mode === "match" ? selectedId || null : null,
+            targetPatientId,
             mode === "new" ? newPatient : null,
-            transfer.sending_clinic_name || "another clinic",
-            transfer.sending_provider_name
+            titleFor("pdf", defaultPdfTitle),
+            folderFor("pdf", "referrals")
           );
         }
         setFiling(false);
@@ -179,9 +199,6 @@ export function IncomingTransferRow({
       }
     });
   }
-
-  const unfiledAttachments = attachments.filter((a) => !a.filed_document_id && !filedIds.has(a.id) && a.storage_path);
-  const allAttachmentsFiled = transfer.source === "documents" && attachments.length > 0 && attachments.every((a) => a.filed_document_id || filedIds.has(a.id));
 
   return (
     <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 10, padding: 14 }}>
@@ -294,15 +311,19 @@ export function IncomingTransferRow({
             </div>
           )}
 
-          {transfer.source === "documents" && unfiledAttachments.length > 0 && (
-            <div style={{ marginTop: 12, display: "grid", gap: 6 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3 }}>Choose a folder for each file</div>
-              {unfiledAttachments.map((a) => (
-                <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 12.5, border: "1px solid #eee", borderRadius: 8, padding: "6px 10px" }}>
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</span>
+          {fileItems.length > 0 && (
+            <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3 }}>Title and folder for each file</div>
+              {fileItems.map((item) => (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, border: "1px solid #eee", borderRadius: 8, padding: "6px 10px", flexWrap: "wrap" }}>
+                  <input
+                    value={titleFor(item.id, item.defaultTitle)}
+                    onChange={(e) => setAttachmentTitles((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                    style={{ ...FIELD_STYLE, flex: "1 1 200px" }}
+                  />
                   <select
-                    value={folderFor(a.id, a.doc_type)}
-                    onChange={(e) => setAttachmentFolders((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                    value={folderFor(item.id, item.defaultDocType)}
+                    onChange={(e) => setAttachmentFolders((prev) => ({ ...prev, [item.id]: e.target.value }))}
                     style={{ ...FIELD_STYLE, width: "auto", flexShrink: 0 }}
                   >
                     {allFolders.filter((f) => f.key in uploadableTypes).map((f) => (
@@ -322,7 +343,7 @@ export function IncomingTransferRow({
               disabled={pending || (mode === "match" ? !selectedId : !newPatient.firstName || !newPatient.lastName || !newPatient.dateOfBirth)}
               style={{ fontSize: 12.5, fontWeight: 700, color: "white", background: "#0c1730", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}
             >
-              {pending ? "Filing…" : transfer.source === "documents" && attachments.length > 1 ? "File These Records" : "File This Record"}
+              {pending ? "Filing…" : fileItems.length > 1 ? "File These Records" : "File This Record"}
             </button>
             <button
               onClick={() => setFiling(false)}
