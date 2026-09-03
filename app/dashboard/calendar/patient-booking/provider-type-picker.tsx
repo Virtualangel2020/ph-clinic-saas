@@ -22,9 +22,16 @@ export function ProviderTypePicker({
 }) {
   const router = useRouter();
 
+  // Navigate on every change, even when only one of the two is set yet —
+  // this used to require both to already be non-empty before pushing a new
+  // URL, which meant picking either dropdown first (the only way to pick
+  // them) silently did nothing and the page never showed a preview.
   function go(nextProviderId: string, nextTypeId: string) {
-    if (!nextProviderId || !nextTypeId) return;
-    router.push(`/dashboard/calendar/patient-booking?providerId=${nextProviderId}&typeId=${nextTypeId}`);
+    const qs = new URLSearchParams();
+    if (nextProviderId) qs.set("providerId", nextProviderId);
+    if (nextTypeId) qs.set("typeId", nextTypeId);
+    const query = qs.toString();
+    router.push(`/dashboard/calendar/patient-booking${query ? `?${query}` : ""}`);
   }
 
   return (
