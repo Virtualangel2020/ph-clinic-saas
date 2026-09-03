@@ -217,12 +217,6 @@ export function CalendarView({
               </Link>
             ))}
           </div>
-          <Link
-            href="/dashboard/calendar/patient-booking"
-            style={{ fontSize: 12, fontWeight: 600, color: "var(--text-heading)", textDecoration: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 12px" }}
-          >
-            Patient booking preview
-          </Link>
           <button
             onClick={() => openNew(anchor)}
             style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
