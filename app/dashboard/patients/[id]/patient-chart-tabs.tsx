@@ -14,6 +14,7 @@ import { LabSection } from "./lab-section";
 import { DocumentsSection } from "./documents-section";
 import { FormsSection } from "./forms-section";
 import { ReferralsSection } from "./referrals-section";
+import { FollowUpsSection } from "./follow-ups-section";
 import { AppointmentHistorySection } from "./appointment-history-section";
 
 // "appointments" and "coverage" keys are kept exactly as before for
@@ -30,6 +31,7 @@ type TabKey =
   | "coverage"
   | "encounters"
   | "progress_notes"
+  | "follow_ups"
   | "orders_results"
   | "prescriptions"
   | "referrals"
@@ -44,6 +46,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "coverage", label: "Billing" },
   { key: "encounters", label: "Encounters" },
   { key: "progress_notes", label: "Progress Notes" },
+  { key: "follow_ups", label: "Follow-ups" },
   { key: "orders_results", label: "Orders & Results" },
   { key: "prescriptions", label: "Prescriptions" },
   { key: "referrals", label: "Referrals" },
@@ -188,6 +191,8 @@ export function PatientChartTabs({
       {tab === "progress_notes" && (
         <ProgressNotesSection patientId={patient.id} notes={data.notes as any} canViewClinical={canViewClinical} noteTemplate={data.noteTemplate as any} />
       )}
+
+      {tab === "follow_ups" && <FollowUpsSection patientId={patient.id} followUps={data.followUps} />}
 
       {tab === "orders_results" && (
         <div>

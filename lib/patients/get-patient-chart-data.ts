@@ -5,6 +5,7 @@ import type { PrescriptionRow } from "@/app/dashboard/patients/[id]/prescription
 import type { LabOrderRow } from "@/app/dashboard/patients/[id]/lab-section";
 import type { InsurancePlanRow } from "@/app/dashboard/patients/[id]/coverage-section";
 import type { ReferralRow } from "@/app/dashboard/patients/[id]/referrals-section";
+import type { FollowUpRow } from "@/app/dashboard/patients/[id]/follow-ups-section";
 import { paymongoMode } from "@/lib/patient-paymongo";
 
 // Single source of truth for "everything about one patient's chart."
@@ -171,6 +172,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     { data: problemsRaw },
     { data: chargesRaw },
     { data: chargePaymentsRaw },
+    { data: followUpsRaw },
   ] = await Promise.all([
     supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: tenantId }),
     supabase
@@ -189,6 +191,13 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     // invoices/payments tables.
     supabase.from("patient_charges").select("id, description, amount_php, bill_type, status, created_at, user_profiles!patient_charges_provider_id_fkey(full_name, title)").eq("patient_id", patientId).order("created_at", { ascending: false }),
     supabase.from("patient_charge_payments").select("id, charge_id, amount_php, method, reference, paid_at, created_at").eq("patient_id", patientId).order("paid_at", { ascending: false }),
+    // Follow-up / recall tracking (set from a progress note's Plan field —
+    // see progress-notes-section.tsx / follow-ups-section.tsx).
+    supabase
+      .from("patient_follow_ups")
+      .select("id, due_date, reason, status, completed_at, created_at, user_profiles!patient_follow_ups_provider_id_fkey(full_name)")
+      .eq("patient_id", patientId)
+      .order("due_date", { ascending: true }),
   ]);
 
   // Custom document folders (tenant-wide, not per-patient — see migration
@@ -386,6 +395,16 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     paid_at: p.paid_at,
     created_at: p.created_at,
   }));
+  const followUps: FollowUpRow[] = ((followUpsRaw as any[]) ?? []).map((f) => ({
+    id: f.id,
+    due_date: f.due_date,
+    reason: f.reason,
+    status: f.status,
+    completed_at: f.completed_at,
+    created_at: f.created_at,
+    provider_name: f.user_profiles?.full_name ?? null,
+  }));
+
   const totalCharged = charges.filter((c) => c.status !== "void").reduce((sum, c) => sum + c.amount_php, 0);
   const totalPaid = payments.reduce((sum, p) => sum + p.amount_php, 0);
   const balance = Math.max(0, totalCharged - totalPaid);
@@ -449,6 +468,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     activeFormTemplates: (activeFormTemplatesRaw as any[]) ?? [],
     formsEntitled: !!formsEntitlementRaw,
     referrals,
+    followUps,
     documentFolders: (documentFoldersRaw as { key: string; label: string }[]) ?? [],
     certificates: ((certificatesRaw as any[]) ?? []).map((c) => ({
       id: c.id,

@@ -57,6 +57,8 @@ const EMPTY_DRAFT = {
   objective: "",
   assessment: "",
   plan: "",
+  followUpDate: "",
+  followUpReason: "",
   bpSystolic: "",
   bpDiastolic: "",
   pulseRate: "",
@@ -145,10 +147,24 @@ export function ProgressNotesSection({
             draft.objective,
             draft.assessment,
             draft.plan,
-            vitals
+            vitals,
+            draft.followUpDate || null,
+            draft.followUpReason || null
           );
         } else {
-          await addProgressNoteAction(patientId, draft.noteDate, draft.chiefComplaint, draft.subjective, draft.objective, draft.assessment, draft.plan, vitals, encounterId);
+          await addProgressNoteAction(
+            patientId,
+            draft.noteDate,
+            draft.chiefComplaint,
+            draft.subjective,
+            draft.objective,
+            draft.assessment,
+            draft.plan,
+            vitals,
+            encounterId,
+            draft.followUpDate || null,
+            draft.followUpReason || null
+          );
         }
         setDraft(EMPTY_DRAFT);
         setAmendsNoteId("");
@@ -261,6 +277,26 @@ export function ProgressNotesSection({
                 <div>
                   {noteTemplate && <div style={vitalLabelStyle}>{sections.plan.label}</div>}
                   <textarea placeholder={sections.plan.placeholder} value={draft.plan} onChange={(e) => setDraft({ ...draft, plan: e.target.value })} style={{ ...FIELD_STYLE, minHeight: 50 }} />
+                </div>
+                <div style={{ background: "#f7f9ff", border: "1px solid #dce4fb", borderRadius: 8, padding: 10 }}>
+                  <div style={vitalLabelStyle}>Follow-up (optional)</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input
+                      type="date"
+                      value={draft.followUpDate}
+                      onChange={(e) => setDraft({ ...draft, followUpDate: e.target.value })}
+                      style={{ ...FIELD_STYLE, width: 160 }}
+                    />
+                    <input
+                      placeholder="Reason (e.g. Recheck BP, review labs)"
+                      value={draft.followUpReason}
+                      onChange={(e) => setDraft({ ...draft, followUpReason: e.target.value })}
+                      style={{ ...FIELD_STYLE, flex: 1, minWidth: 160 }}
+                    />
+                  </div>
+                  <p style={{ fontSize: 10.5, color: "#888", margin: "6px 0 0" }}>
+                    Set a date here and this patient shows up on the clinic's Follow-ups Due list until it's marked done.
+                  </p>
                 </div>
               </>
             ) : (

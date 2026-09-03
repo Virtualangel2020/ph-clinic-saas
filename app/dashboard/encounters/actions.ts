@@ -164,7 +164,9 @@ export async function addEncounterAmendmentAction(
   objective: string,
   assessment: string,
   plan: string,
-  vitals?: AmendmentVitals
+  vitals?: AmendmentVitals,
+  followUpDate?: string | null,
+  followUpReason?: string | null
 ) {
   await requireClinicMember();
   const supabase = await createClient();
@@ -187,8 +189,11 @@ export async function addEncounterAmendmentAction(
     p_temperature_c: numOrNull(vitals?.temperatureC),
     p_weight_kg: numOrNull(vitals?.weightKg),
     p_height_cm: numOrNull(vitals?.heightCm),
+    p_follow_up_date: followUpDate || null,
+    p_follow_up_reason: followUpReason || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/encounters/${encounterId}`);
   revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath(`/dashboard`);
 }

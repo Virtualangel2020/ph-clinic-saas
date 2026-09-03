@@ -396,7 +396,9 @@ export async function addProgressNoteAction(
   assessment: string,
   plan: string,
   vitals?: VitalsInput,
-  encounterId?: string | null
+  encounterId?: string | null,
+  followUpDate?: string | null,
+  followUpReason?: string | null
 ) {
   await requireClinicMember();
   const supabase = await createClient();
@@ -417,10 +419,13 @@ export async function addProgressNoteAction(
     p_weight_kg: numOrNull(vitals?.weightKg),
     p_height_cm: numOrNull(vitals?.heightCm),
     p_encounter_id: encounterId || null,
+    p_follow_up_date: followUpDate || null,
+    p_follow_up_reason: followUpReason || null,
   });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
   if (encounterId) revalidatePath(`/dashboard/encounters/${encounterId}`);
+  revalidatePath(`/dashboard`);
 }
 
 export async function removeProgressNoteAction(id: string, patientId: string) {
@@ -429,6 +434,29 @@ export async function removeProgressNoteAction(id: string, patientId: string) {
   const { error } = await supabase.rpc("remove_progress_note", { p_id: id });
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// ── Follow-up / recall tracking ─────────────────────────────────────────
+// Rows are created only via add_progress_note / add_progress_note_amendment
+// (see progress-notes-section.tsx's "Follow-up" field) — these two actions
+// only ever resolve an existing pending follow-up.
+
+export async function completeFollowUpAction(id: string, patientId: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("complete_patient_follow_up", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath(`/dashboard`);
+}
+
+export async function cancelFollowUpAction(id: string, patientId: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_patient_follow_up", { p_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath(`/dashboard`);
 }
 
 // ── Patient Portal invites ──────────────────────────────────────────────
