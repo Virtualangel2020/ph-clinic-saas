@@ -317,6 +317,7 @@ export function AppointmentForm({
                 filteredPatients.map((p) => (
                   <div
                     key={p.id}
+                    onMouseDown={(e) => e.preventDefault()} // survive the input's onBlur before the click registers — same fix as "+ Add New Patient" below, previously missing here, which made clicking a result flaky (occasionally lost the race with the blur-triggered close)
                     onClick={() => {
                       setPatientId(p.id);
                       setPatientQuery(`${p.last_name}, ${p.first_name}`);
