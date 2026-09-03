@@ -5,15 +5,32 @@ import { PromotionRow } from "./promotion-row";
 // Deliberately unconditional, same as the rest of /admin: always shows the
 // full list (active and inactive/expired) with an explicit empty state,
 // never hides itself because there happen to be zero promotions yet.
+//
+// Phase 1 (promotions redesign): the form/row below now expose the full
+// column set — discount_type/fixed_amount_php/duration_type/duration_value
+// (+ monthly/yearly variants)/billing_cycle_scope/requires_code/target_tenant_id
+// — instead of just discount_percent. Creation goes exclusively through
+// admin_create_targeted_promotion now (see app/admin/actions.ts).
 export default async function PromotionsPage() {
   const { supabase } = await requireAdmin();
 
-  const [{ data: promotions }, { data: plans }] = await Promise.all([
+  const [{ data: promotions }, { data: plans }, { data: addons }, { data: tenants }] = await Promise.all([
     supabase
       .from("promotions")
-      .select("id, code, label, discount_percent, applies_to_plan_id, max_redemptions, redemptions_count, is_active, starts_at, ends_at, created_at, plans:applies_to_plan_id(name)")
+      .select(
+        "id, code, requires_code, label, description, discount_type, discount_percent, fixed_amount_php, duration_type, duration_value, duration_value_monthly, duration_value_yearly, billing_cycle_scope, applies_to_plan_id, applies_to_seats, applies_to_addon_ids, max_redemptions, redemptions_count, is_active, starts_at, ends_at, created_at, plans:applies_to_plan_id(name), target_tenant_id, tenants:target_tenant_id(name), trial_duration_days, follow_on_promotion_id"
+      )
       .order("created_at", { ascending: false }),
-    supabase.from("plans").select("id, name").eq("is_active", true).order("sort_order"),
+    // plan_prices is only used by the promotion form's "introductory price"
+    // calculator (it needs a plan's current price to work out the fixed
+    // discount that gets that plan down to the intro price).
+    supabase
+      .from("plans")
+      .select("id, name, plan_prices(billing_cycle, price_php)")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase.from("addons").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("tenants").select("id, name").order("name"),
   ]);
 
   return (
@@ -25,7 +42,7 @@ export default async function PromotionsPage() {
       </p>
 
       <div style={{ marginBottom: 32 }}>
-        <PromotionForm plans={plans ?? []} />
+        <PromotionForm plans={(plans ?? []) as any} addons={addons ?? []} tenants={tenants ?? []} existingPromotions={(promotions ?? []) as any} />
       </div>
 
       <h2 style={{ fontSize: 16, marginBottom: 10 }}>All promotions</h2>
