@@ -38,11 +38,19 @@ const styles = StyleSheet.create({
   fieldBlock: { marginBottom: 12 },
   fieldLabel: { fontSize: 8.5, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", marginBottom: 2, letterSpacing: 0.3 },
   fieldValue: { fontSize: 10.5, lineHeight: 1.5, color: "#1a1a1a" },
+  // Fixed-width, centered block (still anchored to the right side of the
+  // page via signatureBlock's own alignItems: "flex-end") so the signature
+  // image, printed name, and credentials all line up on the same center
+  // line instead of the image sitting flush to one edge of a wider box.
   signatureBlock: { marginTop: 40, alignItems: "flex-end" },
-  signatureImage: { width: 196, height: 62, objectFit: "contain", marginBottom: 2 },
-  signatureLine: { borderBottom: "0.75 solid #999", width: 260, marginBottom: 4, height: 40 },
-  signatureName: { fontSize: 10.5, fontWeight: 700, textAlign: "right" },
-  signatureMeta: { fontSize: 8.5, color: "#777", textAlign: "right", marginTop: 1 },
+  signatureInner: { width: 190, alignItems: "center" },
+  // Bottom-aligned so the visible ink sits close to the name below it
+  // regardless of the signature image's own aspect ratio.
+  signatureImageWrap: { height: 54, width: "100%", justifyContent: "flex-end", alignItems: "center", marginBottom: 3 },
+  signatureImage: { maxWidth: 170, maxHeight: 54, objectFit: "contain" },
+  signatureLine: { borderBottom: "0.75 solid #999", width: 170, marginBottom: 4, height: 40 },
+  signatureName: { fontSize: 10.5, fontWeight: 700, textAlign: "center" },
+  signatureMeta: { fontSize: 8.5, color: "#777", textAlign: "center", marginTop: 1 },
   footer: { position: "absolute", bottom: 24, left: 36, right: 36, fontSize: 7.5, color: "#aaa", textAlign: "center", borderTop: "0.5 solid #eee", paddingTop: 6 },
   watermark: { position: "absolute", top: "45%", left: "15%", fontSize: 46, color: "#e0b0b0", opacity: 0.5, transform: "rotate(-25deg)", fontWeight: 700 },
 });
@@ -96,9 +104,17 @@ export function MedicalCertificateDocument({ data }: { data: MedicalCertificateD
         </Text>
 
         <View style={styles.signatureBlock}>
-          {data.signatureImageUrl ? <Image src={data.signatureImageUrl} style={styles.signatureImage} /> : <View style={styles.signatureLine} />}
-          <Text style={styles.signatureName}>{data.providerName}</Text>
-          {data.providerCredentials && <Text style={styles.signatureMeta}>{data.providerCredentials}</Text>}
+          <View style={styles.signatureInner}>
+            {data.signatureImageUrl ? (
+              <View style={styles.signatureImageWrap}>
+                <Image src={data.signatureImageUrl} style={styles.signatureImage} />
+              </View>
+            ) : (
+              <View style={styles.signatureLine} />
+            )}
+            <Text style={styles.signatureName}>{data.providerName}</Text>
+            {data.providerCredentials && <Text style={styles.signatureMeta}>{data.providerCredentials}</Text>}
+          </View>
         </View>
 
         <Text

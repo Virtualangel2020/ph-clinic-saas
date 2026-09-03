@@ -65,12 +65,18 @@ export function CertificatePreview({
 
       <p style={{ margin: "0 0 32px" }}>This certification is issued upon the patient's request for whatever legal purpose it may serve.</p>
 
-      <div style={{ textAlign: "right" }}>
+      <div style={{ marginLeft: "auto", width: 220, textAlign: "center" }}>
         {signatureImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={signatureImageUrl} alt="Signature" style={{ maxHeight: 64, maxWidth: 280, marginLeft: "auto", marginBottom: 4, display: "block" }} />
+          // Bottom-aligned within a fixed-height box so the visible ink
+          // sits close to the printed name regardless of the signature
+          // image's own aspect ratio, and centered so it lines up over
+          // the name/credentials rather than flush to one edge.
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", height: 76, marginBottom: 2 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={signatureImageUrl} alt="Signature" style={{ maxHeight: 76, maxWidth: 200, display: "block" }} />
+          </div>
         ) : (
-          <div style={{ borderBottom: "1px solid #999", width: 280, marginLeft: "auto", marginBottom: 4, height: 44 }} />
+          <div style={{ borderBottom: "1px solid #999", width: 200, margin: "0 auto 4px", height: 44 }} />
         )}
         <div style={{ fontWeight: 700 }}>{providerName || "Provider name"}</div>
         <div style={{ fontSize: 11, color: "#777" }}>{providerCredentials || "License No. _________ · PTR No. _________"}</div>
