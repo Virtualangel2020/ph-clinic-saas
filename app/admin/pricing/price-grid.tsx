@@ -18,6 +18,29 @@ const CYCLES = [
 type Item = { id: string; name: string; sort_order?: number; is_active?: boolean; plan_prices?: any[]; addon_prices?: any[] };
 
 export function PriceGrid({ kind, items }: { kind: "plan" | "addon"; items: Item[] }) {
+  const active = items.filter((i) => i.is_active !== false);
+  const inactive = items.filter((i) => i.is_active === false);
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <PriceTable kind={kind} items={active} />
+      {inactive.length > 0 && (
+        <details>
+          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#888", userSelect: "none" }}>
+            Show {inactive.length} archived {kind === "plan" ? "plan" : "add-on"}
+            {inactive.length === 1 ? "" : "s"} (historical pricing)
+          </summary>
+          <div style={{ marginTop: 10 }}>
+            <PriceTable kind={kind} items={inactive} />
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function PriceTable({ kind, items }: { kind: "plan" | "addon"; items: Item[] }) {
+  if (items.length === 0) return null;
   return (
     <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, overflow: "hidden" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>

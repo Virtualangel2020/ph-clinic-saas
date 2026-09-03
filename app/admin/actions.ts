@@ -305,6 +305,8 @@ export async function updateBillingSettingsAction(input: {
   defaultUpgradeCreditPolicy: string;
   reminderDaysBeforeBilling: number[];
   reminderDaysAfterFailedPayment: number;
+  providerVolumeDiscountThreshold: number;
+  providerVolumeDiscountPercent: number;
 }) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_update_billing_settings", {
@@ -313,9 +315,12 @@ export async function updateBillingSettingsAction(input: {
     p_default_upgrade_credit_policy: input.defaultUpgradeCreditPolicy,
     p_reminder_days_before_billing: input.reminderDaysBeforeBilling,
     p_reminder_days_after_failed_payment: input.reminderDaysAfterFailedPayment,
+    p_provider_volume_discount_threshold: input.providerVolumeDiscountThreshold,
+    p_provider_volume_discount_percent: input.providerVolumeDiscountPercent,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/pricing");
+  revalidatePath("/get-started");
 }
 
 // ── Care plans (for one-time-payment customers) ─────────────────────────────
@@ -492,21 +497,40 @@ export async function setDemoRequestStatusAction(id: string, status: string) {
   revalidatePath("/admin/demo-requests");
 }
 
-// ── Targeted / special-offer promotions (Part 41-43) ────────────────────
+// ── Targeted / special-offer promotions (Part 41-43, Phase 1 promotions) ─
+// admin_create_targeted_promotion is now the single creation path for every
+// promotion the Superadmin UI makes (percentage / fixed amount /
+// introductory price / free period), replacing createPromotionAction's
+// narrower discount-percent-only admin_create_promotion RPC below — that
+// legacy action is kept only for any external/API caller still on it, the
+// UI no longer uses it.
 
 export async function createTargetedPromotionAction(input: {
   label: string;
   description: string;
-  discountType: "percent" | "fixed_amount";
-  discountPercent: number;
+  discountType: "percent" | "fixed_amount" | "free_trial";
+  discountPercent: number | null;
   fixedAmountPhp: number | null;
-  durationType: "one_payment" | "billing_cycles" | "months" | "until_date" | "ongoing";
+  durationType: "billing_cycles" | "months" | "until_date" | "ongoing";
   durationValue: number | null;
+  durationValueMonthly: number | null;
+  durationValueYearly: number | null;
+  appliesToPlanId: string | null;
   appliesToSeats: boolean;
   appliesToAddonIds: string[];
-  billingCycleScope: string | null;
+  billingCycleScope: "monthly" | "yearly" | "both" | null;
   applyToFutureAdditions: boolean;
   targetTenantId: string | null;
+  code: string | null;
+  requiresCode: boolean;
+  maxRedemptions: number | null;
+  endsAt: string | null;
+  // Free Trial promotions only — see promotions_free_trial_and_scope
+  // migration. A free trial is always Core-only (enforced at the DB level
+  // too): appliesToSeats/appliesToAddonIds must be false/empty when
+  // discountType is 'free_trial'.
+  trialDurationDays: number | null;
+  followOnPromotionId: string | null;
 }) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_targeted_promotion", {
@@ -522,6 +546,15 @@ export async function createTargetedPromotionAction(input: {
     p_billing_cycle_scope: input.billingCycleScope,
     p_apply_to_future_additions: input.applyToFutureAdditions,
     p_target_tenant_id: input.targetTenantId,
+    p_code: input.code,
+    p_requires_code: input.requiresCode,
+    p_max_redemptions: input.maxRedemptions,
+    p_ends_at: input.endsAt,
+    p_duration_value_monthly: input.durationValueMonthly,
+    p_duration_value_yearly: input.durationValueYearly,
+    p_applies_to_plan_id: input.appliesToPlanId,
+    p_trial_duration_days: input.trialDurationDays,
+    p_follow_on_promotion_id: input.followOnPromotionId,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/promotions");

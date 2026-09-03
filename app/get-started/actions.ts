@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createQrPhPaymentIntent, getPaymentIntentStatus } from "@/lib/paymongo";
+import { previewCheckoutTotal, type CheckoutPreview, type BillingCycle } from "@/lib/billing/compute-promo";
 
 // The self-serve signup checkout: a signed-up, pre-tenant user picks a
 // plan/add-ons here and pays with an in-app QR code. Mirrors the same
@@ -15,65 +16,61 @@ import { createQrPhPaymentIntent, getPaymentIntentStatus } from "@/lib/paymongo"
 // function is deliberately not reachable by a normal authenticated
 // session (see migration 025) — this Server Action is the only door to
 // it, and it only opens that door after checking PayMongo itself.
+//
+// Pricing/discount math (Phase 1) is never computed here — it all goes
+// through preview_checkout_total (see lib/billing/compute-promo.ts) so
+// there's exactly one place that logic lives, shared with the client-side
+// live preview via previewCheckoutAction below.
 
 type SelectionInput = {
   clinicName: string;
   contactPhone: string;
   planId: string;
-  cycle: "monthly" | "yearly" | "one_time";
+  cycle: BillingCycle;
   addonIds: string[];
-  promotionId: string | null;
+  // Raw code the customer typed in, if any. The *resolved* promotion (its
+  // id, whether it's even applicable) is never trusted from the client —
+  // startSignupCheckoutAction re-resolves it itself via previewCheckoutTotal
+  // below and stores whatever that resolves to.
+  promoCode: string | null;
+  // Agreement-before-payment (Phase A #7). The checkbox state itself is
+  // just a UX gate — what actually blocks payment is that this action
+  // refuses to create a PayMongo intent unless a real acceptance has been
+  // recorded for this request (see record_agreement_acceptance below and
+  // its belt-and-suspenders twin inside internal_provision_from_request).
+  // When the request already carries an acceptance (a returning visitor
+  // who accepted on a previous visit, then came back to tweak their plan),
+  // these three fields are ignored and no new row is written.
+  agreementAccepted: boolean;
+  fullLegalName: string;
+  roleTitle: string;
+  clinicLegalName: string;
 };
 
-async function computeTotal(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  planId: string,
-  cycle: string,
-  addonIds: string[],
-  promotionId: string | null
-) {
-  const { data: plan } = await supabase
-    .from("plans")
-    .select("id, plan_prices(billing_cycle, price_php)")
-    .eq("id", planId)
-    .single();
-  if (!plan) throw new Error("That plan isn't available anymore — please pick another.");
+// Client-facing live preview — the get-started form calls this (debounced,
+// as the customer changes plan/add-ons/cycle/code) purely to render numbers.
+// It intentionally does not touch the `requests` table: startSignupCheckoutAction
+// re-resolves the same numbers itself right before charging, so nothing this
+// returns is ever trusted as the actual amount to charge.
+export async function previewCheckoutAction(input: {
+  planId: string;
+  cycle: BillingCycle;
+  addonIds: string[];
+  promoCode: string | null;
+}): Promise<CheckoutPreview> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
 
-  const planPrice = (plan.plan_prices as any[])?.find((p) => p.billing_cycle === cycle)?.price_php;
-  if (planPrice == null) throw new Error("That plan isn't offered on this billing cycle — please pick another.");
-
-  let addonsTotal = 0;
-  if (addonIds.length > 0) {
-    const { data: addons } = await supabase
-      .from("addons")
-      .select("id, addon_prices(billing_cycle, price_php)")
-      .in("id", addonIds);
-    for (const a of addons ?? []) {
-      const price = (a.addon_prices as any[])?.find((p: any) => p.billing_cycle === cycle)?.price_php;
-      addonsTotal += price ? Number(price) : 0;
-    }
-  }
-
-  const subtotal = Number(planPrice) + addonsTotal;
-
-  let discount = 0;
-  if (promotionId) {
-    const { data: promo } = await supabase
-      .from("promotions")
-      .select("id, discount_percent, is_active, max_redemptions, redemptions_count, ends_at")
-      .eq("id", promotionId)
-      .single();
-    const stillValid =
-      promo &&
-      promo.is_active &&
-      (promo.max_redemptions === null || promo.redemptions_count < promo.max_redemptions) &&
-      (!promo.ends_at || new Date(promo.ends_at).getTime() > Date.now());
-    if (stillValid) {
-      discount = Math.round(subtotal * (promo!.discount_percent / 100));
-    }
-  }
-
-  return subtotal - discount;
+  return previewCheckoutTotal(supabase, {
+    planId: input.planId,
+    billingCycle: input.cycle,
+    addonIds: input.addonIds,
+    promoCode: input.promoCode,
+    tenantId: null, // brand-new signup — no tenant exists yet
+  });
 }
 
 // Creates (first visit) or updates (returning to change a selection) the
@@ -92,6 +89,23 @@ export async function startSignupCheckoutAction(
 
   let requestId = existingRequestId;
 
+  // Resolve pricing/promo server-side FIRST — never trust a client-supplied
+  // promotion id. Whatever preview_checkout_total actually resolves (which
+  // may be null, e.g. an expired/used-up/mistyped code) is what gets saved
+  // on the request and what gets charged; the same resolution runs again at
+  // redemption time (internal_provision_from_request → compute_promotion_discount)
+  // once payment is confirmed, so a promo can never be recorded as applied
+  // without actually passing validation.
+  const preview = await previewCheckoutTotal(supabase, {
+    planId: selection.planId,
+    billingCycle: selection.cycle,
+    addonIds: selection.addonIds,
+    promoCode: selection.promoCode,
+    tenantId: null,
+  });
+  const total = preview.total;
+  const resolvedPromotionId = preview.promotion_id;
+
   if (requestId) {
     const { error } = await supabase.rpc("self_update_signup_request", {
       p_request_id: requestId,
@@ -100,7 +114,7 @@ export async function startSignupCheckoutAction(
       p_requested_plan_id: selection.planId,
       p_requested_billing_cycle: selection.cycle,
       p_requested_addon_ids: selection.addonIds,
-      p_promotion_id: selection.promotionId,
+      p_promotion_id: resolvedPromotionId,
     });
     if (error) throw new Error(error.message);
   } else {
@@ -115,7 +129,7 @@ export async function startSignupCheckoutAction(
         requested_plan_id: selection.planId,
         requested_billing_cycle: selection.cycle,
         requested_addon_ids: selection.addonIds,
-        promotion_id: selection.promotionId,
+        promotion_id: resolvedPromotionId,
         user_id: user.id,
       })
       .select("id")
@@ -124,7 +138,36 @@ export async function startSignupCheckoutAction(
     requestId = inserted.id;
   }
 
-  const total = await computeTotal(supabase, selection.planId, selection.cycle, selection.addonIds, selection.promotionId);
+  // Agreement-before-payment: this request must carry a recorded
+  // acceptance before we're willing to create a payment intent for it.
+  // If a previous visit already recorded one, leave it alone — we never
+  // overwrite an acceptance, and changing plan/add-ons afterward doesn't
+  // require re-accepting the same agreement text.
+  const { data: requestRow, error: requestFetchError } = await supabase
+    .from("requests")
+    .select("agreement_acceptance_id")
+    .eq("id", requestId)
+    .single();
+  if (requestFetchError || !requestRow) throw new Error(requestFetchError?.message ?? "Couldn't load your request.");
+
+  if (!requestRow.agreement_acceptance_id) {
+    if (
+      !selection.agreementAccepted ||
+      !selection.fullLegalName.trim() ||
+      !selection.roleTitle.trim() ||
+      !selection.clinicLegalName.trim()
+    ) {
+      throw new Error("Please accept the Subscription & Services Agreement and fill in your name, role, and clinic's legal name before continuing.");
+    }
+    const { error: acceptError } = await supabase.rpc("record_agreement_acceptance", {
+      p_request_id: requestId,
+      p_full_legal_name: selection.fullLegalName.trim(),
+      p_role_title: selection.roleTitle.trim(),
+      p_clinic_legal_name: selection.clinicLegalName.trim(),
+    });
+    if (acceptError) throw new Error(acceptError.message);
+  }
+
   if (total <= 0) throw new Error("This plan/add-on combination comes out to ₱0 — please check your selection.");
 
   const { paymentIntentId, qrImage } = await createQrPhPaymentIntent(

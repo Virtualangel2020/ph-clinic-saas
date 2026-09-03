@@ -26,11 +26,14 @@ const CORE_NAV: NavItem[] = [
   // Patient Portal is a core, always-included part of every AngelClinic
   // plan — not a paid add-on (see migration data fix + plan_features).
   { href: "/dashboard/patient-portal", label: "Patient Portal", short: "Portal" },
+  // Financial Tracker is likewise core as of the angelclinic_core_reclassify_addons
+  // migration — Financial Tracker, Advanced Analytics, and Customer Care are
+  // no longer paid add-ons, per Angel's final product directive.
+  { href: "/dashboard/financials", label: "Financials", short: "Fin" },
 ];
 
 type AddonNav = { key: string; href: string; label: string; short: string };
 const ADDON_NAV: AddonNav[] = [
-  { key: "financial_tracker", href: "/dashboard/financials", label: "Financials", short: "Fin" },
   { key: "patient_payments", href: "/dashboard/payments", label: "Payments", short: "Pay" },
   { key: "communications", href: "/dashboard/communications", label: "Communications", short: "Comm" },
 ];

@@ -25,7 +25,7 @@ const CATEGORIES: { title: string; body: string; items: string[] }[] = [
   {
     title: "Orders, Results & Prescriptions",
     body: "From order to result to prescription, with your clinic's branding and your credentials applied automatically.",
-    items: ["Orders", "Results", "Prescriptions", "Documents"],
+    items: ["Orders", "Results & lab trends", "Abnormal result flagging", "Prescriptions", "Documents"],
   },
   {
     title: "Referrals",
@@ -38,27 +38,34 @@ const CATEGORIES: { title: string; body: string; items: string[] }[] = [
     items: ["Patient registration", "Forms & acknowledgements", "HMO / insurance", "PhilHealth", "Medical certificates"],
   },
   {
-    title: "Communication",
-    body: "Keep your team talking to each other — and give patients a direct line in too.",
-    items: ["Provider messaging", "Telephone encounters", "Alerts", "Notifications", "Patient portal & secure messaging"],
+    title: "Communication & Notifications",
+    body: "Keep your team talking to each other, give patients a direct line in, and get a support line of your own.",
+    items: ["Provider messaging", "Telephone encounters", "Alerts & notifications", "Patient portal & secure messaging", "Customer Care support line"],
+  },
+  {
+    title: "Follow-Up & Patient Recall",
+    body: "Nothing slips through — know who needs a follow-up, who hasn't been seen, and who's missed appointments.",
+    items: ["Follow-up tracking", "Patient recall / not-seen tracking", "No-show tracking", "Cancellation tracking"],
+  },
+  {
+    title: "Reporting & Financials",
+    body: "Run the business side of your clinic with the same clarity as the clinical side.",
+    items: ["Billing & invoicing", "Financial tracking", "Operational reports", "Advanced analytics"],
   },
   {
     title: "Clinic Operations",
-    body: "Run the business side of your clinic with the same clarity as the clinical side.",
-    items: ["Clinic branding on every document", "Roles & granular permissions", "Audit logs", "Operational reports", "Staff accounts"],
+    body: "The administrative backbone every clinic needs.",
+    items: ["Clinic branding on every document", "Roles & granular permissions", "Audit logs", "Global search", "Staff accounts"],
   },
 ];
 
 const ADDONS = [
-  { name: "Financial Tracker", body: "Track clinic revenue and expenses alongside your clinical data." },
   { name: "Patient Payments (PayMongo)", body: "Accept online payments from patients directly." },
-  { name: "Advanced Analytics", body: "Deeper operational and clinical reporting." },
   { name: "Email", body: "Send patient and referral communication by email." },
-  { name: "SMS", body: "Reach patients by text — credits configurable by Virtual Angel Systems, not a flat guess." },
+  { name: "SMS", body: "Reach patients by text — credit-based, purchase what you need." },
   { name: "WhatsApp", body: "Message patients and referral partners over WhatsApp." },
   { name: "Multi-Branch", body: "Run more than one clinic location under one account." },
   { name: "Custom Domain", body: "Connect your clinic's own domain instead of the default AngelClinic address." },
-  { name: "Customer Care", body: "A persistent, direct message line to the Virtual Angel Systems support team, right in your dashboard." },
 ];
 
 export default function FeaturesPage() {

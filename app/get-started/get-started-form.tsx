@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { startSignupCheckoutAction } from "./actions";
+import { startSignupCheckoutAction, previewCheckoutAction } from "./actions";
 import { SignupQrCheckout } from "./signup-qr-checkout";
+import { describePromoDuration, describePromoRejection, type CheckoutPreview } from "@/lib/billing/compute-promo";
 
 type Plan = {
   id: string;
@@ -14,13 +15,6 @@ type Plan = {
   plan_features?: { feature_key: string; features: { label: string } | null }[];
 };
 type Addon = { id: string; name: string; slug: string; addon_prices: { billing_cycle: string; price_php: number }[] };
-type Promotion = {
-  id: string;
-  code: string | null;
-  label: string;
-  discount_percent: number;
-  applies_to_plan_id: string | null;
-};
 type ExistingRequest = {
   id: string;
   clinic_name: string | null;
@@ -28,10 +22,11 @@ type ExistingRequest = {
   requested_plan_id: string | null;
   requested_billing_cycle: string | null;
   requested_addon_ids: string[] | null;
-  promotion_id: string | null;
   paymongo_payment_intent_id: string | null;
   status: string;
+  agreement_acceptance_id: string | null;
 } | null;
+type Agreement = { id: string; version: number; title: string; body_markdown: string } | null;
 
 const ALL_CYCLES = [
   { value: "monthly", label: "Monthly" },
@@ -44,30 +39,36 @@ function priceFor(prices: { billing_cycle: string; price_php: number }[], cycle:
   return p ? Number(p.price_php) : 0;
 }
 
-function findAutoPromo(promotions: Promotion[], planId: string) {
-  return promotions.find((p) => !p.code && (p.applies_to_plan_id === null || p.applies_to_plan_id === planId)) ?? null;
-}
-
 export function GetStartedForm({
   plans,
   addons,
-  promotions,
+  hasCodePromotions,
   defaultClinicName,
   defaultPhone,
   existingRequest,
   initialPlanId,
   initialCycle,
   enabledCycles,
+  agreement,
+  defaultClinicLegalName,
+  defaultFullLegalName,
 }: {
   plans: Plan[];
   addons: Addon[];
-  promotions: Promotion[];
+  // Just enough to decide whether to show the promo-code field at all —
+  // the actual matching/eligibility (code or auto-applied, expiry, caps,
+  // billing-cycle scope, etc.) is resolved server-side by
+  // preview_checkout_total. See lib/billing/compute-promo.ts.
+  hasCodePromotions: boolean;
   defaultClinicName: string;
   defaultPhone: string;
   existingRequest: ExistingRequest;
   initialPlanId: string | null;
   initialCycle: string | null;
   enabledCycles?: { monthly: boolean; yearly: boolean; one_time: boolean };
+  agreement: Agreement;
+  defaultClinicLegalName: string;
+  defaultFullLegalName: string;
 }) {
   const router = useRouter();
 
@@ -85,6 +86,18 @@ export function GetStartedForm({
   );
   const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set(existingRequest?.requested_addon_ids ?? []));
   const [promoCode, setPromoCode] = useState("");
+
+  // Agreement-before-payment. Already-accepted requests (a returning
+  // visitor who tweaked their plan after accepting) skip straight past
+  // this — the server never re-checks these three fields in that case
+  // either, see startSignupCheckoutAction.
+  const alreadyAccepted = Boolean(existingRequest?.agreement_acceptance_id);
+  const [agreementChecked, setAgreementChecked] = useState(alreadyAccepted);
+  const [showAgreementText, setShowAgreementText] = useState(false);
+  const [fullLegalName, setFullLegalName] = useState(defaultFullLegalName);
+  const [roleTitle, setRoleTitle] = useState("");
+  const [clinicLegalName, setClinicLegalName] = useState(defaultClinicLegalName);
+
   const [status, setStatus] = useState<"idle" | "submitting" | "checkout" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [checkout, setCheckout] = useState<{ requestId: string; paymentIntentId: string; qrImage: string; amount: number } | null>(
@@ -92,16 +105,51 @@ export function GetStartedForm({
   );
 
   const plan = plans.find((p) => p.id === planId);
-  const planPrice = plan ? priceFor(plan.plan_prices, cycle) : 0;
-  const addonsTotal = addons.filter((a) => selectedAddons.has(a.id)).reduce((sum, a) => sum + priceFor(a.addon_prices, cycle), 0);
-  const subtotal = planPrice + addonsTotal;
+  const addonIds = Array.from(selectedAddons);
 
-  const codedPromo = promoCode.trim()
-    ? promotions.find((p) => p.code?.toUpperCase() === promoCode.trim().toUpperCase()) ?? null
-    : null;
-  const activePromo = codedPromo ?? findAutoPromo(promotions, planId);
-  const discountAmount = activePromo ? Math.round(subtotal * (activePromo.discount_percent / 100)) : 0;
-  const total = subtotal - discountAmount;
+  // Live preview — recomputed server-side (single source of truth, shared
+  // with the actual charge in startSignupCheckoutAction) any time the
+  // selection changes. Debounced slightly so typing a promo code doesn't
+  // fire a request per keystroke.
+  const [preview, setPreview] = useState<CheckoutPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewRequestSeq = useRef(0);
+
+  useEffect(() => {
+    if (!planId) return;
+    const seq = ++previewRequestSeq.current;
+    const timer = setTimeout(() => {
+      setPreviewLoading(true);
+      previewCheckoutAction({ planId, cycle, addonIds: Array.from(selectedAddons), promoCode: promoCode || null })
+        .then((result) => {
+          if (previewRequestSeq.current !== seq) return; // a newer request already superseded this one
+          setPreview(result);
+          setPreviewError(null);
+        })
+        .catch((e: any) => {
+          if (previewRequestSeq.current !== seq) return;
+          setPreview(null);
+          setPreviewError(e.message);
+        })
+        .finally(() => {
+          if (previewRequestSeq.current === seq) setPreviewLoading(false);
+        });
+    }, 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planId, cycle, addonIds.join(","), promoCode]);
+
+  const subtotal = preview?.subtotal ?? 0;
+  const discountAmount = preview?.discount_php ?? 0;
+  const total = preview?.total ?? subtotal;
+  const promoResult = preview?.promotion;
+  const promoDuration = promoResult ? describePromoDuration(promoResult) : null;
+  const promoRejection = promoResult ? describePromoRejection(promoResult.reason, promoCode.trim().length > 0) : null;
+
+  const agreementReady =
+    alreadyAccepted ||
+    (agreementChecked && fullLegalName.trim().length > 0 && roleTitle.trim().length > 0 && clinicLegalName.trim().length > 0);
 
   function toggleAddon(id: string) {
     setSelectedAddons((prev) => {
@@ -121,7 +169,11 @@ export function GetStartedForm({
         planId,
         cycle,
         addonIds: Array.from(selectedAddons),
-        promotionId: activePromo?.id ?? null,
+        promoCode: promoCode || null,
+        agreementAccepted: agreementChecked,
+        fullLegalName,
+        roleTitle,
+        clinicLegalName,
       });
       setCheckout(result);
       setStatus("checkout");
@@ -248,7 +300,7 @@ export function GetStartedForm({
         </div>
       )}
 
-      {promotions.some((p) => p.code) && (
+      {hasCodePromotions && (
         <div style={{ marginBottom: 16 }}>
           <label style={label}>Promo code (optional)</label>
           <input
@@ -260,15 +312,88 @@ export function GetStartedForm({
         </div>
       )}
 
-      {activePromo && (
+      {promoResult?.applicable && (
         <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16, color: "#7a5c12" }}>
-          🎉 {activePromo.label} — <strong>{activePromo.discount_percent}% off</strong>
+          🎉 {promoResult.promotion_label} — <strong>₱{(promoResult.discount_php ?? 0).toLocaleString()} off</strong>
+          {promoDuration ? ` ${promoDuration}` : ""}
         </div>
+      )}
+      {!promoResult?.applicable && promoRejection && (
+        <div style={{ background: "#fdf3f3", border: "1px solid #f3c6c6", borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16, color: "#a12a2a" }}>
+          {promoRejection}
+        </div>
+      )}
+
+      {agreement && !alreadyAccepted && (
+        <div style={{ marginBottom: 16, background: "#f9fafb", border: "1px solid #e2e2e5", borderRadius: 10, padding: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{agreement.title}</div>
+          <button
+            type="button"
+            onClick={() => setShowAgreementText((v) => !v)}
+            style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 10 }}
+          >
+            {showAgreementText ? "Hide full agreement ▲" : "Read full agreement ▼"}
+          </button>
+          {showAgreementText && (
+            <div
+              style={{
+                whiteSpace: "pre-wrap",
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: "#444",
+                maxHeight: 260,
+                overflowY: "auto",
+                background: "white",
+                border: "1px solid #eee",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 12,
+              }}
+            >
+              {agreement.body_markdown}
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={label}>Your full legal name</label>
+              <input value={fullLegalName} onChange={(e) => setFullLegalName(e.target.value)} style={{ ...input, width: "100%", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={label}>Your role / title</label>
+              <input
+                placeholder="e.g. Clinic Owner, Practice Manager"
+                value={roleTitle}
+                onChange={(e) => setRoleTitle(e.target.value)}
+                style={{ ...input, width: "100%", boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <label style={label}>Clinic's legal name</label>
+              <input value={clinicLegalName} onChange={(e) => setClinicLegalName(e.target.value)} style={{ ...input, width: "100%", boxSizing: "border-box" }} />
+            </div>
+          </div>
+
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#444" }}>
+            <input type="checkbox" checked={agreementChecked} onChange={(e) => setAgreementChecked(e.target.checked)} style={{ marginTop: 2 }} />
+            <span>
+              I have authority to accept this on behalf of the clinic named above, and I agree to the{" "}
+              {agreement.title} (v{agreement.version}).
+            </span>
+          </label>
+        </div>
+      )}
+      {alreadyAccepted && (
+        <p style={{ fontSize: 11, color: "#888", marginBottom: 16 }}>
+          ✓ You already accepted the Subscription & Services Agreement for this request.
+        </p>
       )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid #eee" }}>
         <div style={{ fontSize: 14 }}>
-          {activePromo ? (
+          {previewLoading && !preview ? (
+            <span style={{ color: "#999" }}>Calculating…</span>
+          ) : discountAmount > 0 ? (
             <>
               <span style={{ textDecoration: "line-through", color: "#999", marginRight: 8 }}>₱{subtotal.toLocaleString()}</span>
               Total: <strong>₱{total.toLocaleString()}</strong>
@@ -279,11 +404,22 @@ export function GetStartedForm({
             </>
           )}
         </div>
-        <button type="submit" disabled={status === "submitting" || total <= 0} style={submitBtn}>
+        <button
+          type="submit"
+          disabled={status === "submitting" || previewLoading || !preview || total <= 0 || !agreementReady}
+          style={submitBtn}
+        >
           {status === "submitting" ? "Preparing checkout..." : "Continue to payment →"}
         </button>
       </div>
+      {!agreementReady && !previewLoading && preview && total > 0 && (
+        <p style={{ fontSize: 11, color: "#a12a2a", marginTop: 8 }}>
+          Please accept the Subscription & Services Agreement above (and fill in your name, role, and clinic's legal
+          name) before continuing to payment.
+        </p>
+      )}
       {status === "error" && <p style={{ color: "crimson", fontSize: 13, marginTop: 8 }}>{errorMsg}</p>}
+      {previewError && <p style={{ color: "crimson", fontSize: 13, marginTop: 8 }}>{previewError}</p>}
       <p style={{ fontSize: 11, color: "#999", marginTop: 10 }}>
         You'll pay with a QR code (GCash, Maya, or your banking app). Your clinic's portal unlocks automatically the
         moment payment is confirmed — no waiting on approval.

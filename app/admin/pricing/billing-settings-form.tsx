@@ -9,6 +9,8 @@ type Settings = {
   default_upgrade_credit_policy: string;
   reminder_days_before_billing: number[];
   reminder_days_after_failed_payment: number;
+  provider_volume_discount_threshold: number;
+  provider_volume_discount_percent: number;
 };
 
 export function BillingSettingsForm({ settings }: { settings: Settings }) {
@@ -17,6 +19,8 @@ export function BillingSettingsForm({ settings }: { settings: Settings }) {
   const [policy, setPolicy] = useState(settings.default_upgrade_credit_policy);
   const [reminders, setReminders] = useState(settings.reminder_days_before_billing.join(", "));
   const [reminderAfterFailed, setReminderAfterFailed] = useState(String(settings.reminder_days_after_failed_payment));
+  const [volumeDiscountThreshold, setVolumeDiscountThreshold] = useState(String(settings.provider_volume_discount_threshold));
+  const [volumeDiscountPercent, setVolumeDiscountPercent] = useState(String(settings.provider_volume_discount_percent));
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -32,6 +36,8 @@ export function BillingSettingsForm({ settings }: { settings: Settings }) {
             .map((s) => Number(s.trim()))
             .filter((n) => !isNaN(n)),
           reminderDaysAfterFailedPayment: Number(reminderAfterFailed),
+          providerVolumeDiscountThreshold: Number(volumeDiscountThreshold),
+          providerVolumeDiscountPercent: Number(volumeDiscountPercent),
         });
         setMessage("Saved.");
       } catch (e: any) {
@@ -75,6 +81,39 @@ export function BillingSettingsForm({ settings }: { settings: Settings }) {
         Note: these are the rules the system will follow. Actually emailing/texting reminders needs an email or SMS
         provider connected — that's a separate piece not built yet.
       </p>
+
+      <div style={{ borderTop: "1px solid #eee", paddingTop: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#333", marginBottom: 4 }}>Provider volume discount</div>
+        <p style={{ fontSize: 11, color: "#999", marginBottom: 10 }}>
+          Once a clinic's <strong>additional</strong> providers (beyond the one included in the base plan) reach the
+          threshold below, this percentage is discounted off the additional-provider fee only — the ₱6,990 base
+          subscription is never discounted. Example: threshold 5, discount 10% → 5 extra providers (normally
+          ₱7,450/mo) become ₱6,705/mo, for a ₱13,695/mo total.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div>
+            <label style={label}>Additional-provider threshold (set discount % to 0 to disable)</label>
+            <input
+              type="number"
+              min={0}
+              value={volumeDiscountThreshold}
+              onChange={(e) => setVolumeDiscountThreshold(e.target.value)}
+              style={input}
+            />
+          </div>
+          <div>
+            <label style={label}>Discount on additional-provider fee (%)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={volumeDiscountPercent}
+              onChange={(e) => setVolumeDiscountPercent(e.target.value)}
+              style={input}
+            />
+          </div>
+        </div>
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <button onClick={save} disabled={pending} style={submitBtn}>

@@ -162,15 +162,24 @@ export default async function HomePage() {
   );
 }
 
+// Kept as one grouped list rather than every granular sub-feature — see
+// the full breakdown on /features. Updated per Angel's final product
+// directive: Patient Portal, Portal Messaging, Advanced Analytics, Billing/
+// Financial Tracking, Lab Trends, Patient Progress, Follow-Up/Recall/
+// No-Show tracking, Customer Care, and Notifications are all Core and were
+// missing from this list before.
 const CORE_INCLUDES = [
   "Electronic Patient Records", "Patient Demographics", "Emergency Contacts", "Guardian Information",
   "Patient Visit History", "Patient Timeline", "Medication Management", "Allergy Management",
   "Calendar & Scheduling", "Walk-In Management", "Multi-Provider Calendar", "Provider Availability",
   "Progress Notes", "Custom Note Templates", "Vital Signs", "Prescriptions", "Provider E-Signatures",
-  "Orders", "Results", "Documents", "Patient Registration", "Forms & Acknowledgements",
+  "Orders", "Results & Lab Trends", "Documents", "Patient Registration", "Forms & Acknowledgements",
   "HMO / Insurance", "PhilHealth", "Internal & External Referrals", "Provider Referral Directory",
   "Referral Tracking", "Provider Messaging", "Telephone Encounters", "Medical Certificates",
-  "Clinic Branding", "Roles & Permissions", "Audit Logs", "Operational Reports", "Staff Accounts",
+  "Clinic Branding", "Roles & Permissions", "Audit Logs", "Operational & Advanced Analytics", "Staff Accounts",
+  "Patient Portal & Secure Messaging", "Billing, Invoicing & Financial Tracking",
+  "Patient Progress & Follow-Up Tracking", "Patient Recall & No-Show Tracking",
+  "Customer Care Support", "Real-Time Notifications",
 ];
 
 function ExperienceRow({

@@ -34,12 +34,36 @@ type Feature = { feature_key: string; label: string; description: string | null 
 // change what customers see when a package/feature/add-on's copy changes.
 
 export function PlanContentEditor({ plans }: { plans: Plan[] }) {
+  const active = plans.filter((p) => p.is_active !== false);
+  const inactive = plans.filter((p) => p.is_active === false);
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {plans.map((p) => (
+      {active.map((p) => (
         <PlanRow key={p.id} plan={p} />
       ))}
+      {inactive.length > 0 && (
+        <ArchivedSection count={inactive.length} label="plan">
+          {inactive.map((p) => (
+            <PlanRow key={p.id} plan={p} />
+          ))}
+        </ArchivedSection>
+      )}
     </div>
+  );
+}
+
+// Retired plans/add-ons keep their historical pricing/copy for reference,
+// but Angel doesn't want them cluttering the normal screen — collapsed
+// behind this toggle by default, same treatment for both plans and addons.
+function ArchivedSection({ count, label, children }: { count: number; label: string; children: React.ReactNode }) {
+  return (
+    <details style={{ marginTop: 4 }}>
+      <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#888", userSelect: "none" }}>
+        Show {count} archived {label}
+        {count === 1 ? "" : "s"}
+      </summary>
+      <div style={{ display: "grid", gap: 12, marginTop: 10 }}>{children}</div>
+    </details>
   );
 }
 
@@ -94,11 +118,20 @@ function PlanRow({ plan }: { plan: Plan }) {
 }
 
 export function AddonContentEditor({ addons }: { addons: Addon[] }) {
+  const active = addons.filter((a) => a.is_active !== false);
+  const inactive = addons.filter((a) => a.is_active === false);
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {addons.map((a) => (
+      {active.map((a) => (
         <AddonRow key={a.id} addon={a} />
       ))}
+      {inactive.length > 0 && (
+        <ArchivedSection count={inactive.length} label="add-on">
+          {inactive.map((a) => (
+            <AddonRow key={a.id} addon={a} />
+          ))}
+        </ArchivedSection>
+      )}
     </div>
   );
 }

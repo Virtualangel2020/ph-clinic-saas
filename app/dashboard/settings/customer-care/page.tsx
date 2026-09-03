@@ -2,12 +2,13 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 import { BackLink } from "@/components/back-link";
 import { SupportThread } from "./support-thread";
 
-// New add-on (Part: Customer Care). Only clinics who've availed it
-// (tenant_entitlements has an active 'customer_care' row — either bundled
-// into their plan or purchased as an add-on via the Superadmin client
-// editor) get the actual thread. Everyone else sees a short explanation
-// instead of a "coming in a later phase" placeholder, since this already
-// exists — it's just gated by entitlement, not by build status.
+// Customer Care is a core, always-included AngelClinic feature (retired as
+// a paid add-on by the angelclinic_core_reclassify_addons migration, which
+// also granted every tenant an active 'customer_care' plan_features
+// entitlement). The entitlement check below is kept as the source of truth
+// rather than removed outright — it stays correct for any tenant without a
+// subscription row yet, and needs no further change if Core's feature list
+// is ever revisited.
 export default async function CustomerCarePage() {
   const { supabase, profile } = await requireClinicMember();
 

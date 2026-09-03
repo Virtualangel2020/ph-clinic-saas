@@ -34,7 +34,7 @@ export default async function GetStartedPage({
     redirect("/dashboard");
   }
 
-  const [{ data: plans }, { data: addons }, { data: promotions }, { data: existingRequest }, { data: commerceSettings }] = await Promise.all([
+  const [{ data: plans }, { data: addons }, { count: codePromoCount }, { data: existingRequest }, { data: commerceSettings }, { data: agreement }] = await Promise.all([
     supabase
       .from("plans")
       .select("id, name, slug, description, sort_order, plan_prices(billing_cycle, price_php), plan_features(feature_key, features(label))")
@@ -45,19 +45,30 @@ export default async function GetStartedPage({
       .select("id, name, slug, addon_prices(billing_cycle, price_php)")
       .eq("is_active", true)
       .order("name"),
+    // Only used to decide whether to show the promo-code field at all —
+    // actual matching/eligibility is resolved server-side per-selection by
+    // preview_checkout_total (see lib/billing/compute-promo.ts), not here.
     supabase
       .from("promotions")
-      .select("id, code, label, discount_percent, applies_to_plan_id, max_redemptions, redemptions_count, ends_at")
-      .eq("is_active", true),
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true)
+      .eq("requires_code", true),
     supabase
       .from("requests")
-      .select("id, clinic_name, contact_phone, requested_plan_id, requested_billing_cycle, requested_addon_ids, promotion_id, paymongo_payment_intent_id, status")
+      .select(
+        "id, clinic_name, contact_phone, requested_plan_id, requested_billing_cycle, requested_addon_ids, paymongo_payment_intent_id, status, agreement_acceptance_id"
+      )
       .eq("user_id", user!.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
     supabase.from("commerce_settings").select("offer_monthly, offer_yearly, offer_one_time").eq("id", true).maybeSingle(),
+    // The active Subscription & Services Agreement text — must be shown and
+    // accepted before payment can proceed (see migration
+    // agreement_before_payment). Readable even signed-in-but-no-tenant-yet
+    // via the "read_active" RLS policy.
+    supabase.from("legal_agreements").select("id, version, title, body_markdown").eq("slug", "subscription_services_agreement").eq("is_active", true).maybeSingle(),
   ]);
 
   const enabledCycles = {
@@ -65,13 +76,6 @@ export default async function GetStartedPage({
     yearly: commerceSettings?.offer_yearly ?? true,
     one_time: commerceSettings?.offer_one_time ?? true,
   };
-
-  const now = Date.now();
-  const validPromotions = (promotions ?? []).filter((p: any) => {
-    const capped = p.max_redemptions !== null && p.redemptions_count >= p.max_redemptions;
-    const expired = p.ends_at ? new Date(p.ends_at).getTime() < now : false;
-    return !capped && !expired;
-  });
 
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 24px 80px" }}>
@@ -86,13 +90,16 @@ export default async function GetStartedPage({
       <GetStartedForm
         plans={(plans as any) ?? []}
         addons={(addons as any) ?? []}
-        promotions={(validPromotions as any) ?? []}
+        hasCodePromotions={(codePromoCount ?? 0) > 0}
         defaultClinicName={(user!.user_metadata as any)?.clinic_name ?? ""}
         defaultPhone={(user!.user_metadata as any)?.phone ?? ""}
         existingRequest={existingRequest ?? null}
         initialPlanId={planParam ?? null}
         initialCycle={cycleParam ?? null}
         enabledCycles={enabledCycles}
+        agreement={agreement ?? null}
+        defaultClinicLegalName={(user!.user_metadata as any)?.clinic_name ?? ""}
+        defaultFullLegalName={(user!.user_metadata as any)?.full_name ?? ""}
       />
       <WhatsappButton />
     </main>
