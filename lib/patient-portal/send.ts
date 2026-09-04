@@ -68,6 +68,25 @@ export async function sendPortalSms(opts: { toPhone: string; message: string }) 
   throw new Error(`Live sending for "${settings.provider}" isn't wired up yet — only Semaphore is implemented so far. Switch the platform's SMS provider to Semaphore, or ask for support to add this one.`);
 }
 
+// Read-only status checks for clinic-facing screens (e.g.
+// /dashboard/communications) that need to show whether email/SMS are
+// actually live WITHOUT exposing the api_key itself — same service-role
+// bypass as the send functions above, but this only ever returns booleans
+// and the provider name, never the key.
+export type CommsProviderStatus = { provider: string; configured: boolean };
+
+export async function getEmailProviderStatus(): Promise<CommsProviderStatus> {
+  const admin = createAdminClient();
+  const { data } = await admin.from("email_provider_settings").select("provider, is_enabled, api_key").maybeSingle();
+  return { provider: data?.provider ?? "resend", configured: !!(data?.is_enabled && data?.api_key) };
+}
+
+export async function getSmsProviderStatus(): Promise<CommsProviderStatus> {
+  const admin = createAdminClient();
+  const { data } = await admin.from("sms_provider_settings").select("provider, is_enabled, api_key").maybeSingle();
+  return { provider: data?.provider ?? "semaphore", configured: !!(data?.is_enabled && data?.api_key) };
+}
+
 // Supabase's phone-auth identity expects digits with country code, no "+"
 // or spaces (e.g. "639171234567"). PH numbers are stored however staff
 // typed them (e.g. "0917 000 0001") — normalize just for the auth call.
