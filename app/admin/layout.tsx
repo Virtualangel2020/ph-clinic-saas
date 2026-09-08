@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div style={{ minHeight: "100vh" }}>
       <header
         style={{
-          background: "#0c1730",
+          background: "var(--brand-primary)",
           color: "white",
           padding: "14px 20px",
           display: "flex",
@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <nav style={{ display: "flex", gap: 14, flexWrap: "wrap", rowGap: 6 }}>
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} style={{ position: "relative", color: "#e6c66b", fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
+              <Link key={n.href} href={n.href} style={{ position: "relative", color: "var(--brand-secondary)", fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
                 {n.label}
                 {n.href === "/admin/customer-care" && (
                   <UnreadBadge count={unreadSupportCount ?? 0} style={{ top: -8, right: -14 }} />

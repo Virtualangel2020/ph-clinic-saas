@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
-  searchAngelClinicProvidersAction,
+  searchMyCareDeskProvidersAction,
   searchExternalProvidersAction,
   setPrimaryProviderAction,
   setSharingPreferenceAction,
@@ -98,7 +98,7 @@ function PrimaryProviderRow({ patientId, current }: { patientId: string; current
                   padding: "2px 8px",
                 }}
               >
-                {current.kind === "angelclinic" ? "AngelClinic Provider ✓" : "External Provider"}
+                {current.kind === "angelclinic" ? "MyCareDesk Provider ✓" : "External Provider"}
               </span>
               {(current.specialty || current.clinicName) && (
                 <div style={{ fontSize: 11.5, color: "#888", marginTop: 2 }}>{[current.specialty, current.clinicName].filter(Boolean).join(" · ")}</div>
@@ -117,7 +117,7 @@ function PrimaryProviderRow({ patientId, current }: { patientId: string; current
 
       {editing && (
         <div style={{ marginTop: 10 }}>
-          <ProviderSearch onPickAngelClinic={(p) => choose("angelclinic", p)} onPickExternal={(p) => choose("external", p)} pending={pending} />
+          <ProviderSearch onPickMyCareDesk={(p) => choose("angelclinic", p)} onPickExternal={(p) => choose("external", p)} pending={pending} />
           {current && (
             <button onClick={clear} disabled={pending} style={{ marginTop: 8, fontSize: 11.5, color: "#999", background: "none", border: "none", cursor: "pointer" }}>
               Clear primary doctor
@@ -171,7 +171,7 @@ function SharingPreferenceRow({ patientId, current, pending: pendingRequest }: {
       </p>
 
       {pendingRequest && (
-        <div style={{ background: "#fff8e6", border: "1px solid #e6c66b", borderRadius: 8, padding: "8px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ background: "#fff8e6", border: "1px solid var(--brand-secondary)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 12.5, color: "#7a5c12" }}>
             Awaiting patient review — request sent to authorize <strong>{pendingRequest.providerName}</strong>. They&apos;ll
             see this in their Patient Portal under Records &amp; Authorizations.
@@ -187,7 +187,7 @@ function SharingPreferenceRow({ patientId, current, pending: pendingRequest }: {
           <div style={{ fontSize: 13.5 }}>
             {current.providerName}
             <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: "#1a7f37", background: "#eaf7ee", border: "1px solid #bfe6c9", borderRadius: 999, padding: "2px 8px" }}>
-              Connected through AngelClinic
+              Connected through MyCareDesk
             </span>
             <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
               {current.clinicName ? `${current.clinicName} · ` : ""}Authorized {new Date(current.authorizedAt).toLocaleDateString()}
@@ -209,7 +209,7 @@ function SharingPreferenceRow({ patientId, current, pending: pendingRequest }: {
               setRequestMode(false);
               setEditing(true);
             }}
-            style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
           >
             Yes — set up
           </button>
@@ -236,7 +236,7 @@ function SharingPreferenceRow({ patientId, current, pending: pendingRequest }: {
               take effect until they do.
             </p>
           )}
-          <ProviderSearch onPickAngelClinic={choose} pending={pending} angelClinicOnly />
+          <ProviderSearch onPickMyCareDesk={choose} pending={pending} angelClinicOnly />
           <button
             onClick={() => {
               setEditing(false);
@@ -252,17 +252,17 @@ function SharingPreferenceRow({ patientId, current, pending: pendingRequest }: {
   );
 }
 
-// Shared search widget — searches the cross-tenant AngelClinic provider
+// Shared search widget — searches the cross-tenant MyCareDesk provider
 // directory, and (unless angelClinicOnly) the curated external-provider
-// directory too, with a clear "AngelClinic Provider ✓" vs "External
+// directory too, with a clear "MyCareDesk Provider ✓" vs "External
 // Provider" distinction on every result (spec §8).
 function ProviderSearch({
-  onPickAngelClinic,
+  onPickMyCareDesk,
   onPickExternal,
   pending,
   angelClinicOnly = false,
 }: {
-  onPickAngelClinic: (p: DirectoryProvider) => void;
+  onPickMyCareDesk: (p: DirectoryProvider) => void;
   onPickExternal?: (p: ExternalDirectoryProvider) => void;
   pending: boolean;
   angelClinicOnly?: boolean;
@@ -276,7 +276,7 @@ function ProviderSearch({
   async function runSearch() {
     setSearching(true);
     try {
-      const angel = await searchAngelClinicProvidersAction(query);
+      const angel = await searchMyCareDeskProvidersAction(query);
       setAngelResults(angel);
       if (!angelClinicOnly) setExternalResults(await searchExternalProvidersAction(query));
       setSearched(true);
@@ -295,7 +295,7 @@ function ProviderSearch({
           placeholder="Search by name, specialty, or clinic…"
           style={FIELD_STYLE}
         />
-        <button onClick={runSearch} disabled={searching} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+        <button onClick={runSearch} disabled={searching} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
           {searching ? "…" : "Search"}
         </button>
       </div>
@@ -309,12 +309,12 @@ function ProviderSearch({
             <button
               key={p.id}
               disabled={pending}
-              onClick={() => onPickAngelClinic(p)}
+              onClick={() => onPickMyCareDesk(p)}
               style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", border: "none", borderBottom: "1px solid #f2f2f2", background: "var(--card-bg)", cursor: "pointer", fontSize: 13 }}
             >
               {p.title ? `${p.title} ` : ""}
               {p.full_name}
-              <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1a7f37", background: "#eaf7ee", border: "1px solid #bfe6c9", borderRadius: 999, padding: "1px 6px" }}>AngelClinic ✓</span>
+              <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1a7f37", background: "#eaf7ee", border: "1px solid #bfe6c9", borderRadius: 999, padding: "1px 6px" }}>MyCareDesk ✓</span>
               <div style={{ fontSize: 11, color: "#888" }}>{[p.specialty, p.clinic_name].filter(Boolean).join(" · ")}</div>
             </button>
           ))}
@@ -334,7 +334,7 @@ function ProviderSearch({
       )}
       {angelClinicOnly && (
         <p style={{ fontSize: 10.5, color: "#aaa", marginTop: 6 }}>
-          Only AngelClinic providers can be selected here — secure internal sending requires a real AngelClinic account.
+          Only MyCareDesk providers can be selected here — secure internal sending requires a real MyCareDesk account.
         </p>
       )}
     </div>

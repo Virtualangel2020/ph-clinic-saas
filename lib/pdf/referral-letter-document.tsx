@@ -7,7 +7,7 @@ import type { ClinicInfo, PatientInfo } from "./encounter-pdf-document";
 // a genuinely different document: a short referral letter, not a
 // clinical-history export. Used for BOTH internal referrals (an optional
 // printable copy) and external referrals (the only artifact the receiving
-// side gets, since there's no AngelClinic account to deliver to).
+// side gets, since there's no MyCareDesk account to deliver to).
 
 export type ReferralLetterData = {
   clinic: ClinicInfo;
@@ -25,18 +25,18 @@ export type ReferralLetterData = {
 
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#1a1a1a" },
-  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottom: "2 solid #0c1730", paddingBottom: 12, marginBottom: 14 },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottom: "2 solid #0b2d5c", paddingBottom: 12, marginBottom: 14 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 44, height: 44, objectFit: "contain" },
-  clinicName: { fontSize: 15, fontWeight: 700, color: "#0c1730" },
+  clinicName: { fontSize: 15, fontWeight: 700, color: "#0b2d5c" },
   clinicMeta: { fontSize: 8.5, color: "#555", marginTop: 2, lineHeight: 1.4 },
   docTitle: { fontSize: 9, color: "#888", textAlign: "right" },
   urgentBadge: { fontSize: 9, fontWeight: 700, color: "#a12a2a", textAlign: "right", marginTop: 3 },
   patientBlock: { backgroundColor: "#f4f5f7", borderRadius: 4, padding: "8 12", marginBottom: 16, flexDirection: "row", justifyContent: "space-between" },
   patientLabel: { fontSize: 8, color: "#888", textTransform: "uppercase" },
-  patientValue: { fontSize: 11, fontWeight: 700, color: "#0c1730", marginTop: 1 },
+  patientValue: { fontSize: 11, fontWeight: 700, color: "#0b2d5c", marginTop: 1 },
   section: { marginBottom: 14 },
-  sectionLabel: { fontSize: 9, fontWeight: 700, color: "#0c1730", marginBottom: 4, textTransform: "uppercase" },
+  sectionLabel: { fontSize: 9, fontWeight: 700, color: "#0b2d5c", marginBottom: 4, textTransform: "uppercase" },
   fieldRow: { flexDirection: "row", marginBottom: 4 },
   fieldLabel: { width: 130, fontSize: 9, fontWeight: 700, color: "#444" },
   fieldValue: { flex: 1, fontSize: 9.5, color: "#1a1a1a", lineHeight: 1.4 },

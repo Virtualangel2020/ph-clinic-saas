@@ -207,7 +207,7 @@ export function ProfileTab({
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
               {alerts.slice(0, 6).map((a) => (
-                <div key={a.id} style={{ borderLeft: `3px solid ${a.kind === "note" ? "#8a99b3" : "#e6c66b"}`, paddingLeft: 10 }}>
+                <div key={a.id} style={{ borderLeft: `3px solid ${a.kind === "note" ? "#8a99b3" : "var(--brand-secondary)"}`, paddingLeft: 10 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: a.kind === "note" ? "#556" : "#8a6100", textTransform: "uppercase" }}>
                     {a.kind === "note" ? "Note" : a.category}
                   </div>

@@ -51,9 +51,9 @@ export function OverviewTab({
             key={t.key}
             onClick={() => setSub(t.key)}
             style={{
-              background: sub === t.key ? "#0c1730" : "transparent",
-              color: sub === t.key ? "#e6c66b" : "#555",
-              border: `1px solid ${sub === t.key ? "#0c1730" : "var(--input-border)"}`,
+              background: sub === t.key ? "var(--brand-primary)" : "transparent",
+              color: sub === t.key ? "var(--brand-secondary)" : "#555",
+              border: `1px solid ${sub === t.key ? "var(--brand-primary)" : "var(--input-border)"}`,
               borderRadius: 999,
               padding: "6px 14px",
               fontSize: 12.5,

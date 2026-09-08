@@ -3,7 +3,7 @@ import { AuthErrorBanner } from "@/components/auth-error-banner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Angel Clinic — Smart Clinic. Better Care.",
+  title: "MyCareDesk — Smart Clinic. Better Care.",
   description:
     "Multi-tenant Philippine clinic management platform by Virtual Angel Systems.",
   // app/manifest.ts auto-links /manifest.webmanifest here. The /admin and
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Angel Clinic",
+    title: "MyCareDesk",
   },
 };
 
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 // other elements look tiny/cut-off on phones rather than laid out for
 // their actual screen width.
 export const viewport: Viewport = {
-  themeColor: "#0c1730",
+  themeColor: "#0b2d5c",
   width: "device-width",
   initialScale: 1,
 };

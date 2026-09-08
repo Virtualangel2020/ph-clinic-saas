@@ -50,7 +50,7 @@ export default async function PaymentsPage() {
           <h1 style={{ fontSize: 24, marginBottom: 4 }}>Payments</h1>
           <p style={{ color: "#666", fontSize: 13, marginBottom: 0 }}>
             Collect patient payments online through PayMongo — send a link from here, or from a patient's own Billing
-            tab. This is separate from your AngelClinic subscription billing.
+            tab. This is separate from your MyCareDesk subscription billing.
           </p>
         </div>
       </div>
@@ -59,7 +59,7 @@ export default async function PaymentsPage() {
         <span style={{ fontSize: 12, fontWeight: 700, background: statusColor.bg, border: `1px solid ${statusColor.border}`, color: statusColor.fg, borderRadius: 999, padding: "4px 12px" }}>
           {statusLabel}
         </span>
-        <Link href="/dashboard/settings/payments" style={{ fontSize: 12.5, color: "#2563eb" }}>
+        <Link href="/dashboard/settings/payments" style={{ fontSize: 12.5, color: "var(--brand-primary)" }}>
           Settings → Payments
         </Link>
       </div>

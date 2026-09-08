@@ -5,8 +5,8 @@ import { SiteFooter } from "@/components/public/site-footer";
 import { resolveEffectiveSettings, BOOKING_TYPE_PATIENT_WORDING, BOOKING_TYPE_LABEL } from "@/lib/patient-access";
 import { ProfileActions } from "./profile-actions";
 
-const NAVY = "#0c1730";
-const GOLD = "#e6c66b";
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function peso(n: number) {
@@ -63,13 +63,13 @@ export default async function ProviderProfilePage({ params }: { params: Promise<
   }
 
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "44px 24px 36px" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "44px 24px 36px" }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
-            {d.clinic.clinic_name ?? "AngelClinic"}
+            {d.clinic.clinic_name ?? "Your Clinic"}
           </div>
           <h1 style={{ fontSize: 28, margin: "0 0 6px" }}>
             {d.provider.title ? `${d.provider.title} ` : ""}

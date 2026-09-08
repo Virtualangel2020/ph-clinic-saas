@@ -84,7 +84,7 @@ export async function gatherMedicalCertificatePdfData(supabase: SupabaseClient, 
 
   return {
     clinic: {
-      name: clinicSettings?.clinic_name ?? "AngelClinic",
+      name: clinicSettings?.clinic_name ?? "Your Clinic",
       logoUrl,
       addressLine1: clinicSettings?.address_line1 ?? null,
       addressLine2: clinicSettings?.address_line2 ?? null,

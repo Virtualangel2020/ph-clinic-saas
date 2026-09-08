@@ -243,7 +243,7 @@ export function IncomingTransferRow({
           {transfer.status === "accepted" && !alreadyFiled && !allAttachmentsFiled && !filing && (
             <button
               onClick={() => setFiling(true)}
-              style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#0c1730", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
+              style={{ fontSize: 12, fontWeight: 700, color: "white", background: "var(--brand-primary)", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer" }}
             >
               File to Patient
             </button>
@@ -281,7 +281,7 @@ export function IncomingTransferRow({
                       alignItems: "center",
                       gap: 8,
                       fontSize: 12.5,
-                      border: `1px solid ${selectedId === p.id ? "#0c1730" : "#eee"}`,
+                      border: `1px solid ${selectedId === p.id ? "var(--brand-primary)" : "#eee"}`,
                       borderRadius: 8,
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -313,7 +313,7 @@ export function IncomingTransferRow({
 
           {fileItems.length > 0 && (
             <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3 }}>Title and folder for each file</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-primary)", textTransform: "uppercase", letterSpacing: 0.3 }}>Title and folder for each file</div>
               {fileItems.map((item) => (
                 <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, border: "1px solid #eee", borderRadius: 8, padding: "6px 10px", flexWrap: "wrap" }}>
                   <input
@@ -341,7 +341,7 @@ export function IncomingTransferRow({
             <button
               onClick={fileIt}
               disabled={pending || (mode === "match" ? !selectedId : !newPatient.firstName || !newPatient.lastName || !newPatient.dateOfBirth)}
-              style={{ fontSize: 12.5, fontWeight: 700, color: "white", background: "#0c1730", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}
+              style={{ fontSize: 12.5, fontWeight: 700, color: "white", background: "var(--brand-primary)", border: "none", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}
             >
               {pending ? "Filing…" : fileItems.length > 1 ? "File These Records" : "File This Record"}
             </button>
@@ -368,8 +368,8 @@ function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => vo
         fontWeight: 600,
         padding: "6px 12px",
         borderRadius: 6,
-        border: active ? "1px solid #0c1730" : "1px solid #ddd",
-        background: active ? "#0c1730" : "white",
+        border: active ? "1px solid var(--brand-primary)" : "1px solid #ddd",
+        background: active ? "var(--brand-primary)" : "white",
         color: active ? "white" : "#666",
         cursor: "pointer",
       }}

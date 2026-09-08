@@ -31,7 +31,7 @@ const SECTIONS: { title: string; items: { href: string; label: string; desc: str
       { href: "/dashboard/settings/note-templates", label: "Progress Note Templates", desc: "SOAP, Expanded, or your own custom note format." },
       { href: "/dashboard/settings/medical-certificates", label: "Medical Certificates", desc: "Template builder for your clinic's medical certificate." },
       { href: "/dashboard/settings/forms", label: "Forms & Registration", desc: "Patient intake forms and consent/acknowledgement templates." },
-      { href: "/dashboard/settings/referral-directory", label: "Referral Directory Profile", desc: "How your clinic appears to other AngelClinic providers." },
+      { href: "/dashboard/settings/referral-directory", label: "Referral Directory Profile", desc: "How your clinic appears to other MyCareDesk providers." },
     ],
   },
   {

@@ -48,7 +48,7 @@ export async function createQrCheckoutAction(invoiceId: string): Promise<{
 
   const { paymentIntentId, qrImage } = await createQrPhPaymentIntent(
     remaining,
-    `Angel Clinic — ${invoice.description}`
+    `MyCareDesk — ${invoice.description}`
   );
 
   const { error: saveError } = await supabase.rpc("tenant_set_invoice_payment_intent", {

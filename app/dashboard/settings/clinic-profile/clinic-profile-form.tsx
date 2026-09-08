@@ -135,4 +135,4 @@ function Field({ label: labelText, value, onChange }: { label: string; value: st
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 };
 const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 6, border: "1px solid var(--input-border)", fontSize: 13 };
-const buttonStyle: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const buttonStyle: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" };

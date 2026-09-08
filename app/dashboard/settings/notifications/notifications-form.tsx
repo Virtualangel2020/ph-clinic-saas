@@ -87,7 +87,7 @@ export function NotificationsForm({ existing }: { existing: ExistingRow[] }) {
       <div
         style={{
           background: "#fff7e6",
-          border: "1px solid #e6c66b",
+          border: "1px solid var(--brand-secondary)",
           borderRadius: 10,
           padding: "10px 14px",
           fontSize: 12.5,
@@ -168,8 +168,8 @@ const buttonStyle: React.CSSProperties = {
   padding: "9px 18px",
   borderRadius: 8,
   border: "none",
-  background: "#0c1730",
-  color: "#e6c66b",
+  background: "var(--brand-primary)",
+  color: "var(--brand-secondary)",
   fontWeight: 700,
   fontSize: 13,
   cursor: "pointer",

@@ -24,10 +24,10 @@ export type MedicalCertificateData = {
 
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#1a1a1a" },
-  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottom: "2 solid #0c1730", paddingBottom: 12, marginBottom: 14 },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottom: "2 solid #0b2d5c", paddingBottom: 12, marginBottom: 14 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 44, height: 44, objectFit: "contain" },
-  clinicName: { fontSize: 15, fontWeight: 700, color: "#0c1730" },
+  clinicName: { fontSize: 15, fontWeight: 700, color: "#0b2d5c" },
   clinicMeta: { fontSize: 8.5, color: "#555", marginTop: 2, lineHeight: 1.4 },
   docTitle: { fontSize: 9, color: "#888", textAlign: "right" },
   certNumber: { fontSize: 9, color: "#555", textAlign: "right", marginTop: 3 },
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   bodyText: { fontSize: 10.5, lineHeight: 1.6, color: "#222", marginBottom: 14 },
   bold: { fontWeight: 700 },
   fieldBlock: { marginBottom: 12 },
-  fieldLabel: { fontSize: 8.5, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", marginBottom: 2, letterSpacing: 0.3 },
+  fieldLabel: { fontSize: 8.5, fontWeight: 700, color: "#0b2d5c", textTransform: "uppercase", marginBottom: 2, letterSpacing: 0.3 },
   fieldValue: { fontSize: 10.5, lineHeight: 1.5, color: "#1a1a1a" },
   // Fixed-width, centered block (still anchored to the right side of the
   // page via signatureBlock's own alignItems: "flex-end") so the signature

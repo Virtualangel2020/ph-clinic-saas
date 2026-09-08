@@ -101,9 +101,9 @@ export function CoverageSection({
               onClick={() => changePaymentType(opt.value)}
               disabled={pending}
               style={{
-                border: `1px solid ${paymentType === opt.value ? "#0c1730" : "var(--input-border)"}`,
-                background: paymentType === opt.value ? "#0c1730" : "transparent",
-                color: paymentType === opt.value ? "#e6c66b" : "#555",
+                border: `1px solid ${paymentType === opt.value ? "var(--brand-primary)" : "var(--input-border)"}`,
+                background: paymentType === opt.value ? "var(--brand-primary)" : "transparent",
+                color: paymentType === opt.value ? "var(--brand-secondary)" : "#555",
                 borderRadius: 999,
                 padding: "6px 14px",
                 fontSize: 12.5,
@@ -252,7 +252,7 @@ function PhilhealthCard({
           <input placeholder="Member type / membership details" value={memberTypeDraft} onChange={(e) => setMemberTypeDraft(e.target.value)} style={{ ...FIELD_STYLE, gridColumn: "1 / -1" }} />
           {error && <div style={{ color: "crimson", fontSize: 12, gridColumn: "1 / -1" }}>{error}</div>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer" }}>
+            <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer" }}>
               {pending ? "Saving…" : "Save"}
             </button>
             <button onClick={() => setEditing(false)} disabled={pending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", color: "#555" }}>
@@ -378,7 +378,7 @@ function HmoCard({ patientId, plans, forceShow }: { patientId: string; plans: In
             </label>
           )}
           {error && <p style={{ fontSize: 12, color: "crimson", margin: 0 }}>{error}</p>}
-          <button onClick={addPlan} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
+          <button onClick={addPlan} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
             {pending ? "Saving…" : "Save plan"}
           </button>
         </div>

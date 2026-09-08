@@ -33,7 +33,7 @@ export function RecordRefillButton({ id, patientId }: { id: string; patientId: s
           e.stopPropagation();
           setOpen(true);
         }}
-        style={{ border: "1px solid #0c1730", background: "#0c1730", color: "white", borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
+        style={{ border: "1px solid var(--brand-primary)", background: "var(--brand-primary)", color: "white", borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
       >
         Record refill
       </button>
@@ -48,7 +48,7 @@ export function RecordRefillButton({ id, patientId }: { id: string; patientId: s
         onChange={(e) => setNextDue(e.target.value)}
         style={{ border: "1px solid var(--input-border)", borderRadius: 7, padding: "6px 8px", fontSize: 12 }}
       />
-      <button onClick={save} disabled={pending || !nextDue} style={{ border: "none", background: "#0c1730", color: "white", borderRadius: 7, padding: "6px 10px", fontSize: 12, cursor: "pointer" }}>
+      <button onClick={save} disabled={pending || !nextDue} style={{ border: "none", background: "var(--brand-primary)", color: "white", borderRadius: 7, padding: "6px 10px", fontSize: 12, cursor: "pointer" }}>
         {pending ? "…" : "Save"}
       </button>
     </div>

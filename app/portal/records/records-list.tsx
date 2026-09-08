@@ -48,7 +48,7 @@ export function PortalDocumentsList({ documents }: { documents: Doc[] }) {
             <button
               onClick={() => view(d.storage_path!)}
               disabled={pending}
-              style={{ background: "none", border: "1px solid #ddd", color: "#0c1730", cursor: "pointer", fontSize: 12, fontWeight: 600, borderRadius: 7, padding: "6px 12px", flexShrink: 0 }}
+              style={{ background: "none", border: "1px solid #ddd", color: "var(--brand-primary)", cursor: "pointer", fontSize: 12, fontWeight: 600, borderRadius: 7, padding: "6px 12px", flexShrink: 0 }}
             >
               View
             </button>

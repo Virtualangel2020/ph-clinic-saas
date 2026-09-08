@@ -48,7 +48,7 @@ function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
+          style={{ padding: 10, borderRadius: 8, border: "1px solid var(--brand-border)" }}
         />
         <input
           type="password"
@@ -56,7 +56,7 @@ function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
+          style={{ padding: 10, borderRadius: 8, border: "1px solid var(--brand-border)" }}
         />
         {error && <p style={{ color: "crimson", fontSize: 13 }}>{error}</p>}
         <button
@@ -66,10 +66,11 @@ function LoginForm() {
             padding: 10,
             borderRadius: 8,
             border: "none",
-            background: "#2563eb",
+            background: "var(--brand-primary)",
             color: "white",
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: loading ? "default" : "pointer",
+            opacity: loading ? 0.7 : 1,
           }}
         >
           {loading ? "Signing in..." : "Sign in"}

@@ -91,7 +91,7 @@ export function TransferPreview({
                   fontSize: 12.5,
                   padding: "7px 10px",
                   borderRadius: 6,
-                  border: `1px solid ${selectedId === item.id ? "#0c1730" : "#eee"}`,
+                  border: `1px solid ${selectedId === item.id ? "var(--brand-primary)" : "#eee"}`,
                   background: selectedId === item.id ? "#f5f6fa" : "var(--card-bg)",
                   cursor: "pointer",
                   color: "var(--text-heading)",

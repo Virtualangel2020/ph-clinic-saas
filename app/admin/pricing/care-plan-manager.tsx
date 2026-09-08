@@ -133,7 +133,7 @@ function CarePlanForm({ existing, onDone }: { existing?: CarePlan; onDone: () =>
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #2563eb", borderRadius: 12, padding: 16 }}>
+    <div style={{ background: "white", border: "1px solid var(--brand-primary)", borderRadius: 12, padding: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
         <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} style={input} />
         <input
@@ -182,7 +182,7 @@ function CarePlanForm({ existing, onDone }: { existing?: CarePlan; onDone: () =>
       {error && <div style={{ color: "crimson", fontSize: 12, marginBottom: 8 }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={save} disabled={pending} style={{ ...smallBtn, background: "#2563eb" }}>
+        <button onClick={save} disabled={pending} style={{ ...smallBtn, background: "var(--brand-primary)" }}>
           {pending ? "Saving..." : "Save"}
         </button>
         <button onClick={onDone} style={{ ...smallBtn, background: "#888" }}>Cancel</button>

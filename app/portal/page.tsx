@@ -48,7 +48,7 @@ export default async function PortalHomePage() {
   return (
     <PortalShell patientName={patient?.first_name}>
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>Welcome{patient ? `, ${patient.first_name}` : ""}</h1>
-      <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Here's a quick look at your AngelClinic account.</p>
+      <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Here's a quick look at your MyCareDesk account.</p>
 
       {pendingFormsCount > 0 && (
         <Link
@@ -95,7 +95,7 @@ export default async function PortalHomePage() {
           ) : (
             <p style={{ color: "#999", fontSize: 12.5, margin: 0 }}>No upcoming appointments.</p>
           )}
-          <Link href="/portal/appointments" style={{ display: "inline-block", marginTop: 12, fontSize: 12, color: "var(--text-heading, #0c1730)", fontWeight: 600, textDecoration: "none" }}>
+          <Link href="/portal/appointments" style={{ display: "inline-block", marginTop: 12, fontSize: 12, color: "var(--text-heading, var(--brand-primary))", fontWeight: 600, textDecoration: "none" }}>
             View all appointments →
           </Link>
         </div>
@@ -105,7 +105,7 @@ export default async function PortalHomePage() {
             <h2 style={{ fontSize: 13.5, marginTop: 0, marginBottom: 10, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>My Balance</h2>
             <div style={{ fontSize: 22, fontWeight: 700, color: balance > 0 ? "#a12a2a" : "#1a7f37" }}>{peso(balance)}</div>
             <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{balance > 0 ? "Balance due" : "Paid in full"}</div>
-            <Link href="/portal/billing" style={{ display: "inline-block", marginTop: 12, fontSize: 12, color: "var(--text-heading, #0c1730)", fontWeight: 600, textDecoration: "none" }}>
+            <Link href="/portal/billing" style={{ display: "inline-block", marginTop: 12, fontSize: 12, color: "var(--text-heading, var(--brand-primary))", fontWeight: 600, textDecoration: "none" }}>
               View billing →
             </Link>
           </div>

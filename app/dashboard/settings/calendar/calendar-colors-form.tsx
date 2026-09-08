@@ -52,7 +52,7 @@ export function CalendarColorsForm({ statusColors, availabilityColors }: { statu
       <button
         onClick={save}
         disabled={pending}
-        style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
       >
         {pending ? "Saving…" : "Save Colors"}
       </button>

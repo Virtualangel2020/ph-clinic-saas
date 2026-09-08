@@ -192,7 +192,7 @@ export function CollectPaymentWidget({ acceptOnline }: { acceptOnline: boolean }
                 {patient.sex} · {age(patient.date_of_birth)}y · {patient.patient_code ?? "—"}
               </span>
             </div>
-            <button onClick={changePatient} style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontSize: 12.5 }}>
+            <button onClick={changePatient} style={{ background: "none", border: "none", color: "var(--brand-primary)", cursor: "pointer", fontSize: 12.5 }}>
               Change patient
             </button>
           </div>
@@ -232,7 +232,7 @@ export function CollectPaymentWidget({ acceptOnline }: { acceptOnline: boolean }
                     <button
                       onClick={() => sendLink(c.id)}
                       disabled={pending && busyId === c.id}
-                      style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 6, padding: "7px 12px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
+                      style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 6, padding: "7px 12px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
                     >
                       {pending && busyId === c.id ? "Opening…" : linkByCharge[c.id] ? "Send Again" : "Send Payment Link"}
                     </button>

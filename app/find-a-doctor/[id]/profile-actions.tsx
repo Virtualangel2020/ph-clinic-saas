@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AppointmentRequestForm } from "../appointment-request-form";
 
-const NAVY = "#0c1730";
+const NAVY = "var(--brand-primary)";
 
 // Booking + messaging call-to-action for the public profile (spec §29-34,
 // §49-54). Anonymous visitors get a request/inquiry path (existing
@@ -29,7 +29,7 @@ export function ProfileActions({ provider, bookingType, messagingEnabled }: { pr
           <>
             <Link
               href={`/portal/login?next=${encodeURIComponent(`/portal/book/${provider.id}`)}`}
-              style={{ background: NAVY, color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "10px 18px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap" }}
+              style={{ background: NAVY, color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "10px 18px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap" }}
             >
               Book Appointment
             </Link>

@@ -75,7 +75,7 @@ export function EncountersClient({
     <div>
       <div style={{ marginBottom: 14 }}>
         {!open ? (
-          <button onClick={() => setOpen(true)} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => setOpen(true)} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             + New encounter
           </button>
         ) : (
@@ -173,7 +173,7 @@ export function EncountersClient({
 
               {error && <div style={{ fontSize: 12.5, color: "crimson" }}>{error}</div>}
 
-              <button onClick={start} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", justifySelf: "start" }}>
+              <button onClick={start} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", justifySelf: "start" }}>
                 {pending ? "Starting…" : "Start encounter"}
               </button>
             </div>

@@ -182,7 +182,7 @@ export function BookingAccessManager({ clinicDefaults, providers, overrides }: {
           <button
             onClick={saveDefaults}
             disabled={pending}
-            style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
           >
             {pending ? "Saving…" : "Save Clinic Default"}
           </button>
@@ -277,7 +277,7 @@ function ProviderRow({ provider, override }: { provider: { id: string; full_name
               fontWeight: 600,
               color: customized ? "#7a5c12" : "#888",
               background: customized ? "#fff7e6" : "#f2f2f2",
-              border: `1px solid ${customized ? "#e6c66b" : "#ddd"}`,
+              border: `1px solid ${customized ? "var(--brand-secondary)" : "#ddd"}`,
               borderRadius: 999,
               padding: "2px 8px",
               marginTop: 4,
@@ -302,7 +302,7 @@ function ProviderRow({ provider, override }: { provider: { id: string; full_name
             <button
               onClick={saveOverride}
               disabled={pending}
-              style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+              style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
             >
               {pending ? "Saving…" : "Save Override"}
             </button>

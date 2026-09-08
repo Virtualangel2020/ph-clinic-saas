@@ -7,15 +7,15 @@ import { NextResponse } from "next/server";
 export async function GET() {
   return NextResponse.json(
     {
-      name: "Angel Clinic — Super Admin",
+      name: "MyCareDesk — Super Admin",
       short_name: "AC Admin",
-      description: "Super Admin dashboard for Angel Clinic by Virtual Angel Systems.",
+      description: "Super Admin dashboard for MyCareDesk by Virtual Angel Systems.",
       start_url: "/admin",
       scope: "/admin/",
       display: "standalone",
       orientation: "portrait-primary",
-      background_color: "#0c1730",
-      theme_color: "#0c1730",
+      background_color: "#0b2d5c",
+      theme_color: "#0b2d5c",
       icons: [
         { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
         { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

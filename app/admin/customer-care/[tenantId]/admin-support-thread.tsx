@@ -72,7 +72,7 @@ export function AdminSupportThread({ tenantId, initialMessages }: { tenantId: st
             <div key={m.id} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "80%" }}>
               <div
                 style={{
-                  background: mine ? "#0c1730" : "#f1f2f5",
+                  background: mine ? "var(--brand-primary)" : "#f1f2f5",
                   color: mine ? "white" : "#222",
                   borderRadius: 14,
                   padding: "8px 12px",
@@ -112,7 +112,7 @@ export function AdminSupportThread({ tenantId, initialMessages }: { tenantId: st
         <button
           onClick={send}
           disabled={pending || !draft.trim()}
-          style={{ alignSelf: "flex-end", background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: pending || !draft.trim() ? 0.6 : 1 }}
+          style={{ alignSelf: "flex-end", background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: pending || !draft.trim() ? 0.6 : 1 }}
         >
           Send
         </button>

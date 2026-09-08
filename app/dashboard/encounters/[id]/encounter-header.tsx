@@ -86,7 +86,7 @@ export function EncounterHeader({
           <button
             onClick={toggleStatus}
             disabled={pending}
-            style={{ background: status === "closed" ? "#f0f4ff" : "#0c1730", color: status === "closed" ? "#0c1730" : "white", border: status === "closed" ? "1px solid #c7d4f5" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+            style={{ background: status === "closed" ? "#f0f4ff" : "var(--brand-primary)", color: status === "closed" ? "var(--brand-primary)" : "white", border: status === "closed" ? "1px solid #c7d4f5" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
           >
             {status === "closed" ? "Reopen encounter" : "Close encounter"}
           </button>

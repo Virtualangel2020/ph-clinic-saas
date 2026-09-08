@@ -55,14 +55,14 @@ export default async function AdminCustomerCarePage() {
                 alignItems: "center",
                 gap: 16,
                 background: "white",
-                border: c.unreadCount > 0 ? "1px solid #e6c66b" : "1px solid #e2e2e5",
+                border: c.unreadCount > 0 ? "1px solid var(--brand-secondary)" : "1px solid #e2e2e5",
                 borderRadius: 10,
                 padding: "14px 18px",
                 textDecoration: "none",
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14.5, color: "#0c1730" }}>{c.tenantName}</div>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--brand-primary)" }}>{c.tenantName}</div>
                 <div style={{ fontSize: 12.5, color: "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 480 }}>
                   {c.lastMessage.sender_type === "platform" ? "You: " : ""}
                   {c.lastMessage.body}

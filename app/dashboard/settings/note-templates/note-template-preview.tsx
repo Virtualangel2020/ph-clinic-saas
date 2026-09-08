@@ -45,13 +45,13 @@ export function NoteTemplatePreview({
         <strong style={{ color: "#1a1a1a" }}>Chief complaint:</strong> Follow-up, hypertension
       </div>
 
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Vitals</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-primary)", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Vitals</div>
       <div style={{ marginBottom: 16 }}>{SAMPLE_VITALS}</div>
 
       <div style={{ display: "grid", gap: 14 }}>
         {sections.map((s) => (
           <div key={s.key}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-primary)", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>
               {s.label || "(untitled section)"}
             </div>
             <div style={{ color: s.placeholder ? "#333" : "#bbb", fontStyle: s.placeholder ? "normal" : "italic" }}>

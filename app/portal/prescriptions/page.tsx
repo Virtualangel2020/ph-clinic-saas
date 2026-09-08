@@ -21,7 +21,7 @@ export default async function PortalPrescriptionsPage() {
     <PortalShell>
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Prescriptions</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
-        Prescriptions issued by your AngelClinic provider. Electronic sending to a pharmacy is coming soon — for now,
+        Prescriptions issued by your MyCareDesk provider. Electronic sending to a pharmacy is coming soon — for now,
         please bring a printed or photographed copy when filling a prescription.
       </p>
 

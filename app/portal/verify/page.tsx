@@ -71,7 +71,7 @@ function VerifyForm() {
         <button
           type="submit"
           disabled={loading}
-          style={{ padding: 10, borderRadius: 8, border: "none", background: "#2563eb", color: "white", fontWeight: 600, cursor: "pointer" }}
+          style={{ padding: 10, borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "white", fontWeight: 600, cursor: "pointer" }}
         >
           {loading ? "Verifying…" : "Activate account"}
         </button>

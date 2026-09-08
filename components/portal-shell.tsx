@@ -47,9 +47,9 @@ export function PortalShell({ patientName, children }: { patientName?: string | 
                   padding: "9px 12px",
                   fontSize: 12.5,
                   textDecoration: "none",
-                  color: active ? "#0c1730" : "#888",
+                  color: active ? "var(--brand-primary)" : "#888",
                   fontWeight: active ? 700 : 500,
-                  borderBottom: active ? "2px solid #0c1730" : "2px solid transparent",
+                  borderBottom: active ? "2px solid var(--brand-primary)" : "2px solid transparent",
                   whiteSpace: "nowrap",
                 }}
               >

@@ -8,7 +8,7 @@ type Settings = { phone_number: string | null; default_message: string; is_enabl
 export function WhatsappSettingsForm({ settings }: { settings: Settings }) {
   const [phoneNumber, setPhoneNumber] = useState(settings?.phone_number ?? "");
   const [defaultMessage, setDefaultMessage] = useState(
-    settings?.default_message ?? "Hi Virtual Angel Systems, I need help choosing an AngelClinic package."
+    settings?.default_message ?? "Hi Virtual Angel Systems, I need help choosing an MyCareDesk package."
   );
   const [isEnabled, setIsEnabled] = useState(settings?.is_enabled ?? false);
   const [pending, startTransition] = useTransition();

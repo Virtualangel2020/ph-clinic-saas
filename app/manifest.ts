@@ -6,15 +6,15 @@ import type { MetadataRoute } from "next";
 // section installs as its own distinct app).
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Angel Clinic",
-    short_name: "Angel Clinic",
-    description: "Angel Clinic by Virtual Angel Systems — Smart Clinic. Better Care.",
+    name: "MyCareDesk",
+    short_name: "MyCareDesk",
+    description: "MyCareDesk by Virtual Angel Systems — Smart Clinic. Better Care.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#0c1730",
-    theme_color: "#0c1730",
+    background_color: "#0b2d5c",
+    theme_color: "#0b2d5c",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

@@ -46,7 +46,7 @@ export function ExternalProviderManager({ providers, photoUrls }: { providers: P
       {editingId !== "new" && (
         <button
           onClick={() => setEditingId("new")}
-          style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #2563eb", background: "white", color: "#2563eb", fontWeight: 600, fontSize: 13, cursor: "pointer", justifySelf: "start" }}
+          style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid var(--brand-primary)", background: "white", color: "var(--brand-primary)", fontWeight: 600, fontSize: 13, cursor: "pointer", justifySelf: "start" }}
         >
           + Add Provider
         </button>
@@ -186,7 +186,7 @@ function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Prov
   }
 
   return (
-    <div style={{ background: "white", border: "1px solid #2563eb", borderRadius: 10, padding: 18 }}>
+    <div style={{ background: "white", border: "1px solid var(--brand-primary)", borderRadius: 10, padding: 18 }}>
       <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>
         <div style={{ width: 72, height: 72, borderRadius: 8, overflow: "hidden", background: "#f7f7f8", border: "1px solid #eee", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {previewUrl ? (
@@ -290,7 +290,7 @@ function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Prov
         <button
           onClick={save}
           disabled={pending || uploading}
-          style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
+          style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
         >
           {pending ? "Saving…" : provider ? "Save changes" : "Add provider"}
         </button>

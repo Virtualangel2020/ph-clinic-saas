@@ -265,7 +265,7 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
         <p style={{ fontSize: 11.5, color: "#888", marginTop: -4, marginBottom: 8 }}>
           If this patient came in through an accepted referral already recorded in Referrals, that shows
           automatically on the chart — only fill this in if the source isn&apos;t captured there (e.g. word of
-          mouth, a doctor outside AngelClinic, walk-in).
+          mouth, a doctor outside MyCareDesk, walk-in).
         </p>
         <input
           style={FIELD_STYLE}
@@ -286,7 +286,7 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
         <button
           onClick={save}
           disabled={pending}
-          style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
+          style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
         >
           {pending ? "Saving…" : patient ? "Save changes" : "Add patient"}
         </button>

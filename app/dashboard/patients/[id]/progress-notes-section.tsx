@@ -248,7 +248,7 @@ export function ProgressNotesSection({
                   fontWeight: 700,
                   border: "none",
                   cursor: "pointer",
-                  background: tab === t ? "#0c1730" : "#f7f7f9",
+                  background: tab === t ? "var(--brand-primary)" : "#f7f7f9",
                   color: tab === t ? "white" : "#555",
                 }}
               >
@@ -339,7 +339,7 @@ export function ProgressNotesSection({
               </>
             )}
             {error && <p style={{ fontSize: 12, color: "crimson", margin: 0 }}>{error}</p>}
-            <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start", marginTop: 4 }}>
+            <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start", marginTop: 4 }}>
               {pending ? "Saving…" : isSignedEncounter ? "Save amendment" : "Save note"}
             </button>
           </div>

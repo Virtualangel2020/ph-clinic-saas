@@ -209,7 +209,7 @@ export function CalendarView({
                   fontWeight: 600,
                   textDecoration: "none",
                   color: view === v ? "white" : "#555",
-                  background: view === v ? "#0c1730" : "white",
+                  background: view === v ? "var(--brand-primary)" : "white",
                   textTransform: "capitalize",
                 }}
               >
@@ -219,7 +219,7 @@ export function CalendarView({
           </div>
           <button
             onClick={() => openNew(anchor)}
-            style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
           >
             + New appointment
           </button>
@@ -227,7 +227,7 @@ export function CalendarView({
       </div>
 
       {pendingMove && (
-        <div style={{ background: "#fff8e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ background: "#fff8e6", border: "1px solid var(--brand-secondary)", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div style={{ fontSize: 12.5, color: "#5a4600" }}>
             <div style={{ fontWeight: 700, marginBottom: 2 }}>
               Move {pendingMove.label}: {pendingMove.fromLabel} → {pendingMove.toLabel}?
@@ -247,8 +247,8 @@ export function CalendarView({
               onClick={confirmMove}
               disabled={moveBusy}
               style={{
-                background: pendingMove.conflicts.length > 0 ? "#a12a2a" : "#0c1730",
-                color: pendingMove.conflicts.length > 0 ? "white" : "#e6c66b",
+                background: pendingMove.conflicts.length > 0 ? "#a12a2a" : "var(--brand-primary)",
+                color: pendingMove.conflicts.length > 0 ? "white" : "var(--brand-secondary)",
                 border: "none",
                 borderRadius: 7,
                 padding: "7px 14px",
@@ -387,8 +387,8 @@ function CalendarSidebar({
                   borderRadius: 6,
                   fontSize: 11,
                   textDecoration: "none",
-                  color: isSelected ? "white" : isToday ? "#0c1730" : inMonth ? "#333" : "#ccc",
-                  background: isSelected ? "#0c1730" : isToday ? "#f0f4ff" : "transparent",
+                  color: isSelected ? "white" : isToday ? "var(--brand-primary)" : inMonth ? "#333" : "#ccc",
+                  background: isSelected ? "var(--brand-primary)" : isToday ? "#f0f4ff" : "transparent",
                   fontWeight: isToday || isSelected ? 700 : 400,
                 }}
               >
@@ -527,7 +527,7 @@ function BlockTimeForm({ providers, defaultDate, onDone }: { providers: Provider
       </div>
       <input placeholder="Reason (e.g. Lunch, Leave)" value={reason} onChange={(e) => setReason(e.target.value)} style={miniFieldStyle} />
       {error && <div style={{ color: "crimson" }}>{error}</div>}
-      <button onClick={submit} disabled={pending} style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 11.5, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer" }}>
+      <button onClick={submit} disabled={pending} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 11.5, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer" }}>
         {pending ? "Saving…" : "Add block"}
       </button>
     </div>
@@ -746,7 +746,7 @@ function GridColumn({
         const rect = e.currentTarget.getBoundingClientRect();
         onDropAppt(apptId, date, yToTime(e.clientY - rect.top), providerId);
       }}
-      style={{ position: "relative", height: GRID_HEIGHT, cursor: "pointer", outline: dragOver ? "2px dashed #0c1730" : "none", outlineOffset: -2 }}
+      style={{ position: "relative", height: GRID_HEIGHT, cursor: "pointer", outline: dragOver ? "2px dashed var(--brand-primary)" : "none", outlineOffset: -2 }}
     >
       {availabilityColors && <AvailabilityShading avail={avail} availabilityColors={availabilityColors} />}
       <GridLines />
@@ -881,7 +881,7 @@ function WeekView({
             const isToday = d === today;
             return (
               <div key={d} style={{ flex: 1, minWidth: colWidth, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderLeft: "1px solid #eee", background: isToday ? "#f0f4ff" : "white" }}>
-                <span style={{ fontWeight: 700, fontSize: 12.5, color: isToday ? "#0c1730" : "#555" }}>{formatDayLabel(d)}</span>
+                <span style={{ fontWeight: 700, fontSize: 12.5, color: isToday ? "var(--brand-primary)" : "#555" }}>{formatDayLabel(d)}</span>
                 <button onClick={() => onAddAt(d, "09:00")} title="Add appointment" style={{ background: "none", border: "none", color: "var(--text-heading)", cursor: "pointer", fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
                   +
                 </button>
@@ -939,14 +939,14 @@ function MonthView({ anchor, appointments }: { anchor: string; appointments: App
                 display: "block",
                 minHeight: 78,
                 background: "var(--card-bg)",
-                border: `1px solid ${isToday ? "#0c1730" : "#e2e2e5"}`,
+                border: `1px solid ${isToday ? "var(--brand-primary)" : "#e2e2e5"}`,
                 borderRadius: 8,
                 padding: 6,
                 textDecoration: "none",
                 opacity: inMonth ? 1 : 0.4,
               }}
             >
-              <div style={{ fontSize: 11.5, fontWeight: isToday ? 800 : 600, color: isToday ? "#0c1730" : "#666", marginBottom: 4 }}>{Number(d.slice(8, 10))}</div>
+              <div style={{ fontSize: 11.5, fontWeight: isToday ? 800 : 600, color: isToday ? "var(--brand-primary)" : "#666", marginBottom: 4 }}>{Number(d.slice(8, 10))}</div>
               {dayAppts.slice(0, 3).map((a) => (
                 <div key={a.id} style={{ fontSize: 10, color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 1 }}>
                   <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: a.appointment_types?.color ?? "#888", marginRight: 3 }} />

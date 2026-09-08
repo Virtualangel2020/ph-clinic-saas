@@ -333,13 +333,13 @@ export function FormTemplatesClient({
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
               onClick={() => startNew("intake")}
-              style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
+              style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
             >
               + New Intake Form
             </button>
             <button
               onClick={() => startNew("consent")}
-              style={{ background: "none", border: "1px solid #0c1730", color: "var(--text-heading)", fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, cursor: "pointer" }}
+              style={{ background: "none", border: "1px solid var(--brand-primary)", color: "var(--text-heading)", fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, cursor: "pointer" }}
             >
               + New Consent Form
             </button>
@@ -481,7 +481,7 @@ export function FormTemplatesClient({
             <button
               onClick={save}
               disabled={pending || !editing.name.trim()}
-              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
             >
               {pending ? "Saving…" : "Save Template"}
             </button>

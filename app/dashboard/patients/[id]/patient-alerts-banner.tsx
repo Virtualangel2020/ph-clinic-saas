@@ -135,7 +135,7 @@ export function PatientAlertsBanner({ patientId, alerts }: { patientId: string; 
           />
           {error && <div style={{ fontSize: 12, color: "crimson", marginBottom: 8 }}>{error}</div>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={addAlert} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}>
+            <button onClick={addAlert} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}>
               Add alert
             </button>
             <button onClick={() => { setShowAdd(false); setError(null); }} disabled={pending} style={{ background: "var(--card-bg)", color: "#666", border: "1px solid var(--input-border)", borderRadius: 6, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>

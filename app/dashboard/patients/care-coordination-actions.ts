@@ -19,11 +19,11 @@ export type DirectoryProvider = {
   tenant_id: string;
 };
 
-// Searches ALL AngelClinic tenants — the one place this app crosses tenant
+// Searches ALL MyCareDesk tenants — the one place this app crosses tenant
 // boundaries, safe because it only returns name/title/specialty/clinic,
 // never PHI. Used both for picking a Primary/Family Doctor and for a
-// sharing-preference / "Send to AngelClinic Provider" target.
-export async function searchAngelClinicProvidersAction(query: string): Promise<DirectoryProvider[]> {
+// sharing-preference / "Send to MyCareDesk Provider" target.
+export async function searchMyCareDeskProvidersAction(query: string): Promise<DirectoryProvider[]> {
   await requireClinicMember();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("search_angelclinic_providers", { p_query: query || "" });
@@ -53,10 +53,10 @@ export async function setSharingPreferenceAction(patientId: string, providerUser
 
 export type ExternalDirectoryProvider = { id: string; full_name: string; credentials: string | null; specialty: string | null; clinic_name: string | null; city: string | null };
 
-// External providers (not AngelClinic users) — the curated directory
+// External providers (not MyCareDesk users) — the curated directory
 // already used by the public Find a Doctor page. Read-only here; never
 // eligible as a sharing-preference target (spec §8 — no fake internal
-// delivery to someone without an AngelClinic account).
+// delivery to someone without an MyCareDesk account).
 export async function searchExternalProvidersAction(query: string): Promise<ExternalDirectoryProvider[]> {
   await requireClinicMember();
   const supabase = await createClient();
@@ -72,7 +72,7 @@ export async function searchExternalProvidersAction(query: string): Promise<Exte
   return (data as any) ?? [];
 }
 
-// Used by the "Send to AngelClinic Provider" confirmation screen (spec
+// Used by the "Send to MyCareDesk Provider" confirmation screen (spec
 // §14) to show "authorization verified" before the user commits to
 // sending — read-only, the send RPC re-checks this itself server-side.
 export async function checkSharingAuthorizedAction(patientId: string, providerUserId: string): Promise<boolean> {

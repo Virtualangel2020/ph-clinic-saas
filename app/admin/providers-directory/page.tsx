@@ -2,8 +2,8 @@ import { requireAdmin } from "@/lib/require-admin";
 import { ExternalProviderManager } from "./external-provider-manager";
 
 // Manages external_providers — the "Other Providers" category on the
-// public /find-a-doctor page, for real providers who aren't on AngelClinic.
-// AngelClinic's own providers manage their own listing themselves (Settings
+// public /find-a-doctor page, for real providers who aren't on MyCareDesk.
+// MyCareDesk's own providers manage their own listing themselves (Settings
 // → Providers & Credentials → Public directory listing) — that's their own
 // account data, not something Superadmin edits on their behalf. This page
 // is only for the manually-curated external category.
@@ -27,7 +27,7 @@ export default async function ProvidersDirectoryPage() {
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>Provider Directory</h1>
       <p style={{ color: "#666", marginBottom: 24, maxWidth: 640 }}>
-        Manually-entered listings for real, verified providers who aren't AngelClinic users — shown under "Other
+        Manually-entered listings for real, verified providers who aren't MyCareDesk users — shown under "Other
         Providers" on the public Find a Doctor page. Never scraped, never fabricated — only add someone here if
         you've actually verified their information.
       </p>

@@ -39,13 +39,13 @@ export function DemoPopup() {
         bottom: 24,
         left: 24,
         zIndex: 40,
-        background: "#0c1730",
+        background: "var(--brand-primary)",
         color: "#f4f5f7",
         borderRadius: 14,
         padding: "18px 20px",
         maxWidth: 300,
-        boxShadow: "0 12px 32px rgba(12,23,48,0.35)",
-        border: "1px solid rgba(230,198,107,0.3)",
+        boxShadow: "0 12px 32px rgba(11,45,92,0.35)",
+        border: "1px solid rgba(4,156,160,0.3)",
       }}
     >
       <button
@@ -55,14 +55,14 @@ export function DemoPopup() {
       >
         ✕
       </button>
-      <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 6 }}>Curious how AngelClinic works?</div>
+      <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 6 }}>Curious how MyCareDesk works?</div>
       <p style={{ fontSize: 12.5, color: "rgba(244,245,247,0.75)", lineHeight: 1.5, margin: "0 0 14px" }}>
         We'll walk you through it — no pressure, just a quick look.
       </p>
       <Link
         href="/request-demo"
         onClick={dismiss}
-        style={{ display: "inline-block", background: "#e6c66b", color: "#0c1730", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 7, textDecoration: "none" }}
+        style={{ display: "inline-block", background: "var(--brand-secondary)", color: "var(--brand-primary)", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 7, textDecoration: "none" }}
       >
         Request a Demo →
       </Link>

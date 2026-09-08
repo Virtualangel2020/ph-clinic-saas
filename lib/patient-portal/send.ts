@@ -27,7 +27,7 @@ export async function sendPortalEmail(opts: { toEmail: string; toName: string; s
       method: "POST",
       headers: { Authorization: `Bearer ${settings.api_key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: `${settings.from_name || "AngelClinic"} <${settings.from_email}>`,
+        from: `${settings.from_name || "MyCareDesk"} <${settings.from_email}>`,
         to: [opts.toEmail],
         subject: opts.subject,
         html: opts.html,

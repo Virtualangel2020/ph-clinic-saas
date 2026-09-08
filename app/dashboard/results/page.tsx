@@ -131,7 +131,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: Sear
           <input type="date" name="to" defaultValue={toDate} style={filterInputStyle} />
         </div>
         <input type="hidden" name="status" value={statusFilter} />
-        <button type="submit" style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer" }}>
+        <button type="submit" style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer" }}>
           Apply
         </button>
         {hasFilters && (
@@ -161,9 +161,9 @@ export default async function ResultsPage({ searchParams }: { searchParams: Sear
                 padding: "5px 12px",
                 borderRadius: 999,
                 textDecoration: "none",
-                border: `1px solid ${isActive ? "#0c1730" : "#ddd"}`,
+                border: `1px solid ${isActive ? "var(--brand-primary)" : "#ddd"}`,
                 color: isActive ? "white" : "#555",
-                background: isActive ? "#0c1730" : "white",
+                background: isActive ? "var(--brand-primary)" : "white",
               }}
             >
               {f.label}

@@ -9,7 +9,7 @@ export function EmailProviderSettingsForm({ settings }: { settings: Settings }) 
   const [provider, setProvider] = useState(settings?.provider ?? "resend");
   const [apiKey, setApiKey] = useState("");
   const [fromEmail, setFromEmail] = useState(settings?.from_email ?? "");
-  const [fromName, setFromName] = useState(settings?.from_name ?? "AngelClinic");
+  const [fromName, setFromName] = useState(settings?.from_name ?? "MyCareDesk");
   const [isEnabled, setIsEnabled] = useState(settings?.is_enabled ?? false);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -53,7 +53,7 @@ export function EmailProviderSettingsForm({ settings }: { settings: Settings }) 
         </label>
         <label>
           <div style={labelStyle}>From email</div>
-          <input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} onBlur={() => save()} placeholder="notifications@angelclinic.ph" disabled={pending} style={inputStyle} />
+          <input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} onBlur={() => save()} placeholder="notifications@mycaredesk.ph" disabled={pending} style={inputStyle} />
         </label>
         <label>
           <div style={labelStyle}>From name</div>

@@ -50,7 +50,7 @@ export function ShareOfferPrompt({
       </p>
       {error && <p style={{ fontSize: 11.5, color: "crimson", margin: "0 0 8px" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={send} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={send} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
           {pending ? "Sending…" : `Send Copy to ${providerName}`}
         </button>
         <button onClick={() => setDismissed(true)} disabled={pending} style={{ background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>

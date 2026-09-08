@@ -84,7 +84,7 @@ export function StaffInviteForm({ staff }: { staff: StaffMember[] }) {
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} style={{ ...buttonStyle, background: "var(--card-bg)", color: "#2563eb", border: "1px solid #2563eb" }}>
+        <button onClick={() => setShowForm(true)} style={{ ...buttonStyle, background: "var(--card-bg)", color: "var(--brand-primary)", border: "1px solid var(--brand-primary)" }}>
           + Invite staff
         </button>
       )}
@@ -94,4 +94,4 @@ export function StaffInviteForm({ staff }: { staff: StaffMember[] }) {
 }
 
 const inputStyle: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 };
-const buttonStyle: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "none", background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const buttonStyle: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" };

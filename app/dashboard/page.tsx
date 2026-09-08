@@ -7,7 +7,7 @@ import { getDashboardData } from "@/lib/dashboard/get-dashboard-data";
 import { STATUS_GLYPH, STATUS_LABEL, statusColor } from "./calendar/status-constants";
 
 // Overrides the root manifest so /dashboard installs as its own app
-// ("Angel Clinic — Staff"), separate from the Super Admin dashboard.
+// ("MyCareDesk — Staff"), separate from the Super Admin dashboard.
 export const metadata: Metadata = {
   manifest: "/api/pwa/staff-manifest",
   appleWebApp: {
@@ -25,7 +25,7 @@ function Card({ title, children, href, hrefLabel }: { title: string; children: R
       <h2 style={{ fontSize: 12.5, marginTop: 0, marginBottom: 12, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 }}>{title}</h2>
       <div style={{ flex: 1 }}>{children}</div>
       {href && (
-        <Link href={href} style={{ fontSize: 12, color: "#2563eb", marginTop: 10, display: "inline-block" }}>
+        <Link href={href} style={{ fontSize: 12, color: "var(--brand-primary)", marginTop: 10, display: "inline-block" }}>
           {hrefLabel ?? "View →"}
         </Link>
       )}
@@ -117,7 +117,7 @@ export default async function DashboardPage() {
         <p style={{ color: "#555", marginBottom: 24 }}>Signed in as {user!.email}</p>
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 28, textAlign: "center" }}>
           <h1 style={{ fontSize: 20, marginTop: 0, marginBottom: 8 }}>
-            {pendingRequest ? "Your AngelClinic system isn't set up yet" : "You haven't activated an AngelClinic system yet"}
+            {pendingRequest ? "Your MyCareDesk system isn't set up yet" : "You haven't activated an MyCareDesk system yet"}
           </h1>
           <p style={{ color: "#666", fontSize: 14, marginBottom: 20 }}>
             {pendingRequest
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
           </p>
           <Link
             href="/get-started"
-            style={{ display: "inline-block", padding: "11px 22px", borderRadius: 8, background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
+            style={{ display: "inline-block", padding: "11px 22px", borderRadius: 8, background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
           >
             {pendingRequest ? "Continue setting up your system →" : "Choose a Plan →"}
           </Link>
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
           <Link
             key={i}
             href={a.href}
-            style={{ fontSize: 12.5, fontWeight: 700, color: "#0c1730", background: "#f3e9c8", border: "1px solid #e6c66b", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}
+            style={{ fontSize: 12.5, fontWeight: 700, color: "var(--brand-primary)", background: "var(--brand-surface-tint)", border: "1px solid var(--brand-border-tint)", borderRadius: 8, padding: "8px 14px", textDecoration: "none" }}
           >
             {a.label}
           </Link>
@@ -348,7 +348,7 @@ export default async function DashboardPage() {
             ))}
           </div>
         )}
-        <Link href={`/dashboard/calendar?view=day&date=${data.today}`} style={{ fontSize: 12.5, color: "#2563eb" }}>
+        <Link href={`/dashboard/calendar?view=day&date=${data.today}`} style={{ fontSize: 12.5, color: "var(--brand-primary)" }}>
           View full calendar →
         </Link>
       </div>

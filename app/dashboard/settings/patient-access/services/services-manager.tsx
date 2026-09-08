@@ -303,7 +303,7 @@ function ServiceRow({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
               {pending ? "Saving…" : "Save Service"}
             </button>
             {error && <span style={{ fontSize: 12, color: "#a12a2a" }}>{error}</span>}

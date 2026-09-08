@@ -201,7 +201,7 @@ export function LabSection({ patientId, labOrders }: { patientId: string; labOrd
           </div>
 
           {error && <p style={{ fontSize: 12, color: "#a12a2a", margin: 0 }}>{error}</p>}
-          <button onClick={saveOrder} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
+          <button onClick={saveOrder} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
             {pending ? "Placing…" : "Place order"}
           </button>
         </div>
@@ -360,7 +360,7 @@ function LabOrderCard({ order, patientId }: { order: LabOrderRow; patientId: str
                 style={{ ...FIELD_STYLE, minHeight: 60 }}
               />
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={saveResult} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
+                <button onClick={saveResult} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
                   {pending ? "Saving…" : "Save result"}
                 </button>
                 <button onClick={() => { setAddingResult(false); setResultSummary(""); setError(null); }} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12.5 }}>

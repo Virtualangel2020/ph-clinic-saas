@@ -58,10 +58,10 @@ export function MonthMiniCalendar({ monthAnchor, selectedDate, encounterDates }:
               title={hasDot ? "Has encounters" : undefined}
               style={{
                 position: "relative",
-                border: isToday ? "1px solid #0c1730" : "1px solid transparent",
+                border: isToday ? "1px solid var(--brand-primary)" : "1px solid transparent",
                 borderRadius: 6,
-                background: isSelected ? "#0c1730" : "transparent",
-                color: isSelected ? "#e6c66b" : inMonth ? "#1a1a1a" : "#ccc",
+                background: isSelected ? "var(--brand-primary)" : "transparent",
+                color: isSelected ? "var(--brand-secondary)" : inMonth ? "#1a1a1a" : "#ccc",
                 fontSize: 11.5,
                 padding: "5px 0",
                 cursor: "pointer",
@@ -79,7 +79,7 @@ export function MonthMiniCalendar({ monthAnchor, selectedDate, encounterDates }:
                     width: 4,
                     height: 4,
                     borderRadius: "50%",
-                    background: isSelected ? "#e6c66b" : "#4a86e8",
+                    background: isSelected ? "var(--brand-secondary)" : "#4a86e8",
                   }}
                 />
               )}

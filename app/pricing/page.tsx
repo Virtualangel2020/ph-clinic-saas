@@ -6,10 +6,10 @@ import { WhatsappButton } from "@/components/whatsapp-button";
 import { PricingSection } from "@/components/pricing-section";
 import { FaqSection } from "@/components/faq-section";
 
-const NAVY = "#0c1730";
-const GOLD = "#e6c66b";
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
 
-// Part 58-61: the dedicated public pricing page. One AngelClinic Core plan
+// Part 58-61: the dedicated public pricing page. One MyCareDesk Core plan
 // (Basic/Professional/Premium are retired, see migration
 // angelclinic_core_addon_restructure) + provider-seat add-on pricing +
 // optional add-ons + Enterprise contact for large practices. Every number
@@ -59,16 +59,16 @@ export default async function PricingPage() {
   });
 
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>
           Pricing
         </div>
         <h1 style={{ fontSize: 34, margin: "0 0 12px" }}>One Plan. Everything Your Clinic Needs.</h1>
         <p style={{ color: "rgba(244,245,247,0.8)", fontSize: 15, maxWidth: 560, margin: "0 auto" }}>
-          AngelClinic Core includes patient records, scheduling, encounters, prescriptions, referrals, HMO/PhilHealth,
+          MyCareDesk Core includes patient records, scheduling, encounters, prescriptions, referrals, HMO/PhilHealth,
           branding, and more — no tiers to compare, no features locked behind a higher plan.
         </p>
       </section>

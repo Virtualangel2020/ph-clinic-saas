@@ -27,7 +27,7 @@ export function SharingRequestCard({ requestId, providerLabel }: { requestId: st
   }
 
   return (
-    <div style={{ background: "#fff8e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+    <div style={{ background: "#fff8e6", border: "1px solid var(--brand-secondary)", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8a6100", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>
         Action needed
       </div>

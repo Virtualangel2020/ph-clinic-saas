@@ -83,7 +83,7 @@ export function PortalFormsClient({ forms }: { forms: PatientFormRow[] }) {
                     {fillingId !== f.id && (
                       <button
                         onClick={() => startFill(f)}
-                        style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
+                        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
                       >
                         Fill out
                       </button>
@@ -190,7 +190,7 @@ export function PortalFormsClient({ forms }: { forms: PatientFormRow[] }) {
                         <button
                           onClick={() => submit(f)}
                           disabled={pending}
-                          style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
+                          style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
                         >
                           {pending ? "Submitting…" : "Submit & Sign"}
                         </button>

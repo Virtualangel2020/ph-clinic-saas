@@ -29,22 +29,22 @@ export function AppointmentRequestForm({ provider, onClose }: { provider: { id: 
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(12,23,48,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(11,45,92,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
       <div style={{ background: "white", borderRadius: 14, padding: 26, maxWidth: 420, width: "100%", maxHeight: "88vh", overflowY: "auto" }}>
         {sent ? (
           <>
-            <h3 style={{ fontSize: 17, margin: "0 0 8px", color: "#0c1730" }}>Request sent</h3>
+            <h3 style={{ fontSize: 17, margin: "0 0 8px", color: "var(--brand-primary)" }}>Request sent</h3>
             <p style={{ color: "#666", fontSize: 13.5, margin: "0 0 18px" }}>
               {provider.full_name}'s clinic will reach out to confirm your appointment — this is a request, not a
               confirmed booking.
             </p>
-            <button onClick={onClose} style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+            <button onClick={onClose} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}>
               Close
             </button>
           </>
         ) : (
           <form onSubmit={submit}>
-            <h3 style={{ fontSize: 17, margin: "0 0 4px", color: "#0c1730" }}>Request an appointment</h3>
+            <h3 style={{ fontSize: 17, margin: "0 0 4px", color: "var(--brand-primary)" }}>Request an appointment</h3>
             <p style={{ color: "#888", fontSize: 12.5, margin: "0 0 16px" }}>
               with {provider.full_name} — this sends a request to the clinic; it does not book a confirmed slot.
             </p>
@@ -83,7 +83,7 @@ export function AppointmentRequestForm({ provider, onClose }: { provider: { id: 
               <button
                 type="submit"
                 disabled={pending}
-                style={{ flex: 1, background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+                style={{ flex: 1, background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
               >
                 {pending ? "Sending…" : "Send Request"}
               </button>

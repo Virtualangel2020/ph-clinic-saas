@@ -3,8 +3,8 @@ import { SiteNav } from "@/components/public/site-nav";
 import { SiteFooter } from "@/components/public/site-footer";
 import { DirectorySearch } from "./directory-search";
 
-const NAVY = "#0c1730";
-const GOLD = "#e6c66b";
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
 
 // Find a Doctor (spec §28) — re-enabled with the new Booking/Payment-
 // Coverage/Specialty/Location filters, on top of the SAME
@@ -30,14 +30,14 @@ export default async function FindADoctorPage() {
   }));
 
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>Find a Doctor</div>
         <h1 style={{ fontSize: 32, margin: "0 0 12px" }}>Find a Provider</h1>
         <p style={{ color: "rgba(244,245,247,0.8)", fontSize: 15, maxWidth: 560, margin: "0 auto" }}>
-          Search AngelClinic providers who've made their profile public. Providers control whether they're listed
+          Search MyCareDesk providers who've made their profile public. Providers control whether they're listed
           here — nothing is added without their consent.
         </p>
       </section>

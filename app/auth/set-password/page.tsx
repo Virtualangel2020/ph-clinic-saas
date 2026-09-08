@@ -68,7 +68,7 @@ export default function SetPasswordPage() {
         <h1 style={{ fontSize: 20 }}>This link has expired</h1>
         <p style={{ color: "#666", fontSize: 14 }}>
           Invite links only work once and expire after a while. Ask whoever invited you to send a fresh one, or{" "}
-          <a href="/login" style={{ color: "#2563eb" }}>sign in</a> if you already set a password.
+          <a href="/login" style={{ color: "var(--brand-primary)" }}>sign in</a> if you already set a password.
         </p>
       </main>
     );
@@ -108,8 +108,8 @@ export default function SetPasswordPage() {
             padding: 10,
             borderRadius: 8,
             border: "none",
-            background: "#0c1730",
-            color: "#e6c66b",
+            background: "var(--brand-primary)",
+            color: "var(--brand-secondary)",
             fontWeight: 700,
             cursor: "pointer",
           }}

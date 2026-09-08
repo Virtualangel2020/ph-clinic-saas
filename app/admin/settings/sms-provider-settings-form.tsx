@@ -50,7 +50,7 @@ export function SmsProviderSettingsForm({ settings }: { settings: Settings }) {
         </label>
         <label>
           <div style={labelStyle}>Sender ID / name</div>
-          <input value={senderId} onChange={(e) => setSenderId(e.target.value)} onBlur={() => save()} placeholder="AngelClinic" disabled={pending} style={inputStyle} />
+          <input value={senderId} onChange={(e) => setSenderId(e.target.value)} onBlur={() => save()} placeholder="MyCareDesk" disabled={pending} style={inputStyle} />
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
           <input

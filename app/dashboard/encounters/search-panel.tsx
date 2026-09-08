@@ -107,7 +107,7 @@ export function SearchPanel({ providers, appointmentTypes, clinicName }: { provi
             </select>
           </div>
         </div>
-        <button onClick={runSearch} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={runSearch} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           {pending && !searched ? "Searching…" : "Search"}
         </button>
       </div>

@@ -360,7 +360,7 @@ export async function setDocumentStatusAction(id: string, patientId: string, sta
 // backed by patients.records_sharing_mode + patient_document_shares) lived
 // here and was removed — it never went live and duplicated the richer,
 // pre-existing patient_sharing_preferences authorization model. Sending a
-// document to another provider (same clinic or a different AngelClinic
+// document to another provider (same clinic or a different MyCareDesk
 // clinic) now goes through Records Exchange instead — see
 // sendDocumentRecordsTransferAction in
 // app/dashboard/encounters/records-exchange-actions.ts, used from
@@ -476,7 +476,7 @@ export async function invitePatientToPortalAction(patientId: string, channel: "e
   if (error) throw new Error(error.message);
 
   const { data: clinic } = await supabase.from("clinic_settings").select("clinic_name").eq("tenant_id", profile.tenant_id).maybeSingle();
-  const clinicName = clinic?.clinic_name || "AngelClinic";
+  const clinicName = clinic?.clinic_name || "Your Clinic";
 
   if (channel === "email") {
     const link = `${origin}/portal/activate?token=${invite.raw_token}`;
@@ -734,7 +734,7 @@ export async function recordPatientChargePaymentAction(
 }
 
 // "Pay Online" (Billing tab) — staff-initiated PayMongo Checkout Session
-// for one specific open charge. Uses AngelClinic's own PayMongo account
+// for one specific open charge. Uses MyCareDesk's own PayMongo account
 // (same PAYMONGO_SECRET_KEY as the platform's subscription billing — see
 // lib/patient-paymongo.ts for why that's fine for now and what changes
 // later if a clinic gets its own merchant account). Does NOT mark

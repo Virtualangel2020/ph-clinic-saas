@@ -2,7 +2,7 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 import { IncomingTransferRow } from "./incoming-transfer-row";
 import { SentTransferRow } from "./sent-transfer-row";
 
-// Records Exchange (spec §7, §14-18) — internal AngelClinic-provider-to-
+// Records Exchange (spec §7, §14-18) — internal MyCareDesk-provider-to-
 // -provider sharing, never email. "Incoming" is the Review → Accept & File
 // workflow; "Sent" is a read-only log of what this clinic has sent out.
 // Deliberately its own page rather than folded into the Phase-5 Referrals
@@ -46,7 +46,7 @@ export default async function RecordsExchangePage({ searchParams }: { searchPara
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>Records Exchange</h1>
       <p style={{ color: "#666", marginBottom: 16, fontSize: 13 }}>
-        Secure, internal AngelClinic-to-AngelClinic record sharing — never email. Send from a patient's Encounters
+        Secure, internal MyCareDesk-to-MyCareDesk record sharing — never email. Send from a patient's Encounters
         or Documents tab; review and file what other providers send you here.
       </p>
 
@@ -57,7 +57,7 @@ export default async function RecordsExchangePage({ searchParams }: { searchPara
 
       {tab === "incoming" ? (
         (incoming ?? []).length === 0 ? (
-          <Empty text="Nothing has been sent to you yet — you'll see requests here once another AngelClinic provider sends records for a shared patient." />
+          <Empty text="Nothing has been sent to you yet — you'll see requests here once another MyCareDesk provider sends records for a shared patient." />
         ) : (
           <div style={{ display: "grid", gap: 10 }}>
             {(incoming as any[]).map((t) => (
@@ -66,7 +66,7 @@ export default async function RecordsExchangePage({ searchParams }: { searchPara
           </div>
         )
       ) : (sent ?? []).length === 0 ? (
-        <Empty text="Nothing sent yet — send records to another AngelClinic provider from a patient's Encounters or Documents tab." />
+        <Empty text="Nothing sent yet — send records to another MyCareDesk provider from a patient's Encounters or Documents tab." />
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {(sent as any[]).map((t) => (
@@ -87,8 +87,8 @@ function TabLink({ href, active, label }: { href: string; active: boolean; label
         fontSize: 13,
         fontWeight: 600,
         textDecoration: "none",
-        color: active ? "#0c1730" : "#888",
-        borderBottom: active ? "2px solid #0c1730" : "2px solid transparent",
+        color: active ? "var(--brand-primary)" : "#888",
+        borderBottom: active ? "2px solid var(--brand-primary)" : "2px solid transparent",
       }}
     >
       {label}

@@ -132,9 +132,9 @@ export function ComposeWidget({ emailConfigured, smsConfigured }: { emailConfigu
               fontSize: 12.5,
               fontWeight: 700,
               borderRadius: 999,
-              border: `1px solid ${channel === c ? "#0c1730" : "#ddd"}`,
-              background: channel === c ? "#0c1730" : "transparent",
-              color: channel === c ? "#e6c66b" : "#666",
+              border: `1px solid ${channel === c ? "var(--brand-primary)" : "#ddd"}`,
+              background: channel === c ? "var(--brand-primary)" : "transparent",
+              color: channel === c ? "var(--brand-secondary)" : "#666",
               cursor: "pointer",
             }}
           >
@@ -207,7 +207,7 @@ export function ComposeWidget({ emailConfigured, smsConfigured }: { emailConfigu
                 {patient.sex} · {age(patient.date_of_birth)}y · {patient.patient_code ?? "—"}
               </span>
             </div>
-            <button onClick={changePatient} style={{ background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontSize: 12.5 }}>
+            <button onClick={changePatient} style={{ background: "none", border: "none", color: "var(--brand-primary)", cursor: "pointer", fontSize: 12.5 }}>
               Change patient
             </button>
           </div>
@@ -244,8 +244,8 @@ export function ComposeWidget({ emailConfigured, smsConfigured }: { emailConfigu
                 onClick={send}
                 disabled={pending || !toAddress.trim() || !message.trim()}
                 style={{
-                  background: "#0c1730",
-                  color: "#e6c66b",
+                  background: "var(--brand-primary)",
+                  color: "var(--brand-secondary)",
                   border: "none",
                   borderRadius: 8,
                   padding: "9px 18px",

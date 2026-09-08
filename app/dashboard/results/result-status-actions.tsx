@@ -46,8 +46,8 @@ export function ResultStatusActions({ id, patientId, status }: { id: string; pat
 }
 
 const btnStyle: React.CSSProperties = {
-  border: "1px solid #0c1730",
-  background: "#0c1730",
+  border: "1px solid var(--brand-primary)",
+  background: "var(--brand-primary)",
   color: "white",
   borderRadius: 8,
   padding: "7px 12px",

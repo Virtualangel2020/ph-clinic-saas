@@ -2,21 +2,21 @@ import { SiteNav } from "@/components/public/site-nav";
 import { SiteFooter } from "@/components/public/site-footer";
 import { RequestDemoForm } from "./request-demo-form";
 
-const NAVY = "#0c1730";
-const GOLD = "#e6c66b";
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
 
 export default function RequestDemoPage() {
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>
           Request a Demo
         </div>
-        <h1 style={{ fontSize: 32, margin: "0 0 12px" }}>See AngelClinic in Action</h1>
+        <h1 style={{ fontSize: 32, margin: "0 0 12px" }}>See MyCareDesk in Action</h1>
         <p style={{ color: "rgba(244,245,247,0.8)", fontSize: 15, maxWidth: 520, margin: "0 auto" }}>
-          Tell us a bit about your clinic and we'll walk you through how AngelClinic fits your workflow — no
+          Tell us a bit about your clinic and we'll walk you through how MyCareDesk fits your workflow — no
           pressure, no obligation.
         </p>
       </section>

@@ -42,7 +42,7 @@ export function DemoResetSection({ patientId, charges }: { patientId: string; ch
   if (charges.length === 0) return null;
 
   return (
-    <div style={{ background: "#fff8e6", border: "1px solid #e6c66b", borderRadius: 12, padding: 20 }}>
+    <div style={{ background: "#fff8e6", border: "1px solid var(--brand-secondary)", borderRadius: 12, padding: 20 }}>
       <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 4 }}>Demo Reset — Angel Testpatient</h2>
       <p style={{ fontSize: 12, color: "#7a5c12", marginTop: 0, marginBottom: 12 }}>
         For sales demos only. Resets Angel Testpatient&apos;s demo invoice back to Unpaid so you can walk through the

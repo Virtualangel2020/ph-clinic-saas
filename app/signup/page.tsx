@@ -102,7 +102,7 @@ function SignupForm() {
           </p>
           <a
             href={`/login?next=${encodeURIComponent(nextUrl())}`}
-            style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+            style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
           >
             Sign in →
           </a>
@@ -170,7 +170,7 @@ function SignupForm() {
         </button>
       </form>
       <p style={{ fontSize: 12, color: "#999", marginTop: 16 }}>
-        Already have a portal account? <a href="/login" style={{ color: "#2563eb" }}>Sign in instead</a>.
+        Already have a portal account? <a href="/login" style={{ color: "var(--brand-primary)" }}>Sign in instead</a>.
       </p>
       <WhatsappButton />
     </main>
@@ -190,8 +190,8 @@ const submitBtn: React.CSSProperties = {
   padding: 11,
   borderRadius: 8,
   border: "none",
-  background: "#0c1730",
-  color: "#e6c66b",
+  background: "var(--brand-primary)",
+  color: "var(--brand-secondary)",
   fontWeight: 700,
   fontSize: 14,
   cursor: "pointer",

@@ -248,8 +248,8 @@ export function GetStartedForm({
                   textAlign: "left",
                   padding: 14,
                   borderRadius: 10,
-                  border: `1px solid ${planId === p.id ? "#2563eb" : "#ddd"}`,
-                  background: planId === p.id ? "#eff4ff" : "white",
+                  border: `1px solid ${planId === p.id ? "var(--brand-primary)" : "#ddd"}`,
+                  background: planId === p.id ? "var(--brand-surface-tint)" : "white",
                   cursor: "pointer",
                 }}
               >
@@ -273,8 +273,8 @@ export function GetStartedForm({
               onClick={() => setCycle(c.value)}
               style={{
                 ...chip,
-                borderColor: cycle === c.value ? "#2563eb" : "#ddd",
-                background: cycle === c.value ? "#eff4ff" : "white",
+                borderColor: cycle === c.value ? "var(--brand-primary)" : "#ddd",
+                background: cycle === c.value ? "var(--brand-surface-tint)" : "white",
               }}
             >
               {c.label}
@@ -330,7 +330,7 @@ export function GetStartedForm({
           <button
             type="button"
             onClick={() => setShowAgreementText((v) => !v)}
-            style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 10 }}
+            style={{ background: "none", border: "none", color: "var(--brand-primary)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 10 }}
           >
             {showAgreementText ? "Hide full agreement ▲" : "Read full agreement ▼"}
           </button>
@@ -436,8 +436,8 @@ const submitBtn: React.CSSProperties = {
   padding: "10px 18px",
   borderRadius: 8,
   border: "none",
-  background: "#0c1730",
-  color: "#e6c66b",
+  background: "var(--brand-primary)",
+  color: "var(--brand-secondary)",
   fontWeight: 700,
   cursor: "pointer",
 };

@@ -38,7 +38,7 @@ function StatusPill({ status }: { status: string }) {
 function destinationLabel(r: ReferralListRow) {
   if (r.destination_type === "internal") {
     const rp = r.receiving_provider;
-    return rp ? `${rp.title ? rp.title + " " : ""}${rp.full_name}` : "AngelClinic provider";
+    return rp ? `${rp.title ? rp.title + " " : ""}${rp.full_name}` : "MyCareDesk provider";
   }
   return r.external_providers?.full_name ?? r.external_destination_name ?? "External provider";
 }
@@ -47,7 +47,7 @@ type SearchParams = { view?: string; status?: string; patient?: string; specialt
 
 // Clinic-wide Referrals workspace (spec §22-25) — Incoming (this clinic is
 // the destination), Outgoing (this clinic sent it), and status filters,
-// across internal-AngelClinic and external destinations alike. Reads the
+// across internal-MyCareDesk and external destinations alike. Reads the
 // SAME `referrals` rows the patient chart's Referrals tab reads and writes
 // — placing/accepting/declining/completing a referral from either place
 // lands in this one list, never a separate table.
@@ -130,13 +130,13 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Se
         <h1 style={{ fontSize: 24 }}>Referrals</h1>
         <Link
           href="/dashboard/referrals/new"
-          style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, textDecoration: "none" }}
+          style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, textDecoration: "none" }}
         >
           + New Referral
         </Link>
       </div>
       <p style={{ color: "#666", marginBottom: 16, fontSize: 13 }}>
-        Every referral sent or received across your patients — to another AngelClinic provider or outside the platform.
+        Every referral sent or received across your patients — to another MyCareDesk provider or outside the platform.
         Filter below, or open a patient's chart to manage one in context.
       </p>
 
@@ -179,7 +179,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Se
           <input type="date" name="to" defaultValue={toDate} style={filterInputStyle} />
         </div>
         <input type="hidden" name="view" value={view} />
-        <button type="submit" style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer" }}>
+        <button type="submit" style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer" }}>
           Apply
         </button>
         {hasFilters && (
@@ -202,9 +202,9 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Se
                 padding: "5px 12px",
                 borderRadius: 999,
                 textDecoration: "none",
-                border: `1px solid ${isActive ? "#0c1730" : "#ddd"}`,
+                border: `1px solid ${isActive ? "var(--brand-primary)" : "#ddd"}`,
                 color: isActive ? "white" : "#555",
-                background: isActive ? "#0c1730" : "white",
+                background: isActive ? "var(--brand-primary)" : "white",
               }}
             >
               {f.label}

@@ -76,7 +76,7 @@ export function ProviderCredentialsForm({ profile: initialProfile }: { profile: 
                     setEditing(f.key as string);
                     setDraft((profile[f.key] as string) || "");
                   }}
-                  style={{ ...smallBtn, background: "var(--card-bg)", color: "#2563eb", border: "1px solid #2563eb" }}
+                  style={{ ...smallBtn, background: "var(--card-bg)", color: "var(--brand-primary)", border: "1px solid var(--brand-primary)" }}
                 >
                   Edit
                 </button>
@@ -90,4 +90,4 @@ export function ProviderCredentialsForm({ profile: initialProfile }: { profile: 
   );
 }
 
-const smallBtn: React.CSSProperties = { padding: "5px 10px", borderRadius: 6, border: "none", background: "#2563eb", color: "white", fontSize: 12, fontWeight: 600, cursor: "pointer" };
+const smallBtn: React.CSSProperties = { padding: "5px 10px", borderRadius: 6, border: "none", background: "var(--brand-primary)", color: "white", fontSize: 12, fontWeight: 600, cursor: "pointer" };

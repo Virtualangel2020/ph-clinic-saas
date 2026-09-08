@@ -43,7 +43,7 @@ const SECTION_TITLE: Record<Section["key"], string> = {
 };
 
 const FIELD_STYLE: React.CSSProperties = { padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 13, width: "100%", fontFamily: "inherit" };
-const SAVE_BTN_STYLE: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const SAVE_BTN_STYLE: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" };
 
 function emptyDraft(): Template {
   return { id: "", name: "SOAP (Standard)", based_on: "soap", sections: SOAP_PRESET.map((s) => ({ ...s })), is_default: false, is_active: true };
@@ -157,7 +157,7 @@ export function NoteTemplatesClient({
                 <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
                   {t.name}
                   {t.is_default && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-heading)", background: "#f0e6c6", border: "1px solid #e6c66b", borderRadius: 999, padding: "1px 8px" }}>DEFAULT</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-heading)", background: "#f0e6c6", border: "1px solid var(--brand-secondary)", borderRadius: 999, padding: "1px 8px" }}>DEFAULT</span>
                   )}
                 </div>
                 <div style={{ fontSize: 11.5, color: "#999" }}>
@@ -180,7 +180,7 @@ export function NoteTemplatesClient({
           ))}
         </div>
         {!editing && (
-          <button onClick={startNew} style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+          <button onClick={startNew} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}>
             + New Template
           </button>
         )}

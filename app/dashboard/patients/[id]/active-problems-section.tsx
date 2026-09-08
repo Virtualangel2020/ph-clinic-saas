@@ -83,7 +83,7 @@ export function ActiveProblemsSection({ patientId, problems }: { patientId: stri
           </div>
           <textarea placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ ...FIELD_STYLE, minHeight: 50 }} />
           {error && <p style={{ fontSize: 12, color: "#a12a2a", margin: 0 }}>{error}</p>}
-          <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
+          <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
             {pending ? "Saving…" : "Save problem"}
           </button>
         </div>

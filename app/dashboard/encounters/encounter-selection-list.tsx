@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { searchAngelClinicProvidersAction, checkSharingAuthorizedAction, type DirectoryProvider } from "../patients/care-coordination-actions";
+import { searchMyCareDeskProvidersAction, checkSharingAuthorizedAction, type DirectoryProvider } from "../patients/care-coordination-actions";
 import { sendRecordsTransferAction } from "./records-exchange-actions";
 
 export type SelectableEncounterRow = {
@@ -122,9 +122,9 @@ export function EncounterSelectionList({
             <button
               onClick={() => setSendOpen(true)}
               disabled={sendDisabled}
-              style={{ ...ACTION_BUTTON, background: "var(--card-bg)", color: "var(--text-heading)", border: "1px solid #0c1730", ...(sendDisabled ? { ...ACTION_DISABLED, border: "1px solid var(--input-border)" } : {}) }}
+              style={{ ...ACTION_BUTTON, background: "var(--card-bg)", color: "var(--text-heading)", border: "1px solid var(--brand-primary)", ...(sendDisabled ? { ...ACTION_DISABLED, border: "1px solid var(--input-border)" } : {}) }}
             >
-              Send to AngelClinic Provider
+              Send to MyCareDesk Provider
             </button>
           </div>
         </div>
@@ -170,7 +170,7 @@ export function EncounterSelectionList({
                     {r.chief_complaint ? ` · ${r.chief_complaint}` : ""}
                   </div>
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: r.signed_at ? "#0c1730" : r.status === "closed" ? "#1a7f37" : "#8a6100", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: r.signed_at ? "var(--brand-primary)" : r.status === "closed" ? "#1a7f37" : "#8a6100", whiteSpace: "nowrap" }}>
                   {r.signed_at ? "✓ Signed" : r.status === "closed" ? "Completed" : "Open"}
                 </div>
               </Link>
@@ -183,7 +183,7 @@ export function EncounterSelectionList({
 }
 
 const LINK_BUTTON: React.CSSProperties = { background: "none", border: "none", color: "var(--text-heading)", fontWeight: 600, fontSize: 12, cursor: "pointer", padding: 0 };
-const ACTION_BUTTON: React.CSSProperties = { background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const ACTION_BUTTON: React.CSSProperties = { background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
 const ACTION_DISABLED: React.CSSProperties = { background: "#eceef2", color: "#aaa", cursor: "not-allowed" };
 
 // "Send Selected" → choose provider → confirmation screen → "Send
@@ -219,7 +219,7 @@ function SendToProviderPanel({
   async function runSearch() {
     setSearching(true);
     try {
-      setResults(await searchAngelClinicProvidersAction(query));
+      setResults(await searchMyCareDeskProvidersAction(query));
       setSearched(true);
     } finally {
       setSearching(false);
@@ -249,7 +249,7 @@ function SendToProviderPanel({
   return (
     <div style={{ background: "var(--card-bg)", border: "1px solid #c7d4f5", borderRadius: 10, padding: 16, marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <h3 style={{ fontSize: 14, margin: 0 }}>Send to AngelClinic Provider</h3>
+        <h3 style={{ fontSize: 14, margin: 0 }}>Send to MyCareDesk Provider</h3>
         <button onClick={onClose} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12 }}>Cancel</button>
       </div>
 

@@ -44,8 +44,8 @@ export default async function PhilhealthPage({ searchParams }: { searchParams: P
             textDecoration: "none",
             padding: "4px 10px",
             borderRadius: 999,
-            border: `1px solid ${missingOnly ? "#0c1730" : "#ddd"}`,
-            background: missingOnly ? "#0c1730" : "white",
+            border: `1px solid ${missingOnly ? "var(--brand-primary)" : "#ddd"}`,
+            background: missingOnly ? "var(--brand-primary)" : "white",
             color: missingOnly ? "white" : "#555",
           }}
         >

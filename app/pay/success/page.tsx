@@ -10,7 +10,7 @@ export default function PaymentSuccessPage() {
       <h1 style={{ fontSize: 22, marginBottom: 8 }}>Payment received</h1>
       <p style={{ color: "#666", fontSize: 14 }}>
         Thank you — your payment is being confirmed. This can take a minute to reflect on our side. If you have any
-        questions, reach out to the Angel Clinic team directly.
+        questions, reach out to the MyCareDesk team directly.
       </p>
     </main>
   );

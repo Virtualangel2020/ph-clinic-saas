@@ -37,7 +37,7 @@ export function SignEncounterButton({ encounterId, patientId, hasNotes }: { enco
       {!confirming ? (
         <button
           onClick={() => setConfirming(true)}
-          style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+          style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
         >
           Sign encounter
         </button>
@@ -49,7 +49,7 @@ export function SignEncounterButton({ encounterId, patientId, hasNotes }: { enco
           </p>
           {error && <p style={{ fontSize: 11.5, color: "crimson", margin: "0 0 8px" }}>{error}</p>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={sign} disabled={pending} style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={sign} disabled={pending} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
               {pending ? "Signing…" : "Confirm — sign encounter"}
             </button>
             <button onClick={() => setConfirming(false)} disabled={pending} style={{ background: "var(--card-bg)", border: "1px solid var(--input-border)", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>

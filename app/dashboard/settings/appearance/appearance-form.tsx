@@ -38,8 +38,8 @@ export function AppearanceForm({ initialTheme }: { initialTheme: "light" | "dark
             gap: 10,
             padding: "10px 12px",
             borderRadius: 8,
-            border: `1px solid ${theme === opt.value ? "#0c1730" : "var(--input-border)"}`,
-            background: theme === opt.value ? "rgba(12,23,48,0.04)" : "transparent",
+            border: `1px solid ${theme === opt.value ? "var(--brand-primary)" : "var(--input-border)"}`,
+            background: theme === opt.value ? "rgba(11,45,92,0.04)" : "transparent",
             cursor: "pointer",
           }}
         >

@@ -198,7 +198,7 @@ export function NewOrderClient() {
         </div>
 
         {error && <p style={{ fontSize: 12, color: "#a12a2a", margin: 0 }}>{error}</p>}
-        <button onClick={placeOrder} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
+        <button onClick={placeOrder} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
           {pending ? "Placing…" : "Place order"}
         </button>
       </div>

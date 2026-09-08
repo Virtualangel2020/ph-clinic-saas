@@ -7,7 +7,7 @@ import { resolveFinancialRange, type FinancialRangeKey } from "./date-range";
 // per-patient Billing tab already writes to). This is DELIBERATELY not the
 // same thing as Settings → Reports' "Revenue" section, which reports the
 // clinic's own SaaS-subscription invoices/payments (what the clinic owes
-// AngelClinic) — this page is what the clinic's PATIENTS owe the clinic.
+// MyCareDesk) — this page is what the clinic's PATIENTS owe the clinic.
 // Nothing here writes; every charge/payment is still recorded from the
 // patient chart (or, once configured, via PayMongo — see Settings →
 // Payments), and shows up here automatically since it's the same rows.
@@ -230,7 +230,7 @@ export default async function FinancialsPage({ searchParams }: { searchParams: S
           <h1 style={{ fontSize: 24, marginBottom: 4 }}>Financial</h1>
           <p style={{ color: "#666", fontSize: 13, marginBottom: 0 }}>
             What your patients owe and have paid — billed, collected, and outstanding across the clinic. This is
-            separate from your own AngelClinic subscription billing (see Settings → Billing).
+            separate from your own MyCareDesk subscription billing (see Settings → Billing).
           </p>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default async function FinancialsPage({ searchParams }: { searchParams: S
                 textDecoration: "none",
                 whiteSpace: "nowrap",
                 color: range.key === r.key ? "white" : "#666",
-                background: range.key === r.key ? "#0c1730" : "transparent",
+                background: range.key === r.key ? "var(--brand-primary)" : "transparent",
               }}
             >
               {r.label}
@@ -279,7 +279,7 @@ export default async function FinancialsPage({ searchParams }: { searchParams: S
           <input type="date" name="from" style={filterInputStyle} />
           <span style={{ fontSize: 11.5, color: "#999" }}>to</span>
           <input type="date" name="to" style={filterInputStyle} />
-          <button type="submit" style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
+          <button type="submit" style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, cursor: "pointer" }}>
             Go
           </button>
         </form>
@@ -324,7 +324,7 @@ export default async function FinancialsPage({ searchParams }: { searchParams: S
             ))}
           </select>
         </div>
-        <button type="submit" style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer" }}>
+        <button type="submit" style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer" }}>
           Apply
         </button>
         {hasFilters && (

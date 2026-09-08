@@ -65,8 +65,8 @@ export default async function InsurancePage({ searchParams }: { searchParams: Pr
                 textDecoration: "none",
                 padding: "4px 10px",
                 borderRadius: 999,
-                border: `1px solid ${filter === s ? "#0c1730" : "#ddd"}`,
-                background: filter === s ? "#0c1730" : "white",
+                border: `1px solid ${filter === s ? "var(--brand-primary)" : "#ddd"}`,
+                background: filter === s ? "var(--brand-primary)" : "white",
                 color: filter === s ? "white" : "#555",
               }}
             >

@@ -131,7 +131,7 @@ const submitBtn: React.CSSProperties = {
   padding: "10px 18px",
   borderRadius: 8,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 700,
   fontSize: 13,

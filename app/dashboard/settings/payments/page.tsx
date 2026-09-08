@@ -6,7 +6,7 @@ import { DemoResetSection } from "./demo-reset-section";
 
 // Settings → Payments (§17). Online Payments ON/OFF is per-tenant
 // (clinic_settings.accept_online_payments); PayMongo itself is currently
-// AngelClinic's own single merchant account (process.env.PAYMONGO_*),
+// MyCareDesk's own single merchant account (process.env.PAYMONGO_*),
 // shared across every clinic for now — see lib/patient-paymongo.ts for
 // why, and what the plan is for a clinic to eventually get its own
 // merchant account. Nothing here ever shows or accepts a secret key —

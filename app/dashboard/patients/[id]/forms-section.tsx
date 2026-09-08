@@ -129,7 +129,7 @@ export function FormsSection({
         {!assigning && (
           <button
             onClick={() => setAssigning(true)}
-            style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
+            style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
           >
             + Assign form
           </button>
@@ -158,7 +158,7 @@ export function FormsSection({
             <button
               onClick={assign}
               disabled={pending || !templateId}
-              style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending || !templateId ? 0.6 : 1 }}
+              style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending || !templateId ? 0.6 : 1 }}
             >
               {pending ? "Assigning…" : "Assign"}
             </button>
@@ -336,7 +336,7 @@ export function FormsSection({
                       <button
                         onClick={() => submitFill(f)}
                         disabled={pending}
-                        style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
+                        style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
                       >
                         {pending ? "Saving…" : "Mark completed"}
                       </button>

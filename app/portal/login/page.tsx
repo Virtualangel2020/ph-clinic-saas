@@ -71,13 +71,13 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          style={{ padding: 10, borderRadius: 8, border: "none", background: "#2563eb", color: "white", fontWeight: 600, cursor: "pointer" }}
+          style={{ padding: 10, borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "white", fontWeight: 600, cursor: "pointer" }}
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
       <p style={{ fontSize: 12.5, color: "#888", marginTop: 16 }}>
-        Haven't activated yet? Use the code or link your clinic gave you at <a href="/portal/activate">/portal/activate</a>.
+        Haven't activated yet? Use the code or link your clinic gave you at <a href="/portal/activate" style={{ color: "var(--brand-primary)" }}>/portal/activate</a>.
       </p>
     </main>
   );

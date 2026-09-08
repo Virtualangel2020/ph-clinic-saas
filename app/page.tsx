@@ -5,8 +5,8 @@ import { SiteFooter } from "@/components/public/site-footer";
 import { WhatsappButton } from "@/components/whatsapp-button";
 import { DemoPopup } from "@/components/public/demo-popup";
 
-const GOLD = "#e6c66b";
-const NAVY = "#0c1730";
+const GOLD = "var(--brand-secondary)";
+const NAVY = "var(--brand-primary)";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -27,7 +27,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
       {promoBanner && (
@@ -38,10 +38,10 @@ export default async function HomePage() {
       )}
 
       {/* Hero */}
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "72px 24px 96px" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "72px 24px 96px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ display: "inline-block", fontSize: 12, fontWeight: 700, color: GOLD, border: `1px solid rgba(230,198,107,0.4)`, borderRadius: 999, padding: "5px 14px", marginBottom: 22 }}>
-            AngelClinic by Virtual Angel Systems
+          <div style={{ display: "inline-block", fontSize: 12, fontWeight: 700, color: GOLD, border: `1px solid rgba(4,156,160,0.4)`, borderRadius: 999, padding: "5px 14px", marginBottom: 22 }}>
+            MyCareDesk by Virtual Angel Systems
           </div>
           <h1 style={{ fontSize: 46, lineHeight: 1.12, margin: "0 0 18px", fontWeight: 800 }}>
             {site?.hero_heading || "Smart Clinic. Better Care."}
@@ -52,9 +52,9 @@ export default async function HomePage() {
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <Link href="/features" style={{ background: GOLD, color: NAVY, fontWeight: 700, fontSize: 14, padding: "13px 26px", borderRadius: 10, textDecoration: "none" }}>
-              Explore AngelClinic
+              Explore MyCareDesk
             </Link>
-            <Link href="/request-demo" style={{ border: "1px solid rgba(230,198,107,0.5)", color: GOLD, fontWeight: 700, fontSize: 14, padding: "13px 26px", borderRadius: 10, textDecoration: "none" }}>
+            <Link href="/request-demo" style={{ border: "1px solid rgba(4,156,160,0.5)", color: GOLD, fontWeight: 700, fontSize: 14, padding: "13px 26px", borderRadius: 10, textDecoration: "none" }}>
               Request a Demo
             </Link>
             <Link href="/pricing" style={{ color: "rgba(244,245,247,0.75)", fontWeight: 600, fontSize: 14, padding: "13px 10px", textDecoration: "none" }}>
@@ -66,11 +66,11 @@ export default async function HomePage() {
 
       {/* Warm welcome */}
       <section style={{ maxWidth: 860, margin: "-46px auto 0", padding: "0 24px" }}>
-        <div style={{ background: "white", borderRadius: 16, boxShadow: "0 12px 40px rgba(12,23,48,0.12)", padding: "34px 36px", textAlign: "center" }}>
-          <h2 style={{ fontSize: 22, margin: "0 0 10px", color: NAVY }}>{site?.welcome_heading || "Hey, Doc! 👋 Welcome to AngelClinic."}</h2>
+        <div style={{ background: "white", borderRadius: 16, boxShadow: "0 12px 40px rgba(11,45,92,0.12)", padding: "34px 36px", textAlign: "center" }}>
+          <h2 style={{ fontSize: 22, margin: "0 0 10px", color: NAVY }}>{site?.welcome_heading || "Hey, Doc! 👋 Welcome to MyCareDesk."}</h2>
           <p style={{ color: "#555", fontSize: 14.5, lineHeight: 1.7, margin: "0 0 20px" }}>
             {site?.welcome_body ||
-              "Your clinic already has enough going on. Your system shouldn't make things harder. Explore how AngelClinic can help bring your patients, schedules, documentation, referrals and clinic operations into one organized workspace."}
+              "Your clinic already has enough going on. Your system shouldn't make things harder. Explore how MyCareDesk can help bring your patients, schedules, documentation, referrals and clinic operations into one organized workspace."}
           </p>
           <Link href="/features" style={{ color: NAVY, fontWeight: 700, fontSize: 14, textDecoration: "none", borderBottom: `2px solid ${GOLD}`, paddingBottom: 2 }}>
             Take a Look Around →
@@ -126,7 +126,7 @@ export default async function HomePage() {
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 40 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>
-              Every AngelClinic Subscription Includes
+              Every MyCareDesk Subscription Includes
             </div>
             <h2 style={{ fontSize: 28, margin: 0 }}>Everything Your Clinic Needs to Work Smarter</h2>
           </div>
@@ -145,10 +145,10 @@ export default async function HomePage() {
 
       {/* Demo CTA */}
       <section style={{ maxWidth: 780, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
-        <h2 style={{ fontSize: 26, color: NAVY, marginBottom: 12 }}>{site?.demo_cta_heading || "Want to See AngelClinic in Action?"}</h2>
+        <h2 style={{ fontSize: 26, color: NAVY, marginBottom: 12 }}>{site?.demo_cta_heading || "Want to See MyCareDesk in Action?"}</h2>
         <p style={{ color: "#666", fontSize: 15, lineHeight: 1.7, marginBottom: 26, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
           {site?.demo_cta_body ||
-            "We'll show you how AngelClinic brings your patients, schedules, documentation, prescriptions and referrals together in one organized workspace."}
+            "We'll show you how MyCareDesk brings your patients, schedules, documentation, prescriptions and referrals together in one organized workspace."}
         </p>
         <Link href="/request-demo" style={{ background: NAVY, color: GOLD, fontWeight: 700, fontSize: 14, padding: "13px 28px", borderRadius: 10, textDecoration: "none" }}>
           Request Your Demo →
@@ -192,7 +192,7 @@ function ExperienceRow({
         <h3 style={{ fontSize: 24, color: NAVY, margin: "0 0 12px" }}>{title}</h3>
         <p style={{ color: "#666", fontSize: 14, lineHeight: 1.7, margin: 0 }}>{body}</p>
       </div>
-      <div style={{ order: reverse ? 1 : 2, background: "#f4f1ea", borderRadius: 14, padding: 22, border: "1px solid #ece5d6" }}>
+      <div style={{ order: reverse ? 1 : 2, background: "var(--brand-surface-tint)", borderRadius: 14, padding: 22, border: "1px solid var(--brand-border-tint)" }}>
         <div style={{ display: "grid", gap: 8 }}>
           {bullets.map((b) => (
             <div key={b} style={{ background: "white", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#333", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>

@@ -145,7 +145,7 @@ function ProviderWeekEditor({ provider, existing }: { provider: Provider; existi
 }
 
 const timeFieldStyle: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 6, padding: "4px 6px", fontSize: 12 };
-const saveBtnStyle: React.CSSProperties = { background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 11, padding: "3px 9px", borderRadius: 5, border: "none", cursor: "pointer" };
+const saveBtnStyle: React.CSSProperties = { background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 11, padding: "3px 9px", borderRadius: 5, border: "none", cursor: "pointer" };
 
 export function ProviderSchedulesManager({ providers, schedules }: { providers: Provider[]; schedules: ScheduleRow[] }) {
   return (

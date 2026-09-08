@@ -92,7 +92,7 @@ export function PortalSection({
                 onClick={() => invite("manual")}
                 disabled={pending || !hasContact}
                 title={!hasContact ? "This patient needs an email or mobile number on file first" : "Generate a code to read or show to the patient right now"}
-                style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: hasContact ? "pointer" : "not-allowed", opacity: hasContact ? 1 : 0.5 }}
+                style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: hasContact ? "pointer" : "not-allowed", opacity: hasContact ? 1 : 0.5 }}
               >
                 Generate in-person code
               </button>
@@ -128,7 +128,7 @@ export function PortalSection({
               {account.invited_at ? ` on ${new Date(account.invited_at).toLocaleString()}` : ""} — awaiting activation.
             </p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => invite("manual")} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={() => invite("manual")} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                 Generate new in-person code
               </button>
               {account.channel !== "manual" && (
@@ -158,7 +158,7 @@ export function PortalSection({
               Access revoked{account.revoked_at ? ` on ${new Date(account.revoked_at).toLocaleDateString()}` : ""}.
             </p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => invite("manual")} disabled={pending || !hasContact} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={() => invite("manual")} disabled={pending || !hasContact} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                 Re-invite with in-person code
               </button>
             </div>

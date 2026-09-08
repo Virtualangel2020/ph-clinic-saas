@@ -27,7 +27,7 @@ export function PayNowButton({ chargeId }: { chargeId: string }) {
       <button
         onClick={payNow}
         disabled={pending}
-        style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
       >
         {pending ? "Opening secure checkout…" : "Pay Now"}
       </button>

@@ -27,7 +27,7 @@ export default async function PatientAccessSetupPage() {
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Set Up Patient Access & Payments</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
         A few quick questions about how your clinic actually works. Nothing here is required to keep using
-        AngelClinic — every setting already has a safe default — this just walks through them in plain language.
+        MyCareDesk — every setting already has a safe default — this just walks through them in plain language.
       </p>
 
       <SetupWizard

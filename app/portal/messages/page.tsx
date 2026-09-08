@@ -28,7 +28,7 @@ export default async function PortalMessagesPage() {
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>My Messages</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
         Conversations with your providers. To start a new one, visit a provider's profile from{" "}
-        <Link href="/find-a-doctor" style={{ color: "var(--text-heading, #0c1730)", fontWeight: 600 }}>
+        <Link href="/find-a-doctor" style={{ color: "var(--text-heading, var(--brand-primary))", fontWeight: 600 }}>
           Find a Doctor
         </Link>
         .
@@ -48,14 +48,14 @@ export default async function PortalMessagesPage() {
                 alignItems: "center",
                 gap: 16,
                 background: "white",
-                border: t.unread_count > 0 ? "1px solid #e6c66b" : "1px solid #eee",
+                border: t.unread_count > 0 ? "1px solid var(--brand-secondary)" : "1px solid #eee",
                 borderRadius: 10,
                 padding: "14px 18px",
                 textDecoration: "none",
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14.5, color: "#0c1730" }}>
+                <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--brand-primary)" }}>
                   {t.provider_title ? `${t.provider_title} ` : ""}
                   {t.provider_name}
                 </div>

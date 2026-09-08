@@ -172,7 +172,7 @@ export async function startSignupCheckoutAction(
 
   const { paymentIntentId, qrImage } = await createQrPhPaymentIntent(
     total,
-    `Angel Clinic signup — ${selection.clinicName}`
+    `MyCareDesk signup — ${selection.clinicName}`
   );
 
   const { error: saveError } = await supabase.rpc("self_set_request_payment_intent", {

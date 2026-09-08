@@ -29,7 +29,7 @@ export function SeatUsage({ used, total }: { used: number; total: number }) {
         count against this — they're unlimited.
       </p>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: atLimit ? "#c00" : "#0c1730" }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: atLimit ? "#c00" : "var(--brand-primary)" }}>
           {used} / {total}
         </div>
         <div style={{ fontSize: 12, color: "#888" }}>seat{total === 1 ? "" : "s"} in use</div>
@@ -47,7 +47,7 @@ export function SeatUsage({ used, total }: { used: number; total: number }) {
           <button
             onClick={request}
             disabled={pending}
-            style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
+            style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
           >
             {pending ? "Sending…" : "Request Additional Seat"}
           </button>

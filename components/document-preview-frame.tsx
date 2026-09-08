@@ -51,13 +51,13 @@ export function LetterheadBlock({
   contactLine: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: "2px solid #0c1730", paddingBottom: 12, marginBottom: 18 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, borderBottom: "2px solid var(--brand-primary)", paddingBottom: 12, marginBottom: 18 }}>
       {logoUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logoUrl} alt="" style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }} />
       )}
       <div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "#0c1730" }}>{clinicName}</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--brand-primary)" }}>{clinicName}</div>
         {addressLine && <div style={{ fontSize: 11, color: "#555" }}>{addressLine}</div>}
         {contactLine && <div style={{ fontSize: 11, color: "#555" }}>{contactLine}</div>}
       </div>

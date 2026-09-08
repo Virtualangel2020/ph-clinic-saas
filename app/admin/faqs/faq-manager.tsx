@@ -19,7 +19,7 @@ export function FaqManager({ faqs }: { faqs: Faq[] }) {
       ) : (
         <button
           onClick={() => setShowNew(true)}
-          style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #2563eb", background: "white", color: "#2563eb", fontWeight: 600, fontSize: 13, cursor: "pointer", justifySelf: "start" }}
+          style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid var(--brand-primary)", background: "white", color: "var(--brand-primary)", fontWeight: 600, fontSize: 13, cursor: "pointer", justifySelf: "start" }}
         >
           + Add FAQ
         </button>
@@ -162,7 +162,7 @@ const saveBtn: React.CSSProperties = {
   padding: "6px 14px",
   borderRadius: 6,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 600,
   fontSize: 12,

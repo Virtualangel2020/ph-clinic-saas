@@ -45,7 +45,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
               fontWeight: 600,
               textDecoration: "none",
               color: tab === t.key ? "var(--text-heading)" : "#888",
-              borderBottom: tab === t.key ? "2px solid #0c1730" : "2px solid transparent",
+              borderBottom: tab === t.key ? "2px solid var(--brand-primary)" : "2px solid transparent",
               marginBottom: -1,
             }}
           >
@@ -82,7 +82,7 @@ function MessagesTab({ data }: { data: Awaited<ReturnType<typeof getCommunicatio
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
         <ProviderStatusPill label="Email (Resend)" configured={data.email.configured} />
         <ProviderStatusPill label="SMS (Semaphore)" configured={data.sms.configured} />
-        <Link href="/dashboard/settings" style={{ fontSize: 12.5, color: "#2563eb" }}>
+        <Link href="/dashboard/settings" style={{ fontSize: 12.5, color: "var(--brand-primary)" }}>
           Settings →
         </Link>
       </div>

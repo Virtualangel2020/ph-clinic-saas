@@ -99,7 +99,7 @@ export function FlexibleAvailabilityManager({ providers, entries }: { providers:
             <input type="checkbox" checked={patientBookable} onChange={(e) => setPatientBookable(e.target.checked)} />
             Patients can book
           </label>
-          <button onClick={add} disabled={pending} style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 6, border: "none", cursor: "pointer" }}>
+          <button onClick={add} disabled={pending} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 6, border: "none", cursor: "pointer" }}>
             {pending ? "Adding…" : "Add"}
           </button>
         </div>

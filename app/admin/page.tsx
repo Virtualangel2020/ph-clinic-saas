@@ -70,7 +70,7 @@ export default async function AdminDashboard() {
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <h2 style={{ fontSize: 16 }}>⚡ New self-serve signups (paid, auto-provisioned)</h2>
-            <Link href="/admin/requests" style={{ fontSize: 13, color: "#2563eb" }}>View all →</Link>
+            <Link href="/admin/requests" style={{ fontSize: 13, color: "var(--brand-primary)" }}>View all →</Link>
           </div>
           <div style={{ background: "#f0f9f0", border: "1px solid #bfe3bf", borderRadius: 12, overflow: "hidden" }}>
             <Table
@@ -91,7 +91,7 @@ export default async function AdminDashboard() {
         </div>
       )}
 
-      <Section title="Pending requests" action={<Link href="/admin/requests" style={{ fontSize: 13, color: "#2563eb" }}>View all →</Link>}>
+      <Section title="Pending requests" action={<Link href="/admin/requests" style={{ fontSize: 13, color: "var(--brand-primary)" }}>View all →</Link>}>
         {pendingRequests && pendingRequests.length > 0 ? (
           <Table
             headers={["Type", "From", "Email", "Requested"]}
@@ -107,7 +107,7 @@ export default async function AdminDashboard() {
         )}
       </Section>
 
-      <Section title="All clients" action={<Link href="/admin/clients" style={{ fontSize: 13, color: "#2563eb" }}>Manage all →</Link>}>
+      <Section title="All clients" action={<Link href="/admin/clients" style={{ fontSize: 13, color: "var(--brand-primary)" }}>Manage all →</Link>}>
         {tenants && tenants.length > 0 ? (
           <Table
             headers={["Clinic", "Plan", "Billing", "Sub. status", "Tenant status", "Created"]}
@@ -133,7 +133,7 @@ function StatCard({ label, value, highlight }: { label: string; value: number; h
     <div
       style={{
         background: highlight ? "#fff7e6" : "white",
-        border: `1px solid ${highlight ? "#e6c66b" : "#e2e2e5"}`,
+        border: `1px solid ${highlight ? "var(--brand-secondary)" : "#e2e2e5"}`,
         borderRadius: 12,
         padding: 20,
       }}

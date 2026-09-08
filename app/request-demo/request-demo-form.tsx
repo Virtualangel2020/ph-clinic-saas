@@ -50,7 +50,7 @@ export function RequestDemoForm() {
   if (status === "sent") {
     return (
       <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 14, padding: 36, textAlign: "center" }}>
-        <h2 style={{ fontSize: 20, marginTop: 0, marginBottom: 8, color: "#0c1730" }}>Thanks — we've got it!</h2>
+        <h2 style={{ fontSize: 20, marginTop: 0, marginBottom: 8, color: "var(--brand-primary)" }}>Thanks — we've got it!</h2>
         <p style={{ color: "#666", fontSize: 14, margin: 0 }}>
           Someone from Virtual Angel Systems will reach out to {form.email} shortly to schedule your demo.
         </p>
@@ -119,8 +119,8 @@ export function RequestDemoForm() {
         type="submit"
         disabled={pending}
         style={{
-          background: "#0c1730",
-          color: "#e6c66b",
+          background: "var(--brand-primary)",
+          color: "var(--brand-secondary)",
           fontWeight: 700,
           fontSize: 14,
           padding: "12px 20px",

@@ -40,7 +40,7 @@ function Pill({ color, bg, border, children }: { color: string; bg: string; bord
 }
 
 function destinationLabel(r: ReferralRow) {
-  if (r.destination_type === "internal") return r.receiving_provider_name ?? "AngelClinic provider";
+  if (r.destination_type === "internal") return r.receiving_provider_name ?? "MyCareDesk provider";
   return r.external_provider_name ?? r.external_destination_name ?? "External provider";
 }
 

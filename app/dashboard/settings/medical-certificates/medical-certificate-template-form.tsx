@@ -100,7 +100,7 @@ export function MedicalCertificateTemplateForm({
           ))}
         </div>
         {!editing && (
-          <button onClick={startNew} style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+          <button onClick={startNew} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}>
             + New Template
           </button>
         )}
@@ -154,7 +154,7 @@ export function MedicalCertificateTemplateForm({
             <button
               onClick={save}
               disabled={pending || !editing.name.trim()}
-              style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
+              style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
             >
               {pending ? "Saving…" : "Save Template"}
             </button>

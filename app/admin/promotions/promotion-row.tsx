@@ -85,7 +85,7 @@ export function PromotionRow({ promotion }: { promotion: any }) {
                   fontWeight: 600,
                   color: "#7a5c12",
                   background: "#fff7e6",
-                  border: "1px solid #e6c66b",
+                  border: "1px solid var(--brand-secondary)",
                   borderRadius: 999,
                   padding: "2px 8px",
                 }}

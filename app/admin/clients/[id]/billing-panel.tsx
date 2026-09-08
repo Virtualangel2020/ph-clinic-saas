@@ -295,7 +295,7 @@ function InvoicesCard({ tenantId, invoices }: { tenantId: string; invoices: Invo
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} style={{ ...buttonStyle, background: "white", color: "#2563eb", border: "1px solid #2563eb" }}>
+        <button onClick={() => setShowForm(true)} style={{ ...buttonStyle, background: "white", color: "var(--brand-primary)", border: "1px solid var(--brand-primary)" }}>
           + New invoice
         </button>
       )}
@@ -415,7 +415,7 @@ const buttonStyle: React.CSSProperties = {
   padding: "8px 14px",
   borderRadius: 8,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 600,
   fontSize: 13,

@@ -2,7 +2,7 @@ import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
 import { SharingRequestCard } from "./sharing-request-card";
 
-// Records & Authorizations (spec §15, §44) — shows which AngelClinic
+// Records & Authorizations (spec §15, §44) — shows which MyCareDesk
 // provider, if any, your primary clinic has authorized to view your
 // shared record (patient_sharing_preferences, the same table the
 // chart's Patient History tab reads/writes), plus any pending request

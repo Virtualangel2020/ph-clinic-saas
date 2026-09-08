@@ -1,11 +1,11 @@
 // Patient-facing PayMongo helper — a clinic billing ITS OWN patient.
 //
 // Per explicit instruction, this reuses the SAME PayMongo account/keys
-// already wired for AngelClinic's own platform billing
+// already wired for MyCareDesk's own platform billing
 // (process.env.PAYMONGO_SECRET_KEY / PAYMONGO_WEBHOOK_SECRET — see
 // lib/paymongo.ts and app/admin/actions.ts's createPaymentLinkAction).
 // There is only one PayMongo merchant account in play right now
-// (Virtual Angel Systems'), used for both AngelClinic's subscription
+// (Virtual Angel Systems'), used for both MyCareDesk's subscription
 // invoices AND every clinic's patient billing.
 //
 // This is a real simplification, not a shortcut with a hidden cost: it's

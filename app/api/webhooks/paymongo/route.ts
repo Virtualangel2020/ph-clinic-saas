@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
 
   // Two entirely separate merchants can both create checkout sessions —
-  // AngelClinic billing a CLINIC (invoices) or a clinic billing a PATIENT
+  // MyCareDesk billing a CLINIC (invoices) or a clinic billing a PATIENT
   // (patient_charge_online_payments). Check the patient-billing table
   // first since it's the newer/narrower case; whichever matches (at most
   // one will) is the one this event is for.

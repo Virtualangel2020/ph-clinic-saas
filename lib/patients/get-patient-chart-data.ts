@@ -421,14 +421,14 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
 
   // "Referred by" (Overview > Profile) — auto-populated from an
   // accepted/completed INCOMING internal referral for this patient when
-  // one exists (i.e. another AngelClinic provider referred them in);
+  // one exists (i.e. another MyCareDesk provider referred them in);
   // otherwise falls back to the manually-entered referred_by_note.
   let referredBy: { source: "referral" | "manual"; label: string } | null = null;
   const incomingReferral = referrals.find(
     (r) => r.isIncoming && r.destination_type === "internal" && (r.status === "accepted" || r.status === "completed")
   );
   if (incomingReferral) {
-    referredBy = { source: "referral", label: incomingReferral.sending_provider_name ?? "Another AngelClinic provider" };
+    referredBy = { source: "referral", label: incomingReferral.sending_provider_name ?? "Another MyCareDesk provider" };
   } else if (patient.referred_by_note) {
     referredBy = { source: "manual", label: patient.referred_by_note };
   }

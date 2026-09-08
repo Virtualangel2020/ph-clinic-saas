@@ -211,7 +211,7 @@ export function ClientEditor({
     return (
       <div style={{ display: "grid", gap: 16 }}>
         {message && (
-          <div style={{ fontSize: 13, color: pending ? "#888" : "#2563eb" }}>{pending ? "Saving..." : message}</div>
+          <div style={{ fontSize: 13, color: pending ? "#888" : "var(--brand-primary)" }}>{pending ? "Saving..." : message}</div>
         )}
         <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 12, padding: 20 }}>
           <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 8 }}>No subscription yet</h2>
@@ -242,7 +242,7 @@ export function ClientEditor({
             <button
               onClick={() => createSubscription(true)}
               disabled={pending || !planId}
-              style={{ ...buttonStyle, background: "#0c1730", color: "#e6c66b" }}
+              style={{ ...buttonStyle, background: "var(--brand-primary)", color: "var(--brand-secondary)" }}
             >
               Create as complimentary (free)
             </button>
@@ -255,7 +255,7 @@ export function ClientEditor({
   return (
     <div style={{ display: "grid", gap: 20 }}>
       {message && (
-        <div style={{ fontSize: 13, color: pending ? "#888" : "#2563eb" }}>{pending ? "Saving..." : message}</div>
+        <div style={{ fontSize: 13, color: pending ? "#888" : "var(--brand-primary)" }}>{pending ? "Saving..." : message}</div>
       )}
 
       {isTest && (
@@ -357,7 +357,7 @@ export function ClientEditor({
                 applyDiscount(100, note);
               }}
               disabled={pending}
-              style={{ ...buttonStyle, background: "#0c1730", color: "#e6c66b" }}
+              style={{ ...buttonStyle, background: "var(--brand-primary)", color: "var(--brand-secondary)" }}
             >
               Make this client free (100% off)
             </button>
@@ -455,7 +455,7 @@ const buttonStyle: React.CSSProperties = {
   padding: "8px 14px",
   borderRadius: 8,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 600,
   fontSize: 13,

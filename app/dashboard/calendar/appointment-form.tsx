@@ -368,7 +368,7 @@ export function AppointmentForm({
                     </div>
                     <button
                       onClick={() => useExistingPatient(p)}
-                      style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                     >
                       Use Existing
                     </button>
@@ -428,7 +428,7 @@ export function AppointmentForm({
                   <button
                     onClick={reviewOrCreatePatient}
                     disabled={quickAddPending}
-                    style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+                    style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
                   >
                     {quickAddPending ? "Saving…" : "Save patient"}
                   </button>
@@ -500,7 +500,7 @@ export function AppointmentForm({
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {allowDoubleBooking && (
-                <button onClick={bookAnyway} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                <button onClick={bookAnyway} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
                   Book anyway
                 </button>
               )}
@@ -544,7 +544,7 @@ export function AppointmentForm({
         )}
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={save} disabled={pending || checkingConflicts} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
+          <button onClick={save} disabled={pending || checkingConflicts} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
             {checkingConflicts ? "Checking…" : editing ? "Save changes" : "Book appointment"}
           </button>
 

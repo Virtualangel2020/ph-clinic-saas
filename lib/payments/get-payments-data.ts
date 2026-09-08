@@ -10,7 +10,7 @@ import { paymongoMode } from "@/lib/patient-paymongo";
 // no new write path of its own beyond what startPatientChargeOnlinePaymentAction
 // (app/dashboard/patients/actions.ts) already does. See lib/patient-paymongo.ts
 // for why PayMongo is currently one shared merchant account across every
-// clinic (incl. AngelClinic's own subscription billing) rather than
+// clinic (incl. MyCareDesk's own subscription billing) rather than
 // per-tenant keys.
 
 export type RecentOnlinePayment = {

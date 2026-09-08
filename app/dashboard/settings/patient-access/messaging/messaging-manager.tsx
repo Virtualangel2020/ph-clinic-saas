@@ -175,7 +175,7 @@ export function MessagingManager({
         <h2 style={{ fontSize: 14, marginTop: 0, marginBottom: 14 }}>Clinic-Wide Default</h2>
         <MessagingFields value={value} onChange={setValue} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16 }}>
-          <button onClick={saveDefaults} disabled={pending} style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={saveDefaults} disabled={pending} style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             {pending ? "Saving…" : "Save Clinic Default"}
           </button>
           {saved && !pending && <span style={{ fontSize: 12, color: "#1a7f37" }}>Saved.</span>}
@@ -305,7 +305,7 @@ function ProviderMessagingRow({
               fontWeight: 600,
               color: customized ? "#7a5c12" : "#888",
               background: customized ? "#fff7e6" : "#f2f2f2",
-              border: `1px solid ${customized ? "#e6c66b" : "#ddd"}`,
+              border: `1px solid ${customized ? "var(--brand-secondary)" : "#ddd"}`,
               borderRadius: 999,
               padding: "2px 8px",
               marginTop: 4,
@@ -380,7 +380,7 @@ function ProviderMessagingRow({
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
               {pending ? "Saving…" : "Save"}
             </button>
             {error && <span style={{ fontSize: 12, color: "#a12a2a" }}>{error}</span>}

@@ -53,7 +53,7 @@ export function AllergiesSection({ patientId, allergies }: { patientId: string; 
             <option value="moderate">Moderate</option>
             <option value="severe">Severe</option>
           </select>
-          <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
+          <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
             Save
           </button>
         </div>

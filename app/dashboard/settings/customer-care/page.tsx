@@ -2,7 +2,7 @@ import { requireClinicMember } from "@/lib/require-clinic-member";
 import { BackLink } from "@/components/back-link";
 import { SupportThread } from "./support-thread";
 
-// Customer Care is a core, always-included AngelClinic feature (retired as
+// Customer Care is a core, always-included MyCareDesk feature (retired as
 // a paid add-on by the angelclinic_core_reclassify_addons migration, which
 // also granted every tenant an active 'customer_care' plan_features
 // entitlement). The entitlement check below is kept as the source of truth

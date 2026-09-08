@@ -3,8 +3,8 @@ import { SiteNav } from "@/components/public/site-nav";
 import { SiteFooter } from "@/components/public/site-footer";
 import { WhatsappButton } from "@/components/whatsapp-button";
 
-const NAVY = "#0c1730";
-const GOLD = "#e6c66b";
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
 
 const CATEGORIES: { title: string; body: string; items: string[] }[] = [
   {
@@ -65,19 +65,19 @@ const ADDONS = [
   { name: "SMS", body: "Reach patients by text — credit-based, purchase what you need." },
   { name: "WhatsApp", body: "Message patients and referral partners over WhatsApp." },
   { name: "Multi-Branch", body: "Run more than one clinic location under one account." },
-  { name: "Custom Domain", body: "Connect your clinic's own domain instead of the default AngelClinic address." },
+  { name: "Custom Domain", body: "Connect your clinic's own domain instead of the default MyCareDesk address." },
 ];
 
 export default function FeaturesPage() {
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>Features</div>
         <h1 style={{ fontSize: 32, margin: "0 0 12px" }}>Everything Your Clinic Needs, Organized.</h1>
         <p style={{ color: "rgba(244,245,247,0.8)", fontSize: 15, maxWidth: 560, margin: "0 auto" }}>
-          Every feature below is included in AngelClinic Core — no tiers, no upsells for the basics of running a
+          Every feature below is included in MyCareDesk Core — no tiers, no upsells for the basics of running a
           clinic.
         </p>
       </section>
@@ -104,7 +104,7 @@ export default function FeaturesPage() {
         </div>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", marginBottom: 56 }}>
           {ADDONS.map((a) => (
-            <div key={a.name} style={{ background: "#f4f1ea", border: "1px solid #ece5d6", borderRadius: 10, padding: "14px 16px" }}>
+            <div key={a.name} style={{ background: "var(--brand-surface-tint)", border: "1px solid var(--brand-border-tint)", borderRadius: 10, padding: "14px 16px" }}>
               <div style={{ fontWeight: 700, fontSize: 13.5, color: NAVY, marginBottom: 4 }}>{a.name}</div>
               <div style={{ color: "#666", fontSize: 12.5, lineHeight: 1.5 }}>{a.body}</div>
             </div>
@@ -117,7 +117,7 @@ export default function FeaturesPage() {
             <Link href="/pricing" style={{ background: GOLD, color: NAVY, fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}>
               See Pricing →
             </Link>
-            <Link href="/request-demo" style={{ border: "1px solid rgba(230,198,107,0.5)", color: GOLD, fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}>
+            <Link href="/request-demo" style={{ border: "1px solid rgba(4,156,160,0.5)", color: GOLD, fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}>
               Request a Demo
             </Link>
           </div>

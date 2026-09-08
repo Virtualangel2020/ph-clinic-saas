@@ -81,7 +81,7 @@ export default async function RefillsPage({ searchParams }: { searchParams: { bu
 
       <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 10, padding: "12px 16px", fontSize: 12.5, color: "#7a5c12", marginBottom: 18 }}>
         <strong>Electronic Pharmacy Network — Coming Soon.</strong> Refills recorded here update the patient's own
-        record, but AngelClinic doesn't yet send prescriptions electronically to a pharmacy. For now, please issue a
+        record, but MyCareDesk doesn't yet send prescriptions electronically to a pharmacy. For now, please issue a
         printed or photographed copy when a refill is due.
       </div>
 

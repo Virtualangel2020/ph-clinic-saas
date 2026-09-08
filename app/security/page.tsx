@@ -2,15 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { SiteNav } from "@/components/public/site-nav";
 import { SiteFooter } from "@/components/public/site-footer";
 
-const NAVY = "#0c1730";
-const GOLD = "#e6c66b";
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
 
 // Every claim on this page describes something actually built in this
 // codebase as of this writing. Do NOT add claims here (AES-256, ISO
 // certifications, Data Privacy Act/NPC registration, etc.) without the
 // underlying control actually existing — this page is meant to stay
 // exactly as honest as the audit_logs/RLS/RPC architecture it describes.
-// AngelClinic serves Philippine clinics only — don't reintroduce US-market
+// MyCareDesk serves Philippine clinics only — don't reintroduce US-market
 // compliance framing (HIPAA, etc.) here.
 const CONTROLS = [
   {
@@ -31,7 +31,7 @@ const CONTROLS = [
   },
   {
     title: "Encrypted in transit",
-    body: "All traffic to AngelClinic is served over HTTPS/TLS, provided by our cloud hosting and database infrastructure.",
+    body: "All traffic to MyCareDesk is served over HTTPS/TLS, provided by our cloud hosting and database infrastructure.",
   },
   {
     title: "Private document storage",
@@ -39,7 +39,7 @@ const CONTROLS = [
   },
   {
     title: "Account authentication",
-    body: "Sign-in is handled by a dedicated authentication service with hashed, salted password storage — AngelClinic never stores or has access to a plain-text password.",
+    body: "Sign-in is handled by a dedicated authentication service with hashed, salted password storage — MyCareDesk never stores or has access to a plain-text password.",
   },
 ];
 
@@ -48,15 +48,15 @@ export default async function SecurityPage() {
   const { data: site } = await supabase.from("site_content").select("security_intro").maybeSingle();
 
   return (
-    <div style={{ background: "#faf9f6" }}>
+    <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
 
-      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, #14213f 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
+      <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "56px 24px 44px", textAlign: "center" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>Security & Privacy</div>
         <h1 style={{ fontSize: 32, margin: "0 0 12px" }}>How We Protect Your Clinic's Data</h1>
         <p style={{ color: "rgba(244,245,247,0.8)", fontSize: 15, maxWidth: 620, margin: "0 auto" }}>
           {site?.security_intro ||
-            "We built AngelClinic around the same isolation, authorization, and audit principles a hospital IT team would expect — described here plainly, with no vague marketing claims."}
+            "We built MyCareDesk around the same isolation, authorization, and audit principles a hospital IT team would expect — described here plainly, with no vague marketing claims."}
         </p>
       </section>
 

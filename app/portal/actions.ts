@@ -44,7 +44,7 @@ export async function activateByTokenAction(token: string, password: string) {
   );
   if (createError) {
     if (/already.*regist|already exist/i.test(createError.message)) {
-      throw new Error("An account with this contact info already exists on AngelClinic — please contact your clinic for help activating your portal access.");
+      throw new Error("An account with this contact info already exists on MyCareDesk — please contact your clinic for help activating your portal access.");
     }
     throw new Error(createError.message);
   }
@@ -76,7 +76,7 @@ export async function activateByOtpAction(accountId: string, code: string, passw
   });
   if (createError) {
     if (/already.*regist|already exist/i.test(createError.message)) {
-      throw new Error("An account with this mobile number already exists on AngelClinic — please contact your clinic for help activating your portal access.");
+      throw new Error("An account with this mobile number already exists on MyCareDesk — please contact your clinic for help activating your portal access.");
     }
     throw new Error(createError.message);
   }

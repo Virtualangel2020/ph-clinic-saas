@@ -48,7 +48,7 @@ export default async function ClientsPage() {
                     <TestToggle tenantId={t.id} initialIsTest={!!t.is_test} />
                   </td>
                   <td style={{ padding: "10px 16px" }}>
-                    <Link href={`/admin/clients/${t.id}`} style={{ color: "#2563eb" }}>Manage →</Link>
+                    <Link href={`/admin/clients/${t.id}`} style={{ color: "var(--brand-primary)" }}>Manage →</Link>
                   </td>
                   <td style={{ padding: "10px 16px" }}>
                     <DeleteTenantButton tenantId={t.id} tenantName={t.name} compact />

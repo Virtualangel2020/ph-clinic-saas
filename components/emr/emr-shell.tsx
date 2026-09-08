@@ -23,7 +23,7 @@ const CORE_NAV: NavItem[] = [
   { href: "/dashboard/insurance", label: "Insurance / HMO", short: "Ins" },
   { href: "/dashboard/philhealth", label: "PhilHealth", short: "PH" },
   { href: "/dashboard/reports", label: "Reports", short: "Rpt" },
-  // Patient Portal is a core, always-included part of every AngelClinic
+  // Patient Portal is a core, always-included part of every MyCareDesk
   // plan — not a paid add-on (see migration data fix + plan_features).
   { href: "/dashboard/patient-portal", label: "Patient Portal", short: "Portal" },
   // Financial Tracker is likewise core as of the angelclinic_core_reclassify_addons
@@ -79,7 +79,7 @@ export function EmrShell({
   }, []);
 
   // A fixed 220px sidebar plus a fixed top bar left almost no room for
-  // content on a phone-width screen, and the AngelClinic mark inside the
+  // content on a phone-width screen, and the MyCareDesk mark inside the
   // sidebar was getting squeezed unreadable. Below 860px the sidebar
   // becomes an off-canvas drawer (hidden by default, opened by the
   // hamburger button in the top bar) instead of a permanently-visible
@@ -119,7 +119,7 @@ export function EmrShell({
       {isMobile && mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(12,23,48,0.5)", zIndex: 19 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(11,45,92,0.5)", zIndex: 19 }}
         />
       )}
 
@@ -131,7 +131,7 @@ export function EmrShell({
           left: 0,
           bottom: 0,
           width: navWidth,
-          background: "#0c1730",
+          background: "var(--brand-primary)",
           color: "#f4f5f7",
           display: "flex",
           flexDirection: "column",
@@ -141,8 +141,12 @@ export function EmrShell({
         }}
       >
         <div style={{ padding: effectiveCollapsed ? "16px 8px" : "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: effectiveCollapsed ? "center" : "flex-start", gap: 9 }}>
-          <Image src="/logo-64.png" alt="AngelClinic logo" width={28} height={28} style={{ borderRadius: 6, flexShrink: 0 }} />
-          {!effectiveCollapsed && <div style={{ fontWeight: 800, fontSize: 15, color: "#e6c66b" }}>AngelClinic</div>}
+          <Image src="/logo-64.png" alt="MyCareDesk logo" width={28} height={28} style={{ borderRadius: 6, flexShrink: 0 }} />
+          {!effectiveCollapsed && (
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#f4f5f7" }}>
+              My<span style={{ color: "var(--brand-secondary)" }}>Care</span>Desk
+            </div>
+          )}
           {isMobile && (
             <button
               onClick={() => setMobileOpen(false)}
@@ -222,7 +226,7 @@ export function EmrShell({
             >
               ☰
             </button>
-            <Image src="/logo-64.png" alt="AngelClinic logo" width={26} height={26} style={{ borderRadius: 6, flexShrink: 0 }} />
+            <Image src="/logo-64.png" alt="MyCareDesk logo" width={26} height={26} style={{ borderRadius: 6, flexShrink: 0 }} />
           </>
         )}
         {!isMobile && <GlobalSearch />}
@@ -238,8 +242,8 @@ export function EmrShell({
                 gap: 4,
                 padding: "5px 9px",
                 borderRadius: 999,
-                background: (jellybeanCounts[jb.key] ?? 0) > 0 ? "#0c1730" : "#f0f1f3",
-                color: (jellybeanCounts[jb.key] ?? 0) > 0 ? "#e6c66b" : "#888",
+                background: (jellybeanCounts[jb.key] ?? 0) > 0 ? "var(--brand-primary)" : "#f0f1f3",
+                color: (jellybeanCounts[jb.key] ?? 0) > 0 ? "var(--brand-secondary)" : "#888",
                 fontSize: 12,
                 fontWeight: 700,
                 textDecoration: "none",
@@ -390,9 +394,9 @@ function NavLink({ item, collapsed, active }: { item: NavItem; collapsed: boolea
         textAlign: collapsed ? "center" : "left",
         fontSize: 13,
         fontWeight: active ? 700 : 500,
-        color: active ? "#e6c66b" : "rgba(244,245,247,0.8)",
-        background: active ? "rgba(230,198,107,0.1)" : "transparent",
-        borderLeft: active ? "3px solid #e6c66b" : "3px solid transparent",
+        color: active ? "var(--brand-secondary)" : "rgba(244,245,247,0.8)",
+        background: active ? "rgba(4,156,160,0.1)" : "transparent",
+        borderLeft: active ? "3px solid var(--brand-secondary)" : "3px solid transparent",
         textDecoration: "none",
       }}
     >

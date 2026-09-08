@@ -61,9 +61,9 @@ export function ClinicalTab({
             key={t.key}
             onClick={() => setSub(t.key)}
             style={{
-              background: sub === t.key ? "#0c1730" : "transparent",
-              color: sub === t.key ? "#e6c66b" : "#555",
-              border: `1px solid ${sub === t.key ? "#0c1730" : "var(--input-border)"}`,
+              background: sub === t.key ? "var(--brand-primary)" : "transparent",
+              color: sub === t.key ? "var(--brand-secondary)" : "#555",
+              border: `1px solid ${sub === t.key ? "var(--brand-primary)" : "var(--input-border)"}`,
               borderRadius: 999,
               padding: "6px 14px",
               fontSize: 12.5,
@@ -116,7 +116,7 @@ function RecentEncounters({ patientId, encounters }: { patientId: string; encoun
                 <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{e.chief_complaint || "—"}</div>
                 <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{e.provider_name ?? "Unknown provider"}</div>
               </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: e.signed_at ? "#0c1730" : e.status === "closed" ? "#1a7f37" : "#8a6100", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: e.signed_at ? "var(--brand-primary)" : e.status === "closed" ? "#1a7f37" : "#8a6100", whiteSpace: "nowrap" }}>
                 {e.signed_at ? "✓ Signed" : e.status === "closed" ? "Completed" : "Open"}
               </div>
             </Link>

@@ -54,7 +54,7 @@ export function CertificatePreview({
         <div style={{ display: "grid", gap: 12, marginBottom: 14 }}>
           {fields.map((f, i) => (
             <div key={i}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-primary)", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 }}>
                 {f.label || "(untitled field)"}
               </div>
               <div>{SAMPLE_VALUE[f.type]}</div>

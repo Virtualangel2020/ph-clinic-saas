@@ -44,7 +44,7 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
     <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 20 }}>
       <h2 style={{ fontSize: 15, marginTop: 0, marginBottom: 4 }}>Public directory listing</h2>
       <p style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>
-        Optional. Turn this on to appear on AngelClinic's public "Find a Doctor" page. Off by default — nothing
+        Optional. Turn this on to appear on MyCareDesk's public "Find a Doctor" page. Off by default — nothing
         about you is shown publicly unless you enable it here.
       </p>
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 14 }}>
@@ -97,7 +97,7 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
       <button
         onClick={save}
         disabled={pending}
-        style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
       >
         {pending ? "Saving…" : "Save"}
       </button>

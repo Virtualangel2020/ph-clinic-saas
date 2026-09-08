@@ -56,7 +56,7 @@ function NavButtons({ step, setStep, onSave, saving, isLast }: { step: number; s
       <button
         onClick={onSave}
         disabled={saving}
-        style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+        style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
       >
         {saving ? "Saving…" : isLast ? "Activate" : "Save & Continue →"}
       </button>
@@ -125,7 +125,7 @@ export function SetupWizard({
     <div>
       <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
         {STEPS.map((s, i) => (
-          <div key={s} title={s} style={{ height: 5, flex: 1, minWidth: 12, borderRadius: 3, background: i <= step ? "var(--text-heading, #0c1730)" : "#e2e2e5" }} />
+          <div key={s} title={s} style={{ height: 5, flex: 1, minWidth: 12, borderRadius: 3, background: i <= step ? "var(--text-heading, var(--brand-primary))" : "#e2e2e5" }} />
         ))}
       </div>
       <div style={{ fontSize: 11.5, color: "#888", marginBottom: 6 }}>

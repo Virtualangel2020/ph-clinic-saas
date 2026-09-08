@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addDocumentAction, addDocumentFolderAction, getDocumentSignedUrlAction } from "../actions";
 import { sendDocumentRecordsTransferAction } from "../../encounters/records-exchange-actions";
-import { searchAngelClinicProvidersAction, checkSharingAuthorizedAction, type DirectoryProvider } from "../care-coordination-actions";
+import { searchMyCareDeskProvidersAction, checkSharingAuthorizedAction, type DirectoryProvider } from "../care-coordination-actions";
 import { foldersWithCustom, uploadableTypesWithCustom } from "@/lib/documents/folder-taxonomy";
 
 type Doc = {
@@ -267,7 +267,7 @@ export function DocumentsSection({
   async function runShareSearch() {
     setShareSearching(true);
     try {
-      setShareResults(await searchAngelClinicProvidersAction(shareQuery));
+      setShareResults(await searchMyCareDeskProvidersAction(shareQuery));
       setShareSearched(true);
     } catch (e: any) {
       setShareError(e.message || "Search failed.");
@@ -319,7 +319,7 @@ export function DocumentsSection({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: "#0c1730",
+            background: "var(--brand-primary)",
             color: "white",
             borderRadius: 8,
             padding: "8px 14px",
@@ -331,7 +331,7 @@ export function DocumentsSection({
           <div style={{ display: "flex", gap: 10 }}>
             <button
               onClick={() => openShareModal(Array.from(selectedIds))}
-              style={{ background: "#e6c66b", color: "#0c1730", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+              style={{ background: "var(--brand-secondary)", color: "var(--brand-primary)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
             >
               Send to provider
             </button>
@@ -417,7 +417,7 @@ export function DocumentsSection({
                         </div>
                         {error && <div style={{ color: "#a12a2a", fontSize: 12.5 }}>{error}</div>}
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}>
+                          <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}>
                             {pending ? "Saving…" : "Save"}
                           </button>
                           <button onClick={() => setAddingIn(null)} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
@@ -498,7 +498,7 @@ export function DocumentsSection({
                   onChange={(e) => setNewFolderLabel(e.target.value)}
                   style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", flex: 1, minWidth: 200 }}
                 />
-                <button onClick={saveFolder} disabled={pending || !newFolderLabel.trim()} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer" }}>
+                <button onClick={saveFolder} disabled={pending || !newFolderLabel.trim()} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer" }}>
                   {pending ? "Adding…" : "Add folder"}
                 </button>
                 <button onClick={() => { setAddingFolder(false); setNewFolderLabel(""); setError(null); }} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", color: "#555" }}>
@@ -535,12 +535,12 @@ export function DocumentsSection({
                   </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     {selectedDoc.storage_path && (
-                      <button onClick={() => downloadDoc(selectedDoc)} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
+                      <button onClick={() => downloadDoc(selectedDoc)} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                         Download
                       </button>
                     )}
                     {selectedDoc.storage_path && (
-                      <button onClick={() => openShareModal([selectedDoc.id])} style={{ background: "#e6c66b", color: "#0c1730", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      <button onClick={() => openShareModal([selectedDoc.id])} style={{ background: "var(--brand-secondary)", color: "var(--brand-primary)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                         Send to provider
                       </button>
                     )}
@@ -570,7 +570,7 @@ export function DocumentsSection({
 
                 {transfersFor(selectedDoc.id).length > 0 && (
                   <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0c1730", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Sent to</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-primary)", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Sent to</div>
                     <div style={{ display: "grid", gap: 4 }}>
                       {transfersFor(selectedDoc.id).map((t, i) => (
                         <div key={i} style={{ fontSize: 12, color: "#555" }}>
@@ -589,7 +589,7 @@ export function DocumentsSection({
         </div>
       </div>
 
-      {/* Send-to-provider modal — searches every AngelClinic provider,
+      {/* Send-to-provider modal — searches every MyCareDesk provider,
           same clinic or a different one; picking a provider doesn't send
           anything, the confirm step is the actual point of no return
           (mirrors app/dashboard/encounters/encounter-selection-list.tsx's
@@ -614,7 +614,7 @@ export function DocumentsSection({
             {shareStep === "pick" ? (
               <div style={{ marginTop: 8 }}>
                 <p style={{ fontSize: 12.5, color: "#666", marginBottom: 10 }}>
-                  Search any AngelClinic provider — this clinic or another clinic on AngelClinic. They&apos;ll see this in their Records Exchange inbox.
+                  Search any MyCareDesk provider — this clinic or another clinic on MyCareDesk. They&apos;ll see this in their Records Exchange inbox.
                 </p>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <input
@@ -624,7 +624,7 @@ export function DocumentsSection({
                     placeholder="Search by name, specialty, or clinic…"
                     style={{ border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, flex: 1 }}
                   />
-                  <button onClick={runShareSearch} disabled={shareSearching} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                  <button onClick={runShareSearch} disabled={shareSearching} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                     {shareSearching ? "…" : "Search"}
                   </button>
                 </div>
@@ -676,7 +676,7 @@ export function DocumentsSection({
                     <button onClick={() => setShareStep("pick")} disabled={sharePending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
                       Back
                     </button>
-                    <button onClick={sendShare} disabled={sharePending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: sharePending ? 0.6 : 1 }}>
+                    <button onClick={sendShare} disabled={sharePending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: sharePending ? 0.6 : 1 }}>
                       {sharePending ? "Sending…" : shareAuthorized ? "Send Securely" : "Yes, consent obtained — send"}
                     </button>
                   </div>

@@ -105,8 +105,8 @@ export function PricingSection({
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
-                background: cycle === c.value ? "#0c1730" : "transparent",
-                color: cycle === c.value ? "#e6c66b" : "#555",
+                background: cycle === c.value ? "var(--brand-primary)" : "transparent",
+                color: cycle === c.value ? "var(--brand-secondary)" : "#555",
               }}
             >
               {c.label}
@@ -134,7 +134,7 @@ export function PricingSection({
           return (
             <div key={plan.slug} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20, position: "relative", display: "flex", flexDirection: "column" }}>
               {promo && (
-                <div style={{ position: "absolute", top: -10, right: 14, background: "#e6c66b", color: "#0c1730", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999 }}>
+                <div style={{ position: "absolute", top: -10, right: 14, background: "var(--brand-secondary)", color: "var(--brand-primary)", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999 }}>
                   {promoBadgeText(promo)}
                 </div>
               )}
@@ -169,7 +169,7 @@ export function PricingSection({
               )}
               <p style={{ color: "#666", fontSize: 13 }}>{plan.description}</p>
               {typeof plan.included_provider_seats === "number" && (
-                <div style={{ background: "#f4f1ea", border: "1px solid #ece5d6", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#555", marginBottom: 14 }}>
+                <div style={{ background: "var(--brand-surface-tint)", border: "1px solid var(--brand-border-tint)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#555", marginBottom: 14 }}>
                   Includes <strong>{plan.included_provider_seats} clinical provider{plan.included_provider_seats === 1 ? "" : "s"}</strong> and unlimited staff accounts.
                   {(cycle === "monthly" ? plan.additional_seat_price_monthly : cycle === "yearly" ? plan.additional_seat_price_yearly : null) != null && (
                     <>
@@ -215,8 +215,8 @@ export function PricingSection({
                     padding: "9px 14px",
                     borderRadius: 8,
                     border: "none",
-                    background: "#0c1730",
-                    color: "#e6c66b",
+                    background: "var(--brand-primary)",
+                    color: "var(--brand-secondary)",
                     fontWeight: 700,
                     fontSize: 13,
                     textAlign: "center",
@@ -268,8 +268,8 @@ export function PricingSection({
             display: "inline-block",
             padding: "10px 20px",
             borderRadius: 8,
-            background: "#0c1730",
-            color: "#e6c66b",
+            background: "var(--brand-primary)",
+            color: "var(--brand-secondary)",
             fontWeight: 700,
             fontSize: 14,
             textDecoration: "none",

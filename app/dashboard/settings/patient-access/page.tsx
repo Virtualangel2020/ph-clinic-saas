@@ -85,7 +85,7 @@ export default async function PatientAccessHubPage() {
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Patient Access & Payments</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 8 }}>
         How your clinic accepts patients, what it charges, how it gets paid, and how patients reach each provider —
-        AngelClinic adapts to how each provider actually operates, not the other way around. Set clinic-wide
+        MyCareDesk adapts to how each provider actually operates, not the other way around. Set clinic-wide
         defaults once; only customize a specific provider when they genuinely work differently.
       </p>
       {!cs?.patient_access_setup_completed && (

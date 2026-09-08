@@ -292,7 +292,7 @@ export function PromotionForm({
               type="button"
               key={value}
               onClick={() => setType(value)}
-              style={{ ...chip, borderColor: type === value ? "#2563eb" : "#ddd", background: type === value ? "#eff4ff" : "white" }}
+              style={{ ...chip, borderColor: type === value ? "var(--brand-primary)" : "#ddd", background: type === value ? "var(--brand-surface-tint)" : "white" }}
             >
               {text}
             </button>
@@ -486,7 +486,7 @@ export function PromotionForm({
                   type="button"
                   key={s}
                   onClick={() => setScope(s)}
-                  style={{ ...chip, borderColor: scope === s ? "#2563eb" : "#ddd", background: scope === s ? "#eff4ff" : "white" }}
+                  style={{ ...chip, borderColor: scope === s ? "var(--brand-primary)" : "#ddd", background: scope === s ? "var(--brand-surface-tint)" : "white" }}
                 >
                   {SCOPE_LABELS[s]}
                   {s === "core_only" ? " (default)" : ""}
@@ -546,7 +546,7 @@ const submitBtn: React.CSSProperties = {
   padding: "10px 18px",
   borderRadius: 8,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 700,
   fontSize: 13,

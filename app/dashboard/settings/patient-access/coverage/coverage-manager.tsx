@@ -99,7 +99,7 @@ export function CoverageManager({
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16 }}>
-          <button onClick={saveDefaults} disabled={pending} style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={saveDefaults} disabled={pending} style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             {pending ? "Saving…" : "Save Clinic Default"}
           </button>
           {saved && !pending && <span style={{ fontSize: 12, color: "#1a7f37" }}>Saved.</span>}
@@ -257,7 +257,7 @@ function HmoRow({ hmo, forceExpanded, onDoneAdding }: { hmo: Hmo; forceExpanded?
             <textarea value={value.notes} onChange={(e) => setValue({ ...value, notes: e.target.value })} rows={2} style={{ ...inputStyle(), resize: "vertical", fontFamily: "inherit" }} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
               {pending ? "Saving…" : "Save HMO"}
             </button>
             {error && <span style={{ fontSize: 12, color: "#a12a2a" }}>{error}</span>}
@@ -328,7 +328,7 @@ function ProviderCoverageRow({ provider, override, hmos, selectedHmoIds }: { pro
               fontWeight: 600,
               color: customized ? "#7a5c12" : "#888",
               background: customized ? "#fff7e6" : "#f2f2f2",
-              border: `1px solid ${customized ? "#e6c66b" : "#ddd"}`,
+              border: `1px solid ${customized ? "var(--brand-secondary)" : "#ddd"}`,
               borderRadius: 999,
               padding: "2px 8px",
               marginTop: 4,
@@ -375,7 +375,7 @@ function ProviderCoverageRow({ provider, override, hmos, selectedHmoIds }: { pro
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, #0c1730)", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={save} disabled={pending} style={{ background: "var(--text-heading, var(--brand-primary))", color: "white", border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
               {pending ? "Saving…" : "Save"}
             </button>
             {(customized || selectedHmoIds.length > 0) && (

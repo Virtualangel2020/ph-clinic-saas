@@ -69,9 +69,9 @@ export function InstallPwaButton({
         style={{
           padding: "6px 14px",
           borderRadius: 8,
-          border: "1px solid #e6c66b",
+          border: "1px solid var(--brand-secondary)",
           background: "transparent",
-          color: "#e6c66b",
+          color: "var(--brand-secondary)",
           fontWeight: 600,
           fontSize: 12,
           cursor: "pointer",

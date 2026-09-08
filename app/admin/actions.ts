@@ -867,7 +867,7 @@ export async function createPaymentLinkAction(invoiceId: string): Promise<{ test
         attributes: {
           send_email_receipt: false,
           show_line_items: true,
-          description: `Angel Clinic — ${invoice.description}`,
+          description: `MyCareDesk — ${invoice.description}`,
           line_items: [
             {
               name: invoice.description,

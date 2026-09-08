@@ -32,7 +32,7 @@ export function ResetDemoButton({ tenantId, tenantName }: { tenantId: string; te
     <button
       onClick={reset}
       disabled={pending}
-      style={{ background: "white", border: "1px solid #0c1730", color: "#0c1730", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: pending ? "default" : "pointer" }}
+      style={{ background: "white", border: "1px solid var(--brand-primary)", color: "var(--brand-primary)", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: pending ? "default" : "pointer" }}
     >
       {pending ? "Resetting…" : "Reset demo data"}
     </button>

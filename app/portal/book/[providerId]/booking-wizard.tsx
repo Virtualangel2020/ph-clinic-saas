@@ -23,7 +23,7 @@ type Service = {
 };
 type Hmo = { id: string; hmo_name: string; verification_requirement: string; patient_instructions: string | null };
 
-const NAVY = "#0c1730";
+const NAVY = "var(--brand-primary)";
 const STEPS_SLOT = ["Choose Visit", "Choose Date", "Choose Time", "How Will You Pay?", "Review"];
 const STEPS_REQUEST = ["Choose Visit", "Preferred Time", "How Will You Pay?", "Review"];
 
@@ -237,7 +237,7 @@ export function BookingWizard({
         {effective.customInstructions && <p style={{ fontSize: 12.5, color: "#888" }}>{effective.customInstructions}</p>}
         <button
           onClick={() => router.push("/portal/appointments")}
-          style={{ background: NAVY, color: "#e6c66b", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
+          style={{ background: NAVY, color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
         >
           View My Appointments
         </button>
@@ -357,7 +357,7 @@ export function BookingWizard({
                   style={{
                     border: `1.5px solid ${selectedStartMin === s.startMin ? NAVY : "#cfe3d3"}`,
                     background: selectedStartMin === s.startMin ? NAVY : "#f3faf4",
-                    color: selectedStartMin === s.startMin ? "#e6c66b" : "#1a7f37",
+                    color: selectedStartMin === s.startMin ? "var(--brand-secondary)" : "#1a7f37",
                     borderRadius: 8,
                     padding: "8px 12px",
                     fontSize: 12.5,
@@ -503,7 +503,7 @@ function NavRow({ onBack, onNext, disabled, nextLabel }: { onBack?: () => void; 
       <button
         onClick={onNext}
         disabled={disabled}
-        style={{ background: NAVY, color: "#e6c66b", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }}
+        style={{ background: NAVY, color: "var(--brand-secondary)", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }}
       >
         {nextLabel ?? "Continue →"}
       </button>

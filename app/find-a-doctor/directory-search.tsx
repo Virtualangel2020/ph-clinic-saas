@@ -46,7 +46,7 @@ type ExternalProvider = {
   source_url: string | null;
 };
 
-const NAVY = "#0c1730";
+const NAVY = "var(--brand-primary)";
 
 function effectiveBookingType(p: Provider): string {
   return p.booking_type_override ?? p.default_booking_type ?? "both";
@@ -136,7 +136,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
           {(
             [
               ["all", "All"],
-              ["angelclinic", "AngelClinic Providers"],
+              ["angelclinic", "MyCareDesk Providers"],
               ["other", "Other Providers"],
             ] as const
           ).map(([value, label]) => (
@@ -151,7 +151,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                 fontWeight: 600,
                 cursor: "pointer",
                 background: filter === value ? NAVY : "transparent",
-                color: filter === value ? "#e6c66b" : "#555",
+                color: filter === value ? "var(--brand-secondary)" : "#555",
                 whiteSpace: "nowrap",
               }}
             >
@@ -196,7 +196,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                         {p.title ? `${p.title} ` : ""}
                         {p.full_name}
                         <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: "#1a7f37", background: "#e6f4ea", padding: "2px 8px", borderRadius: 999, verticalAlign: "middle" }}>
-                          AngelClinic
+                          MyCareDesk
                         </span>
                       </div>
                     </Link>
@@ -217,7 +217,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                     {canRequest && (
                       <button
                         onClick={() => setRequestingFor(p)}
-                        style={{ background: NAVY, color: "#e6c66b", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+                        style={{ background: NAVY, color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
                       >
                         Request Appointment
                       </button>
@@ -250,7 +250,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                 {p.contact_number && <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{p.contact_number}</div>}
                 {p.schedule_text && <div style={{ color: "#666", fontSize: 12, marginTop: 6, whiteSpace: "pre-line" }}>{p.schedule_text}</div>}
                 <div style={{ color: "#aaa", fontSize: 11, marginTop: 8 }}>
-                  Externally listed — not an AngelClinic user. Source:{" "}
+                  Externally listed — not an MyCareDesk user. Source:{" "}
                   {p.source_url ? (
                     <a href={p.source_url} target="_blank" rel="noreferrer" style={{ color: "#aaa" }}>
                       {p.source}
@@ -279,7 +279,7 @@ function FilterChip({ active, label, onClick }: { active: boolean; label: string
         borderRadius: 999,
         border: `1px solid ${active ? NAVY : "#ddd"}`,
         background: active ? NAVY : "white",
-        color: active ? "#e6c66b" : "#555",
+        color: active ? "var(--brand-secondary)" : "#555",
         fontSize: 11.5,
         fontWeight: 600,
         cursor: "pointer",

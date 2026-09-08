@@ -126,9 +126,9 @@ export function BillingSection({
                 onClick={() => toggleBillType(opt.value)}
                 disabled={pending}
                 style={{
-                  border: `1px solid ${active ? "#0c1730" : "var(--input-border)"}`,
-                  background: active ? "#0c1730" : "transparent",
-                  color: active ? "#e6c66b" : "#555",
+                  border: `1px solid ${active ? "var(--brand-primary)" : "var(--input-border)"}`,
+                  background: active ? "var(--brand-primary)" : "transparent",
+                  color: active ? "var(--brand-secondary)" : "#555",
                   borderRadius: 999,
                   padding: "6px 14px",
                   fontSize: 12.5,
@@ -320,7 +320,7 @@ function BillingLedger({
               ))}
             </select>
           </div>
-          <button onClick={saveCharge} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", justifySelf: "start" }}>
+          <button onClick={saveCharge} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", justifySelf: "start" }}>
             {pending ? "Saving…" : "Save charge"}
           </button>
         </div>
@@ -350,7 +350,7 @@ function BillingLedger({
             <input type="date" value={payment.paidAt} onChange={(e) => setPayment({ ...payment, paidAt: e.target.value })} style={FIELD_STYLE} />
           </div>
           <input placeholder="Reference / OR number (optional)" value={payment.reference} onChange={(e) => setPayment({ ...payment, reference: e.target.value })} style={FIELD_STYLE} />
-          <button onClick={savePayment} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", justifySelf: "start" }}>
+          <button onClick={savePayment} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", justifySelf: "start" }}>
             {pending ? "Saving…" : "Save payment"}
           </button>
         </div>
@@ -376,7 +376,7 @@ function BillingLedger({
                   <button
                     onClick={() => payOnline(c.id)}
                     disabled={pending && payOnlineBusyId === c.id}
-                    style={{ background: "#0c1730", color: "#e6c66b", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
+                    style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
                   >
                     {pending && payOnlineBusyId === c.id ? "Opening…" : "Pay Online"}
                   </button>

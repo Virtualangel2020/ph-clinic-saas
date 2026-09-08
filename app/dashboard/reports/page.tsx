@@ -298,7 +298,7 @@ function RangeTabs({ activeKey }: { activeKey: string }) {
               borderRadius: 6,
               textDecoration: "none",
               color: active ? "white" : "#666",
-              background: active ? "#0c1730" : "transparent",
+              background: active ? "var(--brand-primary)" : "transparent",
               whiteSpace: "nowrap",
             }}
           >
@@ -329,12 +329,12 @@ function StatCard({
     <div
       style={{
         background: highlight ? "#fff7e6" : "white",
-        border: `1px solid ${highlight ? "#e6c66b" : "#e2e2e5"}`,
+        border: `1px solid ${highlight ? "var(--brand-secondary)" : "#e2e2e5"}`,
         borderRadius: 12,
         padding: compact ? 16 : 18,
       }}
     >
-      <div style={{ fontSize: compact ? 22 : 26, fontWeight: 700, color: valueColor ?? "#0c1730" }}>{value}</div>
+      <div style={{ fontSize: compact ? 22 : 26, fontWeight: 700, color: valueColor ?? "var(--brand-primary)" }}>{value}</div>
       <div style={{ fontSize: 12.5, color: "#666", marginTop: 2 }}>{label}</div>
       {sub && <div style={{ fontSize: 11.5, color: "#999", marginTop: 4 }}>{sub}</div>}
     </div>

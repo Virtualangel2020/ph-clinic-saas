@@ -124,7 +124,7 @@ export default async function PortalBillingPage() {
                 href={`/api/billing/receipt-pdf?paymentId=${p.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontSize: 12, fontWeight: 600, color: "var(--text-heading, #0c1730)", textDecoration: "none", border: "1px solid var(--input-border, #ddd)", borderRadius: 8, padding: "6px 12px" }}
+                style={{ fontSize: 12, fontWeight: 600, color: "var(--text-heading, var(--brand-primary))", textDecoration: "none", border: "1px solid var(--input-border, #ddd)", borderRadius: 8, padding: "6px 12px" }}
               >
                 View / Download Receipt
               </a>

@@ -76,7 +76,7 @@ export function StaffPanel({ tenantId, staff }: { tenantId: string; staff: Staff
                   <button
                     onClick={() => resend(s.id)}
                     disabled={pending && resendingId === s.id}
-                    style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, cursor: "pointer", padding: 0 }}
+                    style={{ background: "none", border: "none", color: "var(--brand-primary)", fontSize: 12, cursor: "pointer", padding: 0 }}
                   >
                     {pending && resendingId === s.id ? "Sending..." : "Resend invite"}
                   </button>
@@ -112,7 +112,7 @@ export function StaffPanel({ tenantId, staff }: { tenantId: string; staff: Staff
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} style={{ ...buttonStyle, background: "white", color: "#2563eb", border: "1px solid #2563eb" }}>
+        <button onClick={() => setShowForm(true)} style={{ ...buttonStyle, background: "white", color: "var(--brand-primary)", border: "1px solid var(--brand-primary)" }}>
           + Invite staff
         </button>
       )}
@@ -128,7 +128,7 @@ const buttonStyle: React.CSSProperties = {
   padding: "8px 14px",
   borderRadius: 8,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 600,
   fontSize: 13,

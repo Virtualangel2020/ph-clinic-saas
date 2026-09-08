@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createReferralAction } from "./actions";
-import { searchAngelClinicProvidersAction, searchExternalProvidersAction, type DirectoryProvider, type ExternalDirectoryProvider } from "../patients/care-coordination-actions";
+import { searchMyCareDeskProvidersAction, searchExternalProvidersAction, type DirectoryProvider, type ExternalDirectoryProvider } from "../patients/care-coordination-actions";
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 4 };
@@ -37,7 +37,7 @@ export function ReferralForm({ patientId, onDone }: { patientId: string; onDone?
       return;
     }
     timer.current = setTimeout(async () => {
-      if (destinationType === "internal") setInternalResults(await searchAngelClinicProvidersAction(providerQuery));
+      if (destinationType === "internal") setInternalResults(await searchMyCareDeskProvidersAction(providerQuery));
       else setExternalResults(await searchExternalProvidersAction(providerQuery));
     }, 250);
     return () => {
@@ -64,7 +64,7 @@ export function ReferralForm({ patientId, onDone }: { patientId: string; onDone?
       return;
     }
     if (destinationType === "internal" && !selectedInternal) {
-      setError("Choose a receiving AngelClinic provider.");
+      setError("Choose a receiving MyCareDesk provider.");
       return;
     }
     if (destinationType === "external" && !selectedExternal && !externalDestinationName.trim()) {
@@ -116,7 +116,7 @@ export function ReferralForm({ patientId, onDone }: { patientId: string; onDone?
               setProviderQuery("");
             }}
           />
-          AngelClinic provider
+          MyCareDesk provider
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <input
@@ -129,7 +129,7 @@ export function ReferralForm({ patientId, onDone }: { patientId: string; onDone?
               setProviderQuery("");
             }}
           />
-          External (outside AngelClinic)
+          External (outside MyCareDesk)
         </label>
       </div>
 
@@ -224,7 +224,7 @@ export function ReferralForm({ patientId, onDone }: { patientId: string; onDone?
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#a12a2a", margin: 0 }}>{error}</p>}
-      <button onClick={save} disabled={pending} style={{ background: "#0c1730", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
+      <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
         {pending ? "Creating…" : "Create Referral"}
       </button>
     </div>

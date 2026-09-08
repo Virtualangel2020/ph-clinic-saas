@@ -79,7 +79,7 @@ export function SiteContentForm({ site, promotions }: { site: Site; promotions: 
         <h2 style={{ fontSize: 15, margin: 0 }}>Warm welcome card</h2>
         <div>
           <label style={labelStyle}>Heading</label>
-          <input style={inputStyle} value={form.welcomeHeading} onChange={(e) => set("welcomeHeading", e.target.value)} placeholder="Hey, Doc! 👋 Welcome to AngelClinic." />
+          <input style={inputStyle} value={form.welcomeHeading} onChange={(e) => set("welcomeHeading", e.target.value)} placeholder="Hey, Doc! 👋 Welcome to MyCareDesk." />
         </div>
         <div>
           <label style={labelStyle}>Body</label>
@@ -147,7 +147,7 @@ export function SiteContentForm({ site, promotions }: { site: Site; promotions: 
       <button
         onClick={save}
         disabled={pending}
-        style={{ background: "#0c1730", color: "#e6c66b", fontWeight: 700, fontSize: 13.5, padding: "11px 22px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13.5, padding: "11px 22px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
       >
         {pending ? "Saving…" : "Save Site Content"}
       </button>

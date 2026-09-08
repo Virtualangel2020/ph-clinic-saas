@@ -98,7 +98,7 @@ export function PatientChartTabs({
               flexShrink: 0,
               background: "none",
               border: "none",
-              borderBottom: tab === t.key ? "2px solid #0c1730" : "2px solid transparent",
+              borderBottom: tab === t.key ? "2px solid var(--brand-primary)" : "2px solid transparent",
               color: tab === t.key ? "var(--text-heading)" : "#888",
               fontWeight: tab === t.key ? 700 : 500,
               fontSize: 13,

@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Plan = { id: string; name: string; slug: string; description: string | null; plan_prices: { billing_cycle: string; price_php: number }[] };
 type Addon = { id: string; name: string; slug: string; addon_prices: { billing_cycle: string; price_php: number }[] };
+type Promotion = {
+  id: string;
+  code: string | null;
+  label: string;
+  discount_percent: number;
+  applies_to_plan_id: string | null;
+};
 
 const CYCLES = [
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
-  { value: "one_time", label: "One-time" },
+  { value: "one_time", label: "Lifetime" },
 ] as const;
 
 function priceFor(prices: { billing_cycle: string; price_php: number }[], cycle: string) {
@@ -17,14 +24,47 @@ function priceFor(prices: { billing_cycle: string; price_php: number }[], cycle:
   return p ? Number(p.price_php) : 0;
 }
 
-export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Addon[] }) {
+// The automatic promo is whichever code-less promotion is currently active
+// and either applies to every plan or to the one currently selected — it's
+// applied without the visitor needing to type anything in.
+function findAutoPromo(promotions: Promotion[], planId: string) {
+  return (
+    promotions.find(
+      (p) => !p.code && (p.applies_to_plan_id === null || p.applies_to_plan_id === planId)
+    ) ?? null
+  );
+}
+
+export function RequestAccessForm({
+  plans,
+  addons,
+  promotions = [],
+  selection = null,
+}: {
+  plans: Plan[];
+  addons: Addon[];
+  promotions?: Promotion[];
+  // Set by the pricing cards above when someone clicks "Request this
+  // plan" — preselects that plan and whichever billing cycle they were
+  // previewing. `token` increments on every click so the effect below
+  // fires even if they click the same plan/cycle combo twice in a row.
+  selection?: { planId: string; cycle: (typeof CYCLES)[number]["value"]; token: number } | null;
+}) {
   const [clinicName, setClinicName] = useState("");
   const [contactName, setContactName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [cycle, setCycle] = useState<(typeof CYCLES)[number]["value"]>("monthly");
+
+  useEffect(() => {
+    if (!selection) return;
+    setPlanId(selection.planId);
+    setCycle(selection.cycle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection?.token]);
   const [selectedAddons, setSelectedAddons] = useState<Set<string>>(new Set());
+  const [promoCode, setPromoCode] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -33,7 +73,14 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
   const addonsTotal = addons
     .filter((a) => selectedAddons.has(a.id))
     .reduce((sum, a) => sum + priceFor(a.addon_prices, cycle), 0);
-  const total = planPrice + addonsTotal;
+  const subtotal = planPrice + addonsTotal;
+
+  const codedPromo = promoCode.trim()
+    ? promotions.find((p) => p.code?.toUpperCase() === promoCode.trim().toUpperCase()) ?? null
+    : null;
+  const activePromo = codedPromo ?? findAutoPromo(promotions, planId);
+  const discountAmount = activePromo ? Math.round(subtotal * (activePromo.discount_percent / 100)) : 0;
+  const total = subtotal - discountAmount;
 
   function toggleAddon(id: string) {
     setSelectedAddons((prev) => {
@@ -58,6 +105,7 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
       requested_plan_id: planId || null,
       requested_billing_cycle: cycle,
       requested_addon_ids: Array.from(selectedAddons),
+      promotion_id: activePromo?.id ?? null,
     });
 
     if (error) {
@@ -73,7 +121,7 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
       <div style={{ background: "#f0f9f0", border: "1px solid #bfe3bf", borderRadius: 12, padding: 24 }}>
         <h2 style={{ fontSize: 18, marginTop: 0 }}>Request received</h2>
         <p style={{ color: "#333", fontSize: 14 }}>
-          Thanks — your request has been sent to the Angel Clinic team for review. Nothing is provisioned
+          Thanks — your request has been sent to the MyCareDesk team for review. Nothing is provisioned
           automatically; we'll reach out at {email} once it's approved.
         </p>
       </div>
@@ -84,7 +132,23 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
     <form onSubmit={submit} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 24 }}>
       <h2 style={{ fontSize: 18, marginTop: 0 }}>Request access</h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      {activePromo && (
+        <div
+          style={{
+            background: "#fff7e6",
+            border: "1px solid var(--brand-secondary)",
+            borderRadius: 8,
+            padding: "10px 14px",
+            fontSize: 13,
+            marginBottom: 16,
+            color: "#7a5c12",
+          }}
+        >
+          🎉 {activePromo.label} — <strong>{activePromo.discount_percent}% off</strong> is applied to this request.
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 12 }}>
         <input required placeholder="Clinic name" value={clinicName} onChange={(e) => setClinicName(e.target.value)} style={input} />
         <input required placeholder="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} style={input} />
         <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
@@ -101,8 +165,8 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
               onClick={() => setPlanId(p.id)}
               style={{
                 ...chip,
-                borderColor: planId === p.id ? "#2563eb" : "#ddd",
-                background: planId === p.id ? "#eff4ff" : "white",
+                borderColor: planId === p.id ? "var(--brand-primary)" : "#ddd",
+                background: planId === p.id ? "var(--brand-surface-tint)" : "white",
               }}
             >
               {p.name}
@@ -121,8 +185,8 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
               onClick={() => setCycle(c.value)}
               style={{
                 ...chip,
-                borderColor: cycle === c.value ? "#2563eb" : "#ddd",
-                background: cycle === c.value ? "#eff4ff" : "white",
+                borderColor: cycle === c.value ? "var(--brand-primary)" : "#ddd",
+                background: cycle === c.value ? "var(--brand-surface-tint)" : "white",
               }}
             >
               {c.label}
@@ -146,9 +210,32 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
         </div>
       </div>
 
+      {promotions.some((p) => p.code) && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={label}>Promo code (optional)</label>
+          <input
+            placeholder="Have a code? Enter it here"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value)}
+            style={{ ...input, width: "100%", boxSizing: "border-box" }}
+          />
+        </div>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "1px solid #eee" }}>
         <div style={{ fontSize: 14 }}>
-          Estimated total: <strong>₱{total.toLocaleString()}</strong> / {cycle}
+          {activePromo ? (
+            <>
+              <span style={{ textDecoration: "line-through", color: "#999", marginRight: 8 }}>
+                ₱{subtotal.toLocaleString()}
+              </span>
+              Estimated total: <strong>₱{total.toLocaleString()}</strong> / {cycle}
+            </>
+          ) : (
+            <>
+              Estimated total: <strong>₱{total.toLocaleString()}</strong> / {cycle}
+            </>
+          )}
         </div>
         <button type="submit" disabled={status === "submitting"} style={submitBtn}>
           {status === "submitting" ? "Sending..." : "Send request"}
@@ -156,7 +243,7 @@ export function RequestAccessForm({ plans, addons }: { plans: Plan[]; addons: Ad
       </div>
       {status === "error" && <p style={{ color: "crimson", fontSize: 13, marginTop: 8 }}>{errorMsg}</p>}
       <p style={{ fontSize: 11, color: "#999", marginTop: 10 }}>
-        This is a request, not a purchase — nothing is charged or provisioned automatically. The Angel Clinic team
+        This is a request, not a purchase — nothing is charged or provisioned automatically. The MyCareDesk team
         reviews every request before setting up an account.
       </p>
     </form>
@@ -170,7 +257,7 @@ const submitBtn: React.CSSProperties = {
   padding: "10px 18px",
   borderRadius: 8,
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand-primary)",
   color: "white",
   fontWeight: 700,
   cursor: "pointer",
