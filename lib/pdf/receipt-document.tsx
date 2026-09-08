@@ -22,10 +22,10 @@ export type ReceiptData = {
 
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#1a1a1a" },
-  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottom: "2 solid #0b2d5c", paddingBottom: 12, marginBottom: 14 },
+  header: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", borderBottom: "2 solid #0f5a8c", paddingBottom: 12, marginBottom: 14 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   logo: { width: 44, height: 44, objectFit: "contain" },
-  clinicName: { fontSize: 15, fontWeight: 700, color: "#0b2d5c" },
+  clinicName: { fontSize: 15, fontWeight: 700, color: "#0f5a8c" },
   clinicMeta: { fontSize: 8.5, color: "#555", marginTop: 2, lineHeight: 1.4 },
   docTitle: { fontSize: 9, color: "#888", textAlign: "right" },
   receiptNumber: { fontSize: 9, color: "#555", textAlign: "right", marginTop: 3 },
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 11, fontWeight: 700, color: "#1a1a1a", textAlign: "right" },
   amountBlock: { marginTop: 24, marginBottom: 24, alignItems: "center" },
   amountLabel: { fontSize: 9, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
-  amount: { fontSize: 28, fontWeight: 700, color: "#0b2d5c" },
+  amount: { fontSize: 28, fontWeight: 700, color: "#0f5a8c" },
   statusBadge: { fontSize: 10, fontWeight: 700, color: "#1a7f37", marginTop: 6 },
   footer: { position: "absolute", bottom: 24, left: 36, right: 36, fontSize: 7.5, color: "#aaa", textAlign: "center", borderTop: "0.5 solid #eee", paddingTop: 6 },
 });

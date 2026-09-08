@@ -11,8 +11,8 @@ export async function GET() {
       scope: "/dashboard/",
       display: "standalone",
       orientation: "portrait-primary",
-      background_color: "#0b2d5c",
-      theme_color: "#0b2d5c",
+      background_color: "#14607f",
+      theme_color: "#14607f",
       icons: [
         { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
         { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 // other elements look tiny/cut-off on phones rather than laid out for
 // their actual screen width.
 export const viewport: Viewport = {
-  themeColor: "#0b2d5c",
+  themeColor: "#0f5a8c",
   width: "device-width",
   initialScale: 1,
 };
