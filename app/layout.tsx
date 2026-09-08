@@ -9,9 +9,14 @@ export const metadata: Metadata = {
   // app/manifest.ts auto-links /manifest.webmanifest here. The /admin and
   // /dashboard layouts each override this with their own manifest so those
   // sections install as separate apps.
+  // ?v=2 cache-busts the icon files: browsers (and Windows' installed-PWA
+  // icon cache) hold onto a favicon far more stubbornly than normal page
+  // assets, sometimes keeping the very first icon they ever saw even after
+  // the underlying file is corrected. Bump this suffix any time the icon
+  // artwork itself changes again.
   icons: {
-    icon: "/favicon.ico",
-    apple: "/icons/apple-touch-icon.png",
+    icon: "/favicon.ico?v=2",
+    apple: "/icons/apple-touch-icon.png?v=2",
   },
   appleWebApp: {
     capable: true,
