@@ -164,7 +164,7 @@ export function CertificatesSection({
           {error && <p style={{ fontSize: 12, color: "#a12a2a", marginBottom: 8 }}>{error}</p>}
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={issue} disabled={pending} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+            <button onClick={issue} disabled={pending} style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
               {pending ? "Issuing…" : "Issue Certificate"}
             </button>
             <button onClick={() => setIssuing(false)} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 16px", fontSize: 12.5, cursor: "pointer", color: "#555" }}>

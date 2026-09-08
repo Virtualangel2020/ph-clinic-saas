@@ -102,7 +102,7 @@ function SignupForm() {
           </p>
           <a
             href={`/login?next=${encodeURIComponent(nextUrl())}`}
-            style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+            style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
           >
             Sign in →
           </a>

@@ -89,7 +89,7 @@ export default async function PricingPage() {
           </p>
           <Link
             href="/request-demo"
-            style={{ display: "inline-block", background: GOLD, color: NAVY, fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}
+            style={{ display: "inline-block", background: GOLD, color: "var(--brand-primary-dark)", fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}
           >
             Contact Us →
           </Link>

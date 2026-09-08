@@ -5,7 +5,7 @@ export async function GET() {
   return NextResponse.json(
     {
       name: "MyCareDesk — Staff",
-      short_name: "AC Staff",
+      short_name: "MCD Staff",
       description: "Clinic staff dashboard for MyCareDesk by Virtual Angel Systems.",
       start_url: "/dashboard",
       scope: "/dashboard/",

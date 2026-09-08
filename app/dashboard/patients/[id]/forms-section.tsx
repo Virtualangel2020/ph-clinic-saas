@@ -129,7 +129,7 @@ export function FormsSection({
         {!assigning && (
           <button
             onClick={() => setAssigning(true)}
-            style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
+            style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer" }}
           >
             + Assign form
           </button>

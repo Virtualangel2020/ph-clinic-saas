@@ -237,7 +237,7 @@ export function BookingWizard({
         {effective.customInstructions && <p style={{ fontSize: 12.5, color: "#888" }}>{effective.customInstructions}</p>}
         <button
           onClick={() => router.push("/portal/appointments")}
-          style={{ background: NAVY, color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
+          style={{ background: NAVY, color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
         >
           View My Appointments
         </button>
@@ -503,7 +503,7 @@ function NavRow({ onBack, onNext, disabled, nextLabel }: { onBack?: () => void; 
       <button
         onClick={onNext}
         disabled={disabled}
-        style={{ background: NAVY, color: "var(--brand-secondary)", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }}
+        style={{ background: NAVY, color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }}
       >
         {nextLabel ?? "Continue →"}
       </button>

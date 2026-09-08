@@ -290,7 +290,7 @@ function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Prov
         <button
           onClick={save}
           disabled={pending || uploading}
-          style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
+          style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
         >
           {pending ? "Saving…" : provider ? "Save changes" : "Add provider"}
         </button>

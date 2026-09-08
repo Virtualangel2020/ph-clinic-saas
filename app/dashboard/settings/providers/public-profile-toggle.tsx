@@ -97,7 +97,7 @@ export function PublicProfileToggle({ profile }: { profile: Profile }) {
       <button
         onClick={save}
         disabled={pending}
-        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+        style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
       >
         {pending ? "Saving…" : "Save"}
       </button>

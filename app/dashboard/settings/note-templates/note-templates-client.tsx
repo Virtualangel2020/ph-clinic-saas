@@ -43,7 +43,7 @@ const SECTION_TITLE: Record<Section["key"], string> = {
 };
 
 const FIELD_STYLE: React.CSSProperties = { padding: "8px 10px", borderRadius: 7, border: "1px solid var(--input-border)", fontSize: 13, width: "100%", fontFamily: "inherit" };
-const SAVE_BTN_STYLE: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const SAVE_BTN_STYLE: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" };
 
 function emptyDraft(): Template {
   return { id: "", name: "SOAP (Standard)", based_on: "soap", sections: SOAP_PRESET.map((s) => ({ ...s })), is_default: false, is_active: true };
@@ -180,7 +180,7 @@ export function NoteTemplatesClient({
           ))}
         </div>
         {!editing && (
-          <button onClick={startNew} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+          <button onClick={startNew} style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}>
             + New Template
           </button>
         )}

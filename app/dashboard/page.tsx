@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AC Staff",
+    title: "MyCareDesk Staff",
   },
 };
 
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
           </p>
           <Link
             href="/get-started"
-            style={{ display: "inline-block", padding: "11px 22px", borderRadius: 8, background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
+            style={{ display: "inline-block", padding: "11px 22px", borderRadius: 8, background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
           >
             {pendingRequest ? "Continue setting up your system →" : "Choose a Plan →"}
           </Link>

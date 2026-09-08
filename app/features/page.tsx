@@ -114,7 +114,7 @@ export default function FeaturesPage() {
         <div style={{ background: NAVY, borderRadius: 14, padding: "32px 28px", textAlign: "center", marginBottom: 48 }}>
           <h2 style={{ color: "white", fontSize: 20, marginTop: 0, marginBottom: 8 }}>See It for Yourself</h2>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/pricing" style={{ background: GOLD, color: NAVY, fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}>
+            <Link href="/pricing" style={{ background: GOLD, color: "var(--brand-primary-dark)", fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}>
               See Pricing →
             </Link>
             <Link href="/request-demo" style={{ border: "1px solid rgba(4,156,160,0.5)", color: GOLD, fontWeight: 700, fontSize: 14, padding: "11px 24px", borderRadius: 8, textDecoration: "none" }}>

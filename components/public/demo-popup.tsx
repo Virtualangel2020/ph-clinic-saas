@@ -62,7 +62,7 @@ export function DemoPopup() {
       <Link
         href="/request-demo"
         onClick={dismiss}
-        style={{ display: "inline-block", background: "var(--brand-secondary)", color: "var(--brand-primary)", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 7, textDecoration: "none" }}
+        style={{ display: "inline-block", background: "var(--brand-secondary)", color: "var(--brand-primary-dark)", fontWeight: 700, fontSize: 12.5, padding: "8px 14px", borderRadius: 7, textDecoration: "none" }}
       >
         Request a Demo →
       </Link>

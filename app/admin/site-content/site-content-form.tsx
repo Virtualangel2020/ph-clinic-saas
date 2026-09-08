@@ -147,7 +147,7 @@ export function SiteContentForm({ site, promotions }: { site: Site; promotions: 
       <button
         onClick={save}
         disabled={pending}
-        style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13.5, padding: "11px 22px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+        style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13.5, padding: "11px 22px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
       >
         {pending ? "Saving…" : "Save Site Content"}
       </button>

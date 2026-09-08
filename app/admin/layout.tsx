@@ -5,14 +5,14 @@ import { InstallPwaButton } from "@/components/install-pwa-button";
 import { UnreadBadge } from "@/components/unread-badge";
 import { requireAdmin } from "@/lib/require-admin";
 
-// Overrides the root manifest so /admin installs as its own app ("Angel
-// Clinic — Super Admin"), separate from the clinic staff dashboard.
+// Overrides the root manifest so /admin installs as its own app ("MyCareDesk
+// — Super Admin"), separate from the clinic staff dashboard.
 export const metadata: Metadata = {
   manifest: "/api/pwa/admin-manifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AC Admin",
+    title: "MyCareDesk Admin",
   },
 };
 
@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div style={{ minHeight: "100vh" }}>
       <header
         style={{
-          background: "var(--brand-primary)",
+          background: "var(--brand-sidebar)",
           color: "white",
           padding: "14px 20px",
           display: "flex",
@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <nav style={{ display: "flex", gap: 14, flexWrap: "wrap", rowGap: 6 }}>
             {NAV.map((n) => (
-              <Link key={n.href} href={n.href} style={{ position: "relative", color: "var(--brand-secondary)", fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
+              <Link key={n.href} href={n.href} style={{ position: "relative", color: "rgba(255,255,255,0.9)", fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
                 {n.label}
                 {n.href === "/admin/customer-care" && (
                   <UnreadBadge count={unreadSupportCount ?? 0} style={{ top: -8, right: -14 }} />

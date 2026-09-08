@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json(
     {
       name: "MyCareDesk — Super Admin",
-      short_name: "AC Admin",
+      short_name: "MCD Admin",
       description: "Super Admin dashboard for MyCareDesk by Virtual Angel Systems.",
       start_url: "/admin",
       scope: "/admin/",

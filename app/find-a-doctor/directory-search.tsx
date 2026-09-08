@@ -217,7 +217,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                     {canRequest && (
                       <button
                         onClick={() => setRequestingFor(p)}
-                        style={{ background: NAVY, color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+                        style={{ background: NAVY, color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
                       >
                         Request Appointment
                       </button>

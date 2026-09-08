@@ -4,27 +4,31 @@
  * these need to be available everywhere: the public marketing site,
  * Superadmin, the Patient Portal, and the signed-in clinic dashboard alike.
  * Values were sampled directly from the supplied MyCareDesk logo file
- * (icon gradient + wordmark text colors), not guessed:
- *   - navy:  averaged from the wordmark's "My"/"Desk" glyphs (~#012d5c)
- *            and the icon's darkest gradient corner (~#002c5b)
- *   - teal:  averaged from the wordmark's "Care" glyphs (~#019599) and the
- *            icon's lighter gradient corner (~#018f9d)
- *   - mint:  averaged from the leaf's two gradient stops (~#46e4a0 / ~#1dce9c)
- * Background/surface/border/text-muted are new light-neutral, cool-toned
- * values chosen to sit quietly behind that palette (see design direction:
- * "plenty of white, very light neutral backgrounds, subtle gray borders" —
- * brand color is for structure and accents, not backgrounds).
+ * (icon gradient + wordmark text colors), not guessed. Revised Sept 2026
+ * per feedback that the first pass's near-black navy (#0b2d5c) read as too
+ * dark/heavy once seen in the actual authenticated app (sidebar, header) —
+ * --brand-primary and the new --brand-sidebar-* tokens now sample lighter,
+ * more medium-toned points along the icon's navy→teal gradient instead of
+ * its darkest corner. --brand-primary-dark is kept at the original deep
+ * navy specifically for the marketing hero's background gradient, which is
+ * a deliberate darker design flourish, not app chrome.
  *
  * This is the single source of truth for brand color — reference these
  * with `var(--brand-*)` in new code instead of a literal hex, so a future
  * palette tweak only has to happen in this one file.
  */
 :root {
-  --brand-primary: #0b2d5c; /* structural navy — buttons, sidebar, active nav, headings */
-  --brand-primary-dark: #041b38; /* deeper navy — gradients, hover/pressed states */
+  --brand-primary: #0f5a8c; /* medium medical blue — buttons, links, headings (lightened from #0b2d5c) */
+  --brand-primary-hover: #0b4770; /* pressed/hover state for primary buttons */
+  --brand-primary-light: #e6f1f8; /* very light blue tint — hover backgrounds, selected chips */
+  --brand-primary-dark: #041b38; /* deep navy — reserved for the marketing hero gradient only */
   --brand-secondary: #049ca0; /* teal — secondary actions, links, active-state accents */
   --brand-accent: #2fd99e; /* mint/aqua-green — sparing accent, chart highlight, selected state */
-  --brand-background: #f5f8fa; /* page background, very light cool neutral */
+  --brand-sidebar: #14607f; /* medium blue-teal — app shell sidebar/header surface (NOT near-black) */
+  --brand-sidebar-hover: #1c7292; /* lighter blue-teal — sidebar row hover */
+  --brand-sidebar-active-bg: #e9f9f4; /* soft aqua highlight — active nav item background */
+  --brand-sidebar-active-text: #083a52; /* deep blue text for contrast on the light active-nav chip */
+  --brand-background: #f6f9fb; /* page background, very light cool neutral */
   --brand-surface: #ffffff; /* card/panel surface */
   --brand-surface-tint: #eaf4f4; /* light teal-tinted surface for callouts, replaces old warm beige */
   --brand-border: #e1e7ec; /* subtle neutral border */

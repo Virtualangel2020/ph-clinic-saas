@@ -331,7 +331,7 @@ export function DocumentsSection({
           <div style={{ display: "flex", gap: 10 }}>
             <button
               onClick={() => openShareModal(Array.from(selectedIds))}
-              style={{ background: "var(--brand-secondary)", color: "var(--brand-primary)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+              style={{ background: "var(--brand-secondary)", color: "var(--brand-primary-dark)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
             >
               Send to provider
             </button>
@@ -540,7 +540,7 @@ export function DocumentsSection({
                       </button>
                     )}
                     {selectedDoc.storage_path && (
-                      <button onClick={() => openShareModal([selectedDoc.id])} style={{ background: "var(--brand-secondary)", color: "var(--brand-primary)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      <button onClick={() => openShareModal([selectedDoc.id])} style={{ background: "var(--brand-secondary)", color: "var(--brand-primary-dark)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                         Send to provider
                       </button>
                     )}

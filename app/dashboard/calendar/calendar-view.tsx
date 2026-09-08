@@ -527,7 +527,7 @@ function BlockTimeForm({ providers, defaultDate, onDone }: { providers: Provider
       </div>
       <input placeholder="Reason (e.g. Lunch, Leave)" value={reason} onChange={(e) => setReason(e.target.value)} style={miniFieldStyle} />
       {error && <div style={{ color: "crimson" }}>{error}</div>}
-      <button onClick={submit} disabled={pending} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 11.5, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer" }}>
+      <button onClick={submit} disabled={pending} style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 11.5, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer" }}>
         {pending ? "Saving…" : "Add block"}
       </button>
     </div>

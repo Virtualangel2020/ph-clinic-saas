@@ -31,7 +31,7 @@ export default async function HomePage() {
       <SiteNav />
 
       {promoBanner && (
-        <div style={{ background: GOLD, color: NAVY, textAlign: "center", padding: "9px 16px", fontSize: 13, fontWeight: 700 }}>
+        <div style={{ background: GOLD, color: "var(--brand-primary-dark)", textAlign: "center", padding: "9px 16px", fontSize: 13, fontWeight: 700 }}>
           {promoBanner.text}{" "}
           <Link href="/pricing" style={{ color: NAVY, textDecoration: "underline" }}>{promoBanner.ctaLabel}</Link>
         </div>
@@ -51,7 +51,7 @@ export default async function HomePage() {
               "One intelligent workspace for your patients, providers, schedules, documentation, referrals and everyday clinic operations."}
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/features" style={{ background: GOLD, color: NAVY, fontWeight: 700, fontSize: 14, padding: "13px 26px", borderRadius: 10, textDecoration: "none" }}>
+            <Link href="/features" style={{ background: GOLD, color: "var(--brand-primary-dark)", fontWeight: 700, fontSize: 14, padding: "13px 26px", borderRadius: 10, textDecoration: "none" }}>
               Explore MyCareDesk
             </Link>
             <Link href="/request-demo" style={{ border: "1px solid rgba(4,156,160,0.5)", color: GOLD, fontWeight: 700, fontSize: 14, padding: "13px 26px", borderRadius: 10, textDecoration: "none" }}>
@@ -150,7 +150,7 @@ export default async function HomePage() {
           {site?.demo_cta_body ||
             "We'll show you how MyCareDesk brings your patients, schedules, documentation, prescriptions and referrals together in one organized workspace."}
         </p>
-        <Link href="/request-demo" style={{ background: NAVY, color: GOLD, fontWeight: 700, fontSize: 14, padding: "13px 28px", borderRadius: 10, textDecoration: "none" }}>
+        <Link href="/request-demo" style={{ background: NAVY, color: "#fff", fontWeight: 700, fontSize: 14, padding: "13px 28px", borderRadius: 10, textDecoration: "none" }}>
           Request Your Demo →
         </Link>
       </section>

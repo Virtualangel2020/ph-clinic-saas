@@ -131,7 +131,7 @@ export function EmrShell({
           left: 0,
           bottom: 0,
           width: navWidth,
-          background: "var(--brand-primary)",
+          background: "var(--brand-sidebar)",
           color: "#f4f5f7",
           display: "flex",
           flexDirection: "column",
@@ -394,9 +394,9 @@ function NavLink({ item, collapsed, active }: { item: NavItem; collapsed: boolea
         textAlign: collapsed ? "center" : "left",
         fontSize: 13,
         fontWeight: active ? 700 : 500,
-        color: active ? "var(--brand-secondary)" : "rgba(244,245,247,0.8)",
-        background: active ? "rgba(4,156,160,0.1)" : "transparent",
-        borderLeft: active ? "3px solid var(--brand-secondary)" : "3px solid transparent",
+        color: active ? "var(--brand-sidebar-active-text)" : "rgba(244,245,247,0.85)",
+        background: active ? "var(--brand-sidebar-active-bg)" : "transparent",
+        borderLeft: active ? "3px solid var(--brand-accent)" : "3px solid transparent",
         textDecoration: "none",
       }}
     >

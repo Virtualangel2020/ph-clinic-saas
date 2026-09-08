@@ -130,7 +130,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Se
         <h1 style={{ fontSize: 24 }}>Referrals</h1>
         <Link
           href="/dashboard/referrals/new"
-          style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, textDecoration: "none" }}
+          style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, textDecoration: "none" }}
         >
           + New Referral
         </Link>

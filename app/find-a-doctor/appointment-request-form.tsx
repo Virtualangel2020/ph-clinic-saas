@@ -38,7 +38,7 @@ export function AppointmentRequestForm({ provider, onClose }: { provider: { id: 
               {provider.full_name}'s clinic will reach out to confirm your appointment — this is a request, not a
               confirmed booking.
             </p>
-            <button onClick={onClose} style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}>
+            <button onClick={onClose} style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}>
               Close
             </button>
           </>
@@ -83,7 +83,7 @@ export function AppointmentRequestForm({ provider, onClose }: { provider: { id: 
               <button
                 type="submit"
                 disabled={pending}
-                style={{ flex: 1, background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
+                style={{ flex: 1, background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, padding: "10px 16px", borderRadius: 8, border: "none", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}
               >
                 {pending ? "Sending…" : "Send Request"}
               </button>

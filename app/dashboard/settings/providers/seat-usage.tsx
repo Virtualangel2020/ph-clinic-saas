@@ -47,7 +47,7 @@ export function SeatUsage({ used, total }: { used: number; total: number }) {
           <button
             onClick={request}
             disabled={pending}
-            style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
+            style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
           >
             {pending ? "Sending…" : "Request Additional Seat"}
           </button>

@@ -134,7 +134,7 @@ export function PricingSection({
           return (
             <div key={plan.slug} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 20, position: "relative", display: "flex", flexDirection: "column" }}>
               {promo && (
-                <div style={{ position: "absolute", top: -10, right: 14, background: "var(--brand-secondary)", color: "var(--brand-primary)", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999 }}>
+                <div style={{ position: "absolute", top: -10, right: 14, background: "var(--brand-secondary)", color: "var(--brand-primary-dark)", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999 }}>
                   {promoBadgeText(promo)}
                 </div>
               )}

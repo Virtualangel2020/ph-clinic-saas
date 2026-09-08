@@ -57,7 +57,7 @@ export function SiteNav() {
           <Link href="/request-demo" style={{ fontSize: 13, color: "var(--brand-secondary)", border: "1px solid rgba(4,156,160,0.5)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", fontWeight: 600 }}>
             Request a Demo
           </Link>
-          <Link href="/signup" style={{ fontSize: 13, background: "var(--brand-secondary)", color: "var(--brand-primary)", borderRadius: 8, padding: "8px 16px", textDecoration: "none", fontWeight: 700 }}>
+          <Link href="/signup" style={{ fontSize: 13, background: "var(--brand-secondary)", color: "var(--brand-primary-dark)", borderRadius: 8, padding: "8px 16px", textDecoration: "none", fontWeight: 700 }}>
             Start Your Trial
           </Link>
         </div>

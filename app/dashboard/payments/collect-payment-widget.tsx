@@ -232,7 +232,7 @@ export function CollectPaymentWidget({ acceptOnline }: { acceptOnline: boolean }
                     <button
                       onClick={() => sendLink(c.id)}
                       disabled={pending && busyId === c.id}
-                      style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 6, padding: "7px 12px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
+                      style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 6, padding: "7px 12px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
                     >
                       {pending && busyId === c.id ? "Opening…" : linkByCharge[c.id] ? "Send Again" : "Send Payment Link"}
                     </button>

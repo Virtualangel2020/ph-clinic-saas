@@ -333,7 +333,7 @@ export function FormTemplatesClient({
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
               onClick={() => startNew("intake")}
-              style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
+              style={{ background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer" }}
             >
               + New Intake Form
             </button>
@@ -481,7 +481,7 @@ export function FormTemplatesClient({
             <button
               onClick={save}
               disabled={pending || !editing.name.trim()}
-              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
             >
               {pending ? "Saving…" : "Save Template"}
             </button>

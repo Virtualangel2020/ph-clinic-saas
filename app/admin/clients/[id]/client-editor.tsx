@@ -242,7 +242,7 @@ export function ClientEditor({
             <button
               onClick={() => createSubscription(true)}
               disabled={pending || !planId}
-              style={{ ...buttonStyle, background: "var(--brand-primary)", color: "var(--brand-secondary)" }}
+              style={{ ...buttonStyle, background: "var(--brand-primary)", color: "#fff" }}
             >
               Create as complimentary (free)
             </button>
@@ -357,7 +357,7 @@ export function ClientEditor({
                 applyDiscount(100, note);
               }}
               disabled={pending}
-              style={{ ...buttonStyle, background: "var(--brand-primary)", color: "var(--brand-secondary)" }}
+              style={{ ...buttonStyle, background: "var(--brand-primary)", color: "#fff" }}
             >
               Make this client free (100% off)
             </button>

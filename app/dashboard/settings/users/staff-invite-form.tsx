@@ -94,4 +94,4 @@ export function StaffInviteForm({ staff }: { staff: StaffMember[] }) {
 }
 
 const inputStyle: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid var(--input-border)", fontSize: 13 };
-const buttonStyle: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "var(--brand-secondary)", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const buttonStyle: React.CSSProperties = { padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" };

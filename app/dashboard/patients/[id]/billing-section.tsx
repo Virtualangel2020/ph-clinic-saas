@@ -376,7 +376,7 @@ function BillingLedger({
                   <button
                     onClick={() => payOnline(c.id)}
                     disabled={pending && payOnlineBusyId === c.id}
-                    style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
+                    style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 11.5, fontWeight: 600 }}
                   >
                     {pending && payOnlineBusyId === c.id ? "Opening…" : "Pay Online"}
                   </button>

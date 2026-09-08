@@ -368,7 +368,7 @@ export function AppointmentForm({
                     </div>
                     <button
                       onClick={() => useExistingPatient(p)}
-                      style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                     >
                       Use Existing
                     </button>
@@ -428,7 +428,7 @@ export function AppointmentForm({
                   <button
                     onClick={reviewOrCreatePatient}
                     disabled={quickAddPending}
-                    style={{ background: "var(--brand-primary)", color: "var(--brand-secondary)", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+                    style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
                   >
                     {quickAddPending ? "Saving…" : "Save patient"}
                   </button>
