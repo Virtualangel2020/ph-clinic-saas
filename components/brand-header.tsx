@@ -10,8 +10,19 @@ import Link from "next/link";
 // Systems" tagline for screens that need their own context line instead
 // (e.g. "Super Admin", "Patient Portal — Maria Santos") — pass an empty
 // string to show no subtitle at all.
-export function BrandHeader({ subtitle }: { subtitle?: string }) {
+//
+// `variant="dark"` is for the rare case where this sits on a colored/dark
+// surface (currently only the Super Admin header, which uses
+// var(--brand-sidebar)) — the default navy/teal wordmark reads fine on
+// white but nearly disappears against a medium-blue background, so the
+// dark variant switches to off-white text with a mint accent instead.
+// Every other usage (login, signup, portal, get-started, etc.) renders on
+// a white/light card and should leave this prop unset.
+export function BrandHeader({ subtitle, variant = "light" }: { subtitle?: string; variant?: "light" | "dark" }) {
   const tagline = subtitle === undefined ? "By Virtual Angel Systems" : subtitle;
+  const wordmarkColor = variant === "dark" ? "#f4f5f7" : "var(--brand-primary)";
+  const accentColor = variant === "dark" ? "var(--brand-accent)" : "var(--brand-secondary)";
+  const taglineColor = variant === "dark" ? "rgba(244,245,247,0.75)" : "#8a8a8a";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "inherit" }}>
@@ -23,11 +34,11 @@ export function BrandHeader({ subtitle }: { subtitle?: string }) {
           style={{ borderRadius: 8 }}
         />
         <div>
-          <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.2, color: "var(--brand-primary)" }}>
-            My<span style={{ color: "var(--brand-secondary)" }}>Care</span>Desk
+          <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.2, color: wordmarkColor }}>
+            My<span style={{ color: accentColor }}>Care</span>Desk
           </div>
           {tagline && (
-            <div style={{ fontSize: 11, color: "#8a8a8a", marginTop: -2 }}>{tagline}</div>
+            <div style={{ fontSize: 11, color: taglineColor, marginTop: -2 }}>{tagline}</div>
           )}
         </div>
       </Link>

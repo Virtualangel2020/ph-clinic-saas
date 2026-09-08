@@ -144,7 +144,7 @@ export function EmrShell({
           <Image src="/logo-64.png" alt="MyCareDesk logo" width={28} height={28} style={{ borderRadius: 6, flexShrink: 0 }} />
           {!effectiveCollapsed && (
             <div style={{ fontWeight: 800, fontSize: 15, color: "#f4f5f7" }}>
-              My<span style={{ color: "var(--brand-secondary)" }}>Care</span>Desk
+              My<span style={{ color: "var(--brand-accent)" }}>Care</span>Desk
             </div>
           )}
           {isMobile && (

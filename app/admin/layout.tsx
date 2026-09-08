@@ -55,7 +55,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", rowGap: 10 }}>
           <div style={{ color: "white" }}>
-            <BrandHeader subtitle="Super Admin" />
+            <BrandHeader subtitle="Super Admin" variant="dark" />
           </div>
           <nav style={{ display: "flex", gap: 14, flexWrap: "wrap", rowGap: 6 }}>
             {NAV.map((n) => (

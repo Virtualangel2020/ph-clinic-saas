@@ -26,12 +26,12 @@ export function SiteNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(11,45,92,0.96)", backdropFilter: "blur(6px)", borderBottom: "1px solid rgba(4,156,160,0.2)" }}>
+    <header style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(15,90,140,0.96)", backdropFilter: "blur(6px)", borderBottom: "1px solid rgba(4,156,160,0.2)" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0 }}>
           <Image src="/logo-64.png" alt="MyCareDesk logo" width={30} height={30} style={{ borderRadius: 7 }} priority />
           <span style={{ fontWeight: 800, fontSize: 18, color: "#f4f5f7", letterSpacing: 0.3 }}>
-            My<span style={{ color: "var(--brand-secondary)" }}>Care</span>Desk
+            My<span style={{ color: "var(--brand-accent)" }}>Care</span>Desk
           </span>
         </Link>
 
@@ -42,7 +42,7 @@ export function SiteNav() {
               href={l.href}
               style={{
                 fontSize: 13.5,
-                color: pathname === l.href ? "var(--brand-secondary)" : "rgba(244,245,247,0.8)",
+                color: pathname === l.href ? "var(--brand-accent)" : "rgba(244,245,247,0.8)",
                 fontWeight: pathname === l.href ? 700 : 500,
                 textDecoration: "none",
               }}
@@ -54,7 +54,7 @@ export function SiteNav() {
 
         <div style={{ display: "none", alignItems: "center", gap: 10 }} className="site-nav-cta">
           <Link href="/login" style={{ fontSize: 13, color: "rgba(244,245,247,0.85)", textDecoration: "none" }}>Sign In</Link>
-          <Link href="/request-demo" style={{ fontSize: 13, color: "var(--brand-secondary)", border: "1px solid rgba(4,156,160,0.5)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", fontWeight: 600 }}>
+          <Link href="/request-demo" style={{ fontSize: 13, color: "var(--brand-accent)", border: "1px solid rgba(4,156,160,0.5)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", fontWeight: 600 }}>
             Request a Demo
           </Link>
           <Link href="/signup" style={{ fontSize: 13, background: "var(--brand-secondary)", color: "var(--brand-primary-dark)", borderRadius: 8, padding: "8px 16px", textDecoration: "none", fontWeight: 700 }}>
@@ -65,7 +65,7 @@ export function SiteNav() {
         <button
           onClick={() => setOpen((o) => !o)}
           className="site-nav-toggle"
-          style={{ background: "none", border: "1px solid rgba(4,156,160,0.4)", borderRadius: 8, color: "var(--brand-secondary)", padding: "6px 10px", fontSize: 13 }}
+          style={{ background: "none", border: "1px solid rgba(4,156,160,0.4)", borderRadius: 8, color: "var(--brand-accent)", padding: "6px 10px", fontSize: 13 }}
         >
           {open ? "✕" : "☰"}
         </button>
@@ -79,8 +79,8 @@ export function SiteNav() {
             </Link>
           ))}
           <Link href="/login" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "#f4f5f7", textDecoration: "none" }}>Sign In</Link>
-          <Link href="/request-demo" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "var(--brand-secondary)", textDecoration: "none", fontWeight: 700 }}>Request a Demo</Link>
-          <Link href="/signup" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "var(--brand-secondary)", textDecoration: "none", fontWeight: 700 }}>Start Your Trial →</Link>
+          <Link href="/request-demo" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "var(--brand-accent)", textDecoration: "none", fontWeight: 700 }}>Request a Demo</Link>
+          <Link href="/signup" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "var(--brand-accent)", textDecoration: "none", fontWeight: 700 }}>Start Your Trial →</Link>
         </div>
       )}
 

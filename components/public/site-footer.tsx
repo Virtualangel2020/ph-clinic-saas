@@ -6,7 +6,7 @@ export function SiteFooter() {
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "40px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 24 }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 16, color: "#f4f5f7", marginBottom: 8 }}>
-            My<span style={{ color: "var(--brand-secondary)" }}>Care</span>Desk
+            My<span style={{ color: "var(--brand-accent)" }}>Care</span>Desk
           </div>
           <p style={{ fontSize: 12.5, lineHeight: 1.6, maxWidth: 260 }}>Smart Clinic. Better Care. MyCareDesk by Virtual Angel Systems.</p>
         </div>
