@@ -17,7 +17,7 @@ export async function PatientChartPane({ patientId }: { patientId: string }) {
   const { supabase, profile, user } = await requireClinicMember();
   const canViewClinical = await canViewClinicalContent(supabase, user.id, profile.role);
 
-  const data = await getPatientChartData(supabase, profile.tenant_id, patientId);
+  const data = await getPatientChartData(supabase, profile.tenant_id, patientId, profile.id);
   if (!data) notFound();
   const { patient, fullName } = data;
 

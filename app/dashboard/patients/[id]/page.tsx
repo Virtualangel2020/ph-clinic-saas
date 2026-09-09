@@ -19,7 +19,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
   const { supabase, profile, user } = await requireClinicMember();
   const canViewClinical = await canViewClinicalContent(supabase, user.id, profile.role);
 
-  const data = await getPatientChartData(supabase, profile.tenant_id, id);
+  const data = await getPatientChartData(supabase, profile.tenant_id, id, profile.id);
   if (!data) notFound();
   const { patient, fullName } = data;
 

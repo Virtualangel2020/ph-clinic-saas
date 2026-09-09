@@ -9,6 +9,11 @@ export async function sendPatientMessageAction(patientId: string, body: string) 
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/patient-portal/${patientId}`);
   revalidatePath("/dashboard/patient-portal");
+  // Same thread also renders inside the patient chart's Messages tab (see
+  // messages-section.tsx) — revalidate both chart entry points too, so a
+  // fresh server load there shows a message sent from either place.
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath("/dashboard/patients");
 }
 
 export async function markPatientThreadReadAction(patientId: string) {

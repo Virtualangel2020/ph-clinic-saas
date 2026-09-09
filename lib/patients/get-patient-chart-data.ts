@@ -29,7 +29,7 @@ export function age(dob: string) {
 
 export type PatientChartData = NonNullable<Awaited<ReturnType<typeof getPatientChartData>>>;
 
-export async function getPatientChartData(supabase: SupabaseClient, tenantId: string, patientId: string) {
+export async function getPatientChartData(supabase: SupabaseClient, tenantId: string, patientId: string, providerId?: string) {
   const { data: patient } = await supabase
     .from("patients")
     .select("*")
@@ -181,6 +181,9 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     { data: chargesRaw },
     { data: chargePaymentsRaw },
     { data: followUpsRaw },
+    { data: providerMessagesRaw },
+    { data: messagingSettingsRaw },
+    { data: clinicMessagingDefaultRaw },
   ] = await Promise.all([
     supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: tenantId }),
     supabase
@@ -206,6 +209,27 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       .select("id, due_date, reason, status, completed_at, created_at, user_profiles!patient_follow_ups_provider_id_fkey(full_name)")
       .eq("patient_id", patientId)
       .order("due_date", { ascending: true }),
+    // Patient Portal message thread with THIS patient, from the currently
+    // logged-in provider's side — the exact same rows and scoping
+    // (provider_id + patient_id) that the standalone
+    // /dashboard/patient-portal/[patientId] thread page reads. Surfaced
+    // here too (Messages tab on the chart) so a provider can check prior
+    // conversation with a patient without leaving the chart — same data,
+    // no separate thread, just a second, faster way in. Only fetched when
+    // a providerId is supplied (both chart entry points pass the logged-in
+    // profile's id; older/未 callers that omit it just get an empty thread).
+    providerId
+      ? supabase
+          .from("provider_patient_messages")
+          .select("id, sender_type, sender_name, body, created_at, read_at")
+          .eq("provider_id", providerId)
+          .eq("patient_id", patientId)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+    providerId
+      ? supabase.from("provider_patient_access_settings").select("messaging_enabled").eq("provider_id", providerId).maybeSingle()
+      : Promise.resolve({ data: null as any }),
+    supabase.from("clinic_settings").select("default_messaging_enabled").eq("tenant_id", tenantId).maybeSingle(),
   ]);
 
   // Custom document folders (tenant-wide, not per-patient — see migration
@@ -419,6 +443,9 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     provider_name: f.user_profiles?.full_name ?? null,
   }));
 
+  const providerMessages = (providerMessagesRaw as any[]) ?? [];
+  const messagingEnabled = (messagingSettingsRaw as any)?.messaging_enabled ?? (clinicMessagingDefaultRaw as any)?.default_messaging_enabled ?? false;
+
   const totalCharged = charges.filter((c) => c.status !== "void").reduce((sum, c) => sum + c.amount_php, 0);
   const totalPaid = payments.reduce((sum, p) => sum + p.amount_php, 0);
   const balance = Math.max(0, totalCharged - totalPaid);
@@ -497,5 +524,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       provider_name: c.user_profiles ? `${c.user_profiles.title ? c.user_profiles.title + " " : ""}${c.user_profiles.full_name}` : null,
     })),
     certificateTemplates: (certificateTemplatesRaw as { id: string; name: string; fields_config: { key: string; label: string; type: "text" | "textarea" | "date" }[] }[]) ?? [],
+    providerMessages,
+    messagingEnabled,
   };
 }

@@ -16,6 +16,7 @@ import { FormsSection } from "./forms-section";
 import { ReferralsSection } from "./referrals-section";
 import { FollowUpsSection } from "./follow-ups-section";
 import { AppointmentHistorySection } from "./appointment-history-section";
+import { MessagesSection } from "./messages-section";
 
 // "appointments" and "coverage" keys are kept exactly as before for
 // deep-link compatibility (../orders/page.tsx, ../results/page.tsx, and
@@ -37,6 +38,7 @@ type TabKey =
   | "referrals"
   | "documents"
   | "forms"
+  | "messages"
   | "appointments"
   | "history";
 
@@ -52,6 +54,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "referrals", label: "Referrals" },
   { key: "documents", label: "Documents" },
   { key: "forms", label: "Forms" },
+  { key: "messages", label: "Messages" },
   { key: "history", label: "Patient History" },
 ];
 
@@ -220,6 +223,10 @@ export function PatientChartTabs({
 
       {tab === "forms" && (
         <FormsSection patientId={patient.id} forms={data.patientForms as any} activeTemplates={data.activeFormTemplates as any} entitled={data.formsEntitled} />
+      )}
+
+      {tab === "messages" && (
+        <MessagesSection patientId={patient.id} initialMessages={data.providerMessages as any} messagingEnabled={data.messagingEnabled} />
       )}
 
       {tab === "appointments" && <AppointmentHistorySection past={data.pastAppts} upcoming={data.upcomingAppts} />}
