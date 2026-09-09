@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
 import { LoadingButton } from "@/components/loading/loading-button";
+import { PasswordInput } from "@/components/password-input";
 
 // Minimal email/password sign-in for clinic staff/providers. Honors ?next=
 // so anywhere that bounces someone here (requireAdmin, /dashboard/billing,
@@ -68,8 +69,7 @@ function LoginForm() {
           required
           style={{ padding: 10, borderRadius: 8, border: "1px solid var(--brand-border)" }}
         />
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

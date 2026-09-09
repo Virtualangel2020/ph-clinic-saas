@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BrandHeader } from "@/components/brand-header";
+import { PasswordInput } from "@/components/password-input";
 import { activateByTokenAction } from "../actions";
 
 // Handles both an emailed activation link (?token=... in the URL, already
@@ -51,16 +52,14 @@ function ActivateForm() {
           required
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc", fontFamily: "monospace", letterSpacing: 1 }}
         />
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Choose a password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
         />
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Confirm password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}

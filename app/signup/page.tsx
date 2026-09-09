@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
 import { WhatsappButton } from "@/components/whatsapp-button";
+import { PasswordInput } from "@/components/password-input";
 
 // This REPLACES the old anonymous "Request Access" form for new clinics.
 // Create-account-first, pay-to-unlock: an account here just gets someone a
@@ -148,17 +149,15 @@ function SignupForm() {
         <input required placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} style={input} />
         <input required type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
         <input required placeholder="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} style={input} />
-        <input
+        <PasswordInput
           required
-          type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           style={input}
         />
-        <input
+        <PasswordInput
           required
-          type="password"
           placeholder="Confirm password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}

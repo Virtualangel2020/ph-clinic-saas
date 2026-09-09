@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
+import { PasswordInput } from "@/components/password-input";
 
 // Landing page right after someone accepts a staff invite. The
 // invite/magic link already signed them into a real (if temporary)
@@ -84,16 +85,14 @@ export default function SetPasswordPage() {
         Welcome — signing in as <strong>{email}</strong>. Choose a password to finish setting up your account.
       </p>
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
-        <input
-          type="password"
+        <PasswordInput
           placeholder="New password (min. 8 characters)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
         />
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Confirm password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}

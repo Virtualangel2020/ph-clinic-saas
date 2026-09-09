@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
 import { LoadingButton } from "@/components/loading/loading-button";
+import { PasswordInput } from "@/components/password-input";
 
 // A patient's login identity is whichever they had on file at activation
 // (email or PH mobile) — see app/portal/actions.ts. Digits-only input is
@@ -74,8 +75,7 @@ function LoginForm() {
           required
           style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
         />
-        <input
-          type="password"
+        <PasswordInput
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
