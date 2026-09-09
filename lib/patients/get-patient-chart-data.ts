@@ -184,6 +184,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     { data: providerMessagesRaw },
     { data: messagingSettingsRaw },
     { data: clinicMessagingDefaultRaw },
+    { data: telehealthLinkRaw },
   ] = await Promise.all([
     supabase.rpc("tenant_patient_portal_channels", { p_tenant_id: tenantId }),
     supabase
@@ -230,6 +231,13 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       ? supabase.from("provider_patient_access_settings").select("messaging_enabled").eq("provider_id", providerId).maybeSingle()
       : Promise.resolve({ data: null as any }),
     supabase.from("clinic_settings").select("default_messaging_enabled").eq("tenant_id", tenantId).maybeSingle(),
+    // Recurring telehealth link for THIS provider+patient pair (spec Parts
+    // 14-21, deliberately simplified — see migrations-pending/
+    // mycaredesk_telehealth_links.sql). One row per (tenant, provider,
+    // patient); shown/edited from the chart's Overview tab.
+    providerId
+      ? supabase.from("provider_patient_telehealth_links").select("meeting_url, updated_at").eq("tenant_id", tenantId).eq("provider_id", providerId).eq("patient_id", patientId).maybeSingle()
+      : Promise.resolve({ data: null as any }),
   ]);
 
   // Custom document folders (tenant-wide, not per-patient — see migration
@@ -526,5 +534,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     certificateTemplates: (certificateTemplatesRaw as { id: string; name: string; fields_config: { key: string; label: string; type: "text" | "textarea" | "date" }[] }[]) ?? [],
     providerMessages,
     messagingEnabled,
+    telehealthLink: (telehealthLinkRaw as any)?.meeting_url ?? null,
+    viewerProviderId: providerId ?? null,
   };
 }

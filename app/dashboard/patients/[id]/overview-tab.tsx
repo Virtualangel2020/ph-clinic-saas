@@ -29,6 +29,8 @@ export function OverviewTab({
   referredBy,
   alerts,
   billing,
+  telehealthLink,
+  viewerProviderId,
 }: {
   patient: any;
   totalEncounters: number;
@@ -40,6 +42,8 @@ export function OverviewTab({
   referredBy: { source: "referral" | "manual"; label: string } | null;
   alerts: { id: string; kind?: string; category: string; message: string; created_at: string; user_profiles?: { full_name: string | null } | null }[];
   billing: { balance: number; status: "no_charges" | "unpaid" | "partial" | "paid" };
+  telehealthLink?: string | null;
+  viewerProviderId?: string | null;
 }) {
   const [sub, setSub] = useState<SubTabKey>("profile");
 
@@ -79,6 +83,8 @@ export function OverviewTab({
           referredBy={referredBy}
           alerts={alerts}
           billing={billing}
+          telehealthLink={telehealthLink}
+          viewerProviderId={viewerProviderId}
         />
       )}
       {sub === "appointments" && <AppointmentHistorySection past={pastAppts} upcoming={upcomingAppts} />}

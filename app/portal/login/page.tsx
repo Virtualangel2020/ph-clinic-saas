@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
 import { LoadingButton } from "@/components/loading/loading-button";
@@ -51,6 +52,19 @@ function LoginForm() {
       <div style={{ marginBottom: 24 }}>
         <BrandHeader />
       </div>
+
+      <div style={{ display: "flex", gap: 4, background: "#f0f0f0", borderRadius: 10, padding: 4, marginBottom: 20 }}>
+        <div style={{ flex: 1, textAlign: "center", padding: "8px 0", borderRadius: 7, background: "white", fontWeight: 700, fontSize: 13, color: "var(--brand-primary)" }}>
+          I'm a Patient
+        </div>
+        <Link
+          href="/login"
+          style={{ flex: 1, textAlign: "center", padding: "8px 0", borderRadius: 7, fontWeight: 600, fontSize: 13, color: "#666", textDecoration: "none" }}
+        >
+          I'm a Provider / Staff
+        </Link>
+      </div>
+
       <h1 style={{ fontSize: 22 }}>Patient Portal sign in</h1>
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
         <input
@@ -80,6 +94,9 @@ function LoginForm() {
       </form>
       <p style={{ fontSize: 12.5, color: "#888", marginTop: 16 }}>
         Haven't activated yet? Use the code or link your clinic gave you at <a href="/portal/activate" style={{ color: "var(--brand-primary)" }}>/portal/activate</a>.
+      </p>
+      <p style={{ fontSize: 12.5, color: "#888", marginTop: 8 }}>
+        New patient, not yet connected to a clinic? <a href="/patient-signup" style={{ color: "var(--brand-primary)" }}>Create a free MyCareDesk account</a>.
       </p>
     </main>
   );

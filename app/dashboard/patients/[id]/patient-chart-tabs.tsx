@@ -133,6 +133,8 @@ export function PatientChartTabs({
           referredBy={data.referredBy}
           alerts={data.alerts}
           billing={data.billing}
+          telehealthLink={data.telehealthLink}
+          viewerProviderId={data.viewerProviderId}
         />
       )}
 

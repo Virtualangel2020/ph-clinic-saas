@@ -14,31 +14,41 @@ const STATUS_LABEL: Record<string, string> = {
   no_show: "No show",
 };
 
+const SELECT_COLS = "id, start_at, status, notes, provider_id, telehealth_link_override, user_profiles(full_name, title), appointment_types(name, delivery_mode)";
+
 // My Appointments (spec §15) — the same `appointments` rows the clinic's
 // own Calendar and the chart's Appointments tab use, filtered to this one
 // patient via appointments_portal_self_read RLS.
+//
+// "Join Online Visit" (spec Part 20, simplified per Angel's direction — no
+// picker, no validation, just whatever URL the doctor pasted): resolves to
+// the appointment's own override if the doctor set one for that specific
+// visit, else the recurring provider+patient link from
+// provider_patient_telehealth_links — see telehealth_links_portal_self_read
+// RLS, which reuses the existing is_portal_patient() helper.
 export default async function PortalAppointmentsPage() {
   const { supabase, account } = await requirePatientPortal();
   const patientId = (account as any).patient_id;
   const nowIso = new Date().toISOString();
 
-  const [{ data: upcoming }, { data: past }] = await Promise.all([
-    supabase
-      .from("appointments")
-      .select("id, start_at, status, notes, user_profiles(full_name, title), appointment_types(name)")
-      .eq("patient_id", patientId)
-      .gte("start_at", nowIso)
-      .order("start_at", { ascending: true }),
-    supabase
-      .from("appointments")
-      .select("id, start_at, status, notes, user_profiles(full_name, title), appointment_types(name)")
-      .eq("patient_id", patientId)
-      .lt("start_at", nowIso)
-      .order("start_at", { ascending: false })
-      .limit(20),
+  const [{ data: upcoming }, { data: past }, { data: links }] = await Promise.all([
+    supabase.from("appointments").select(SELECT_COLS).eq("patient_id", patientId).gte("start_at", nowIso).order("start_at", { ascending: true }),
+    supabase.from("appointments").select(SELECT_COLS).eq("patient_id", patientId).lt("start_at", nowIso).order("start_at", { ascending: false }).limit(20),
+    supabase.from("provider_patient_telehealth_links").select("provider_id, meeting_url").eq("patient_id", patientId),
   ]);
 
+  const linkByProvider = new Map<string, string>((links as any[] | null)?.map((l) => [l.provider_id, l.meeting_url]) ?? []);
+
+  function resolvedLink(a: any): string | null {
+    if (a.telehealth_link_override) return a.telehealth_link_override;
+    return linkByProvider.get(a.provider_id) ?? null;
+  }
+
   function Row({ a }: { a: any }) {
+    const isTelehealth = a.appointment_types?.delivery_mode === "telehealth" || a.appointment_types?.delivery_mode === "both";
+    const link = isTelehealth ? resolvedLink(a) : null;
+    const joinable = link && !["cancelled", "no_show"].includes(a.status);
+
     return (
       <div style={{ background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
         <div>
@@ -48,9 +58,19 @@ export default async function PortalAppointmentsPage() {
             {a.user_profiles ? ` · ${a.user_profiles.title ? a.user_profiles.title + " " : ""}${a.user_profiles.full_name}` : ""}
           </div>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 700, background: "#f0f0f0", color: "#555", borderRadius: 999, padding: "3px 10px", flexShrink: 0 }}>
-          {STATUS_LABEL[a.status] ?? a.status}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          {joinable && (
+            <a
+              href={link!}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 11.5, fontWeight: 700, background: "var(--brand-primary)", color: "white", borderRadius: 999, padding: "5px 12px", textDecoration: "none" }}
+            >
+              Join Online Visit
+            </a>
+          )}
+          <span style={{ fontSize: 11, fontWeight: 700, background: "#f0f0f0", color: "#555", borderRadius: 999, padding: "3px 10px" }}>{STATUS_LABEL[a.status] ?? a.status}</span>
+        </div>
       </div>
     );
   }

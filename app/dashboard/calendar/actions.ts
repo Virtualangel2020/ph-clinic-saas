@@ -20,6 +20,17 @@ export type AppointmentInput = {
   notes: string;
 };
 
+// Per-appointment telehealth link override (spec Part 18) — set/clear
+// without touching the provider+patient pair's recurring default in
+// provider_patient_telehealth_links.
+export async function setAppointmentTelehealthOverrideAction(appointmentId: string, meetingUrl: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_appointment_telehealth_override", { p_appointment_id: appointmentId, p_meeting_url: meetingUrl });
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/calendar");
+}
+
 export async function saveAppointmentAction(input: AppointmentInput) {
   await requireClinicMember();
   const supabase = await createClient();

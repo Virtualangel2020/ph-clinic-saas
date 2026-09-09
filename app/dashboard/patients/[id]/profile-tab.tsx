@@ -2,6 +2,7 @@ import Link from "next/link";
 import { age } from "@/lib/patients/get-patient-chart-data";
 import { formatDayLabel, formatTime } from "../../calendar/date-utils";
 import { PortalSection } from "./portal-section";
+import { TelehealthLinkCard } from "./telehealth-link-card";
 
 const BILL_TYPE_LABEL: Record<string, string> = { cash: "Cash", hmo: "HMO", philhealth: "PhilHealth", yakap: "YAKAP", other: "Other" };
 
@@ -47,6 +48,8 @@ export function ProfileTab({
   referredBy,
   alerts,
   billing,
+  telehealthLink,
+  viewerProviderId,
 }: {
   patient: any;
   totalEncounters: number;
@@ -58,6 +61,8 @@ export function ProfileTab({
   referredBy: { source: "referral" | "manual"; label: string } | null;
   alerts: AlertRow[];
   billing: { balance: number; status: "no_charges" | "unpaid" | "partial" | "paid" };
+  telehealthLink?: string | null;
+  viewerProviderId?: string | null;
 }) {
   const allAppts = [...pastAppts, ...upcomingAppts];
   const noShowCount = allAppts.filter((a) => NO_SHOW_STATUSES.has(a.status)).length;
@@ -196,8 +201,9 @@ export function ProfileTab({
       </div>
 
       {/* Right column — at-a-glance cards: alerts, billing, coverage,
-          emergency contact/guardian, referred-by. */}
+          emergency contact/guardian, referred-by, telehealth. */}
       <div style={{ flex: "1 1 300px", display: "grid", gap: 14, minWidth: 0 }}>
+        {viewerProviderId && <TelehealthLinkCard patientId={patient.id} providerId={viewerProviderId} initialUrl={telehealthLink ?? null} />}
         <div style={CARD}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ ...CARD_TITLE, marginBottom: 0 }}>Alerts &amp; Notes {alerts.length > 0 ? `(${alerts.length})` : ""}</div>

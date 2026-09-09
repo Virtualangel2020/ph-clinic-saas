@@ -37,6 +37,23 @@ export type PatientSearchResult = {
 
 const SEARCH_COLUMNS = "id, first_name, middle_name, last_name, date_of_birth, sex, mobile_phone, patient_code, is_active";
 
+// Recurring telehealth link, one per provider+patient pair (spec Parts
+// 14-21). Set from the chart's Overview tab — see migrations-pending/
+// mycaredesk_telehealth_links.sql for why this is deliberately just a
+// plain URL field with no platform picker or validation.
+export async function saveTelehealthLinkAction(patientId: string, providerId: string, meetingUrl: string) {
+  await requireClinicMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("upsert_provider_patient_telehealth_link", {
+    p_patient_id: patientId,
+    p_provider_id: providerId,
+    p_meeting_url: meetingUrl,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath("/dashboard/patients");
+}
+
 // Backs the global search box in the top nav (components/emr/global-search)
 // AND the master-detail Patients list. A plain .select() scoped by
 // tenant_id, same as every other list read in this app — RLS is the

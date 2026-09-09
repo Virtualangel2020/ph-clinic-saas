@@ -7,6 +7,7 @@ import { isoToPhDateTime, toIsoInstant } from "./date-utils";
 import { STATUS_FLOW, TERMINAL_STATUSES } from "./status-constants";
 import { savePatientAction, type PatientInput } from "../patients/actions";
 import { LoadingButton } from "@/components/loading/loading-button";
+import { TelehealthSection } from "./telehealth-section";
 
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; date_of_birth: string; mobile_phone: string | null };
 type Provider = { id: string; full_name: string; title: string | null };
@@ -497,6 +498,8 @@ export function AppointmentForm({
           <div style={labelStyle}>Notes</div>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} style={{ ...FIELD_STYLE, minHeight: 50 }} />
         </div>
+
+        {editing && <TelehealthSection appointmentId={editing.id} patientId={editing.patient_id} providerId={editing.provider_id} />}
 
         {error && <div style={{ fontSize: 12.5, color: "crimson" }}>{error}</div>}
 
