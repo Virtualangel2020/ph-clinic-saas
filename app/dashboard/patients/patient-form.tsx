@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingButton } from "@/components/loading/loading-button";
 import { savePatientAction, type PatientInput } from "./actions";
 
 type Patient = {
@@ -283,13 +284,14 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
       {error && <div style={{ color: "#a12a2a", fontSize: 12.5 }}>{error}</div>}
 
       <div>
-        <button
+        <LoadingButton
           onClick={save}
-          disabled={pending}
-          style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", opacity: pending ? 0.6 : 1 }}
+          loading={pending}
+          loadingText="Saving..."
+          style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13.5, fontWeight: 600 }}
         >
-          {pending ? "Saving…" : patient ? "Save changes" : "Add patient"}
-        </button>
+          {patient ? "Save changes" : "Add patient"}
+        </LoadingButton>
       </div>
     </div>
   );

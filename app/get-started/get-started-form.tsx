@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { startSignupCheckoutAction, previewCheckoutAction } from "./actions";
 import { SignupQrCheckout } from "./signup-qr-checkout";
 import { describePromoDuration, describePromoRejection, type CheckoutPreview } from "@/lib/billing/compute-promo";
+import { LoadingOverlay } from "@/components/loading/loading-overlay";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 type Plan = {
   id: string;
@@ -219,6 +221,12 @@ export function GetStartedForm({
 
   return (
     <div>
+      {/* Creating the PayMongo payment intent is a genuinely blocking,
+          multi-second network round trip (spec §3A: "checkout/payment,
+          large record processing, blocking actions") — a fullscreen
+          overlay here beats a button spinner alone, since nothing else on
+          the page is meaningfully interactive while this is in flight. */}
+      {status === "submitting" && <LoadingOverlay label="Preparing your checkout..." />}
       <a href="/" style={{ display: "inline-block", fontSize: 13, color: "#888", textDecoration: "none", marginBottom: 12 }}>
         ← Back to pricing
       </a>
@@ -404,13 +412,15 @@ export function GetStartedForm({
             </>
           )}
         </div>
-        <button
+        <LoadingButton
           type="submit"
-          disabled={status === "submitting" || previewLoading || !preview || total <= 0 || !agreementReady}
+          loading={status === "submitting"}
+          loadingText="Preparing checkout..."
+          disabled={previewLoading || !preview || total <= 0 || !agreementReady}
           style={submitBtn}
         >
-          {status === "submitting" ? "Preparing checkout..." : "Continue to payment →"}
-        </button>
+          Continue to payment →
+        </LoadingButton>
       </div>
       {!agreementReady && !previewLoading && preview && total > 0 && (
         <p style={{ fontSize: 11, color: "#a12a2a", marginTop: 8 }}>
@@ -439,5 +449,4 @@ const submitBtn: React.CSSProperties = {
   background: "var(--brand-primary)",
   color: "var(--brand-secondary)",
   fontWeight: 700,
-  cursor: "pointer",
 };

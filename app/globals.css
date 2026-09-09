@@ -90,3 +90,89 @@
   --input-border: #3a3f4a;
   --text-heading: #f4f5f7;
 }
+
+/*
+ * MyCareDesk loading system (Sept 2026) — shared keyframes + tokens for
+ * components/loading/*. Kept in this global file (not per-component CSS
+ * modules, since this app has none) so every loading component references
+ * the same animation timing and the same reduced-motion behavior.
+ *
+ * --mcd-skeleton-base/-shine are plain global vars (not gated behind
+ * [data-emr-theme]) so skeletons work on the public site and Patient
+ * Portal too, not just the staff dashboard; a dark-mode override is added
+ * for the EMR shell specifically, matching the pattern above.
+ */
+:root {
+  --mcd-skeleton-base: #e7edf1;
+  --mcd-skeleton-shine: #f4f7f9;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-emr-theme="system"] {
+    --mcd-skeleton-base: #262b34;
+    --mcd-skeleton-shine: #323944;
+  }
+}
+
+[data-emr-theme="dark"] {
+  --mcd-skeleton-base: #262b34;
+  --mcd-skeleton-shine: #323944;
+}
+
+@keyframes mcd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mcd-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes mcd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.mcd-spin {
+  animation: mcd-spin 1.1s linear infinite;
+}
+
+.mcd-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--mcd-skeleton-base) 25%,
+    var(--mcd-skeleton-shine) 37%,
+    var(--mcd-skeleton-base) 63%
+  );
+  background-size: 200% 100%;
+  animation: mcd-shimmer 1.6s ease-in-out infinite;
+}
+
+.mcd-fade-in {
+  animation: mcd-fade-in 0.15s ease-out;
+}
+
+/* Respect reduced-motion: keep a slow, gentle animation so it still reads
+   as "loading," rather than removing motion feedback entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .mcd-spin {
+    animation-duration: 2.4s;
+  }
+  .mcd-shimmer {
+    animation: none;
+    background: var(--mcd-skeleton-base);
+  }
+  .mcd-fade-in {
+    animation: none;
+  }
+}

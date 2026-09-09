@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 // Minimal email/password sign-in. Honors ?next= so anywhere that bounces
 // someone here (requireAdmin, /dashboard/billing, an "already have an
@@ -59,9 +60,10 @@ function LoginForm() {
           style={{ padding: 10, borderRadius: 8, border: "1px solid var(--brand-border)" }}
         />
         {error && <p style={{ color: "crimson", fontSize: 13 }}>{error}</p>}
-        <button
+        <LoadingButton
           type="submit"
-          disabled={loading}
+          loading={loading}
+          loadingText="Signing in..."
           style={{
             padding: 10,
             borderRadius: 8,
@@ -69,12 +71,10 @@ function LoginForm() {
             background: "var(--brand-primary)",
             color: "white",
             fontWeight: 600,
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.7 : 1,
           }}
         >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
+          Sign in
+        </LoadingButton>
       </form>
     </main>
   );

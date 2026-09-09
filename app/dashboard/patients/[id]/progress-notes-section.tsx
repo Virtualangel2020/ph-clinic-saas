@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addProgressNoteAction, removeProgressNoteAction } from "../actions";
 import { addEncounterAmendmentAction } from "../../encounters/actions";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 type Note = {
   id: string;
@@ -339,9 +340,14 @@ export function ProgressNotesSection({
               </>
             )}
             {error && <p style={{ fontSize: 12, color: "crimson", margin: 0 }}>{error}</p>}
-            <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start", marginTop: 4 }}>
-              {pending ? "Saving…" : isSignedEncounter ? "Save amendment" : "Save note"}
-            </button>
+            <LoadingButton
+              onClick={save}
+              loading={pending}
+              loadingText="Saving..."
+              style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, justifySelf: "start", marginTop: 4 }}
+            >
+              {isSignedEncounter ? "Save amendment" : "Save note"}
+            </LoadingButton>
           </div>
         </div>
       )}

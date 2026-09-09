@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { searchPatientsAction, type PatientSearchResult } from "../patients/actions";
 import { getPatientContactAction, sendPatientCommunicationAction } from "./actions";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 // "Compose a Message" — find a patient, pick Email or SMS, write it, send
 // it. Sending reuses sendPatientCommunicationAction, which itself reuses
@@ -239,24 +240,25 @@ export function ComposeWidget({ emailConfigured, smsConfigured }: { emailConfigu
               />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10 }}>
-              {sent && <span style={{ fontSize: 12, color: "#1a7f37", fontWeight: 600 }}>Sent!</span>}
-              <button
+              <LoadingButton
                 onClick={send}
-                disabled={pending || !toAddress.trim() || !message.trim()}
+                loading={pending}
+                loadingText="Sending..."
+                success={sent}
+                successText="Message sent ✓"
+                disabled={!toAddress.trim() || !message.trim()}
                 style={{
                   background: "var(--brand-primary)",
                   color: "var(--brand-secondary)",
                   border: "none",
                   borderRadius: 8,
                   padding: "9px 18px",
-                  cursor: pending ? "default" : "pointer",
                   fontSize: 12.5,
                   fontWeight: 700,
-                  opacity: pending || !toAddress.trim() || !message.trim() ? 0.6 : 1,
                 }}
               >
-                {pending ? "Sending…" : `Send ${channel === "email" ? "Email" : "SMS"}`}
-              </button>
+                {`Send ${channel === "email" ? "Email" : "SMS"}`}
+              </LoadingButton>
             </div>
           </div>
         </div>

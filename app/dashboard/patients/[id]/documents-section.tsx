@@ -6,6 +6,8 @@ import { addDocumentAction, addDocumentFolderAction, getDocumentSignedUrlAction 
 import { sendDocumentRecordsTransferAction } from "../../encounters/records-exchange-actions";
 import { searchMyCareDeskProvidersAction, checkSharingAuthorizedAction, type DirectoryProvider } from "../care-coordination-actions";
 import { foldersWithCustom, uploadableTypesWithCustom } from "@/lib/documents/folder-taxonomy";
+import { LoadingButton } from "@/components/loading/loading-button";
+import { UploadProgress } from "@/components/loading/upload-progress";
 
 type Doc = {
   id: string;
@@ -101,6 +103,11 @@ export function DocumentsSection({
   const [providerId, setProviderId] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Whether the in-flight save() included an actual file (vs. metadata-only)
+  // — lets the button/progress bar say "Uploading..." instead of a generic
+  // "Saving..." when there's a real file (patient doc, insurance/PhilHealth
+  // scan, etc.) headed to storage.
+  const [fileUploadPending, setFileUploadPending] = useState(false);
   const [addingFolder, setAddingFolder] = useState(false);
   const [newFolderLabel, setNewFolderLabel] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -178,7 +185,9 @@ export function DocumentsSection({
     fd.set("documentDate", documentDate);
     fd.set("source", source);
     fd.set("providerId", providerId);
-    if (fileRef.current?.files?.[0]) fd.set("file", fileRef.current.files[0]);
+    const file = fileRef.current?.files?.[0];
+    if (file) fd.set("file", file);
+    setFileUploadPending(!!file);
     startTransition(async () => {
       try {
         await addDocumentAction(fd);
@@ -192,6 +201,8 @@ export function DocumentsSection({
         router.refresh();
       } catch (e: any) {
         setError(e.message || "Couldn't add that document.");
+      } finally {
+        setFileUploadPending(false);
       }
     });
   }
@@ -415,12 +426,20 @@ export function DocumentsSection({
                           <input ref={fileRef} type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/webp" style={{ fontSize: 12 }} />
                           <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>PDF, JPG, PNG, HEIC, or WEBP, up to 25MB. Optional — you can also just record the metadata.</p>
                         </div>
+                        {pending && fileUploadPending && (
+                          <UploadProgress status="uploading" label="Uploading document..." />
+                        )}
                         {error && <div style={{ color: "#a12a2a", fontSize: 12.5 }}>{error}</div>}
                         <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", opacity: pending ? 0.6 : 1 }}>
-                            {pending ? "Saving…" : "Save"}
-                          </button>
-                          <button onClick={() => setAddingIn(null)} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
+                          <LoadingButton
+                            onClick={save}
+                            loading={pending}
+                            loadingText={fileUploadPending ? "Uploading..." : "Saving..."}
+                            style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13 }}
+                          >
+                            Save
+                          </LoadingButton>
+                          <button onClick={() => setAddingIn(null)} disabled={pending} style={{ background: "none", border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", color: "#555" }}>
                             Cancel
                           </button>
                         </div>

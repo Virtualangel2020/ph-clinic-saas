@@ -2,6 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { setClinicBrandingAction, uploadClinicLogoAction } from "../actions";
+import { LoadingButton } from "@/components/loading/loading-button";
+import { UploadProgress } from "@/components/loading/upload-progress";
 
 type Settings = {
   clinic_name: string | null;
@@ -32,12 +34,16 @@ export function ClinicProfileForm({ settings, logoUrl }: { settings: Settings; l
   const [website, setWebsite] = useState(settings?.website ?? "");
   const [pending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   function handleLogoPick(file: File | null) {
     if (!file) return;
     setUploading(true);
+    setUploadStatus("uploading");
+    setUploadError(null);
     setMessage(null);
     const formData = new FormData();
     formData.set("file", file);
@@ -45,9 +51,12 @@ export function ClinicProfileForm({ settings, logoUrl }: { settings: Settings; l
       .then((path) => {
         setLogoPath(path);
         setPreviewUrl(URL.createObjectURL(file));
-        setMessage("Logo uploaded — click Save to apply it.");
+        setUploadStatus("success");
       })
-      .catch((e: any) => setMessage(`Error: ${e.message}`))
+      .catch((e: any) => {
+        setUploadStatus("error");
+        setUploadError(e.message || "Upload failed. Please try again.");
+      })
       .finally(() => setUploading(false));
   }
 
@@ -91,6 +100,17 @@ export function ClinicProfileForm({ settings, logoUrl }: { settings: Settings; l
           <div>
             <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => handleLogoPick(e.target.files?.[0] ?? null)} style={{ fontSize: 12 }} disabled={uploading} />
             <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>PNG, JPG, WEBP, or SVG, up to 3MB.</p>
+            {uploadStatus !== "idle" && (
+              <div style={{ marginTop: 6 }}>
+                <UploadProgress
+                  status={uploadStatus}
+                  label="Uploading logo..."
+                  successLabel="Logo uploaded — click Save to apply it."
+                  errorLabel={uploadError ?? "Upload failed. Please try again."}
+                  onRetry={() => fileInput.current?.click()}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -115,9 +135,9 @@ export function ClinicProfileForm({ settings, logoUrl }: { settings: Settings; l
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-        <button onClick={save} disabled={pending || uploading} style={buttonStyle}>
-          {pending ? "Saving..." : "Save"}
-        </button>
+        <LoadingButton onClick={save} loading={pending} loadingText="Saving..." disabled={uploading} style={buttonStyle}>
+          Save
+        </LoadingButton>
         {message && <span style={{ fontSize: 12, color: message.startsWith("Error") ? "crimson" : "#1a7f37" }}>{message}</span>}
       </div>
     </div>
@@ -135,4 +155,4 @@ function Field({ label: labelText, value, onChange }: { label: string; value: st
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 };
 const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 6, border: "1px solid var(--input-border)", fontSize: 13 };
-const buttonStyle: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" };
+const buttonStyle: React.CSSProperties = { padding: "9px 18px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "#fff", fontWeight: 700, fontSize: 13 };

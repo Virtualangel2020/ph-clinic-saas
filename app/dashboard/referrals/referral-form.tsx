@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createReferralAction } from "./actions";
 import { searchMyCareDeskProvidersAction, searchExternalProvidersAction, type DirectoryProvider, type ExternalDirectoryProvider } from "../patients/care-coordination-actions";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid var(--input-border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
 const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#666", marginBottom: 4 };
@@ -224,9 +225,14 @@ export function ReferralForm({ patientId, onDone }: { patientId: string; onDone?
       </div>
 
       {error && <p style={{ fontSize: 12, color: "#a12a2a", margin: 0 }}>{error}</p>}
-      <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
-        {pending ? "Creating…" : "Create Referral"}
-      </button>
+      <LoadingButton
+        onClick={save}
+        loading={pending}
+        loadingText="Creating referral..."
+        style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, justifySelf: "start" }}
+      >
+        Create Referral
+      </LoadingButton>
     </div>
   );
 }

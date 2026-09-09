@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addPrescriptionAction, setPrescriptionStatusAction, recordPrescriptionRefillAction, type PrescriptionItemInput, type RenewalInput } from "../../prescriptions/actions";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 export type PrescriptionItem = {
   id: string;
@@ -247,9 +248,14 @@ export function PrescriptionsSection({
           <textarea placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ ...FIELD_STYLE, minHeight: 50 }} />
 
           {error && <p style={{ fontSize: 12, color: "crimson", margin: 0 }}>{error}</p>}
-          <button onClick={save} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", justifySelf: "start" }}>
-            {pending ? "Saving…" : "Save prescription"}
-          </button>
+          <LoadingButton
+            onClick={save}
+            loading={pending}
+            loadingText="Saving prescription..."
+            style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, justifySelf: "start" }}
+          >
+            Save prescription
+          </LoadingButton>
         </div>
       )}
 

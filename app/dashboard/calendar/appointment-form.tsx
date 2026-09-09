@@ -6,6 +6,7 @@ import { checkAppointmentConflictsAction, saveAppointmentAction, setAppointmentS
 import { isoToPhDateTime, toIsoInstant } from "./date-utils";
 import { STATUS_FLOW, TERMINAL_STATUSES } from "./status-constants";
 import { savePatientAction, type PatientInput } from "../patients/actions";
+import { LoadingButton } from "@/components/loading/loading-button";
 
 type Patient = { id: string; first_name: string; middle_name: string | null; last_name: string; date_of_birth: string; mobile_phone: string | null };
 type Provider = { id: string; full_name: string; title: string | null };
@@ -55,6 +56,10 @@ export function AppointmentForm({
   // open for — null when it's not showing.
   const [reasonPromptFor, setReasonPromptFor] = useState<string | null>(null);
   const [reasonChoice, setReasonChoice] = useState("");
+  // Which specific button triggered the in-flight useTransition, so only
+  // THAT button shows its spinner/text — the other status buttons just sit
+  // disabled rather than all claiming to be "Updating..." at once.
+  const [activeAction, setActiveAction] = useState<string | null>(null);
 
   const initialDt = editing ? isoToPhDateTime(editing.start_at) : { date: defaultDate, time: defaultTime ?? "09:00" };
   const [patientId, setPatientId] = useState(editing?.patient_id ?? "");
@@ -215,6 +220,7 @@ export function AppointmentForm({
         router.refresh();
         onClose();
       } catch (e: any) {
+        setActiveAction(null);
         setError(e.message);
       }
     });
@@ -232,6 +238,7 @@ export function AppointmentForm({
     const startAt = toIsoInstant(date, time);
     const endAt = new Date(new Date(startAt).getTime() + duration * 60000).toISOString();
 
+    setActiveAction("save");
     if (!providerId) return doSave(startAt, endAt);
 
     setCheckingConflicts(true);
@@ -239,6 +246,7 @@ export function AppointmentForm({
       .then((found) => {
         setCheckingConflicts(false);
         if (found.length > 0) {
+          setActiveAction(null);
           setConflicts(found);
         } else {
           doSave(startAt, endAt);
@@ -246,6 +254,7 @@ export function AppointmentForm({
       })
       .catch((e: any) => {
         setCheckingConflicts(false);
+        setActiveAction(null);
         setError(e.message);
       });
   }
@@ -254,11 +263,13 @@ export function AppointmentForm({
     const startAt = toIsoInstant(date, time);
     const endAt = new Date(new Date(startAt).getTime() + duration * 60000).toISOString();
     setConflicts(null);
+    setActiveAction("save");
     doSave(startAt, endAt);
   }
 
   function changeStatus(status: string, reason?: string) {
     if (!editing) return;
+    setActiveAction(status);
     startTransition(async () => {
       try {
         await setAppointmentStatusAction(editing.id, status, reason);
@@ -267,6 +278,7 @@ export function AppointmentForm({
         router.refresh();
         onClose();
       } catch (e: any) {
+        setActiveAction(null);
         setError(e.message);
       }
     });
@@ -374,13 +386,14 @@ export function AppointmentForm({
                     </button>
                   </div>
                 ))}
-                <button
+                <LoadingButton
                   onClick={createPatient}
-                  disabled={quickAddPending}
-                  style={{ background: "var(--card-bg)", color: "#555", border: "1px solid var(--input-border)", borderRadius: 6, padding: "8px 12px", fontSize: 12, cursor: "pointer", textAlign: "left" }}
+                  loading={quickAddPending}
+                  loadingText="Creating..."
+                  style={{ background: "var(--card-bg)", color: "#555", border: "1px solid var(--input-border)", borderRadius: 6, padding: "8px 12px", fontSize: 12, textAlign: "left", justifyContent: "flex-start" }}
                 >
-                  {quickAddPending ? "Creating…" : "None of these — continue creating new patient"}
-                </button>
+                  None of these — continue creating new patient
+                </LoadingButton>
               </div>
             ) : (
               <div style={{ display: "grid", gap: 8 }}>
@@ -425,13 +438,14 @@ export function AppointmentForm({
                 <div style={{ fontSize: 11, color: "#999" }}>Address, emergency contact, and other details can be filled in later from the patient's chart.</div>
                 {quickAddError && <div style={{ fontSize: 12.5, color: "crimson" }}>{quickAddError}</div>}
                 <div>
-                  <button
+                  <LoadingButton
                     onClick={reviewOrCreatePatient}
-                    disabled={quickAddPending}
-                    style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
+                    loading={quickAddPending}
+                    loadingText="Saving..."
+                    style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 12.5, fontWeight: 700 }}
                   >
-                    {quickAddPending ? "Saving…" : "Save patient"}
-                  </button>
+                    Save patient
+                  </LoadingButton>
                 </div>
               </div>
             )}
@@ -500,9 +514,15 @@ export function AppointmentForm({
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {allowDoubleBooking && (
-                <button onClick={bookAnyway} disabled={pending} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                <LoadingButton
+                  onClick={bookAnyway}
+                  loading={pending && activeAction === "save"}
+                  loadingText={editing ? "Saving..." : "Booking..."}
+                  disabled={pending && activeAction !== "save"}
+                  style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}
+                >
                   Book anyway
-                </button>
+                </LoadingButton>
               )}
               <button onClick={() => setConflicts(null)} disabled={pending} style={{ background: "var(--card-bg)", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                 Choose a different time
@@ -533,9 +553,15 @@ export function AppointmentForm({
               />
             )}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={confirmReasonAndChangeStatus} disabled={pending} style={{ background: "#a12a2a", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+              <LoadingButton
+                onClick={confirmReasonAndChangeStatus}
+                loading={pending && activeAction === reasonPromptFor}
+                loadingText="Please wait..."
+                disabled={pending && activeAction !== reasonPromptFor}
+                style={{ background: "#a12a2a", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600 }}
+              >
                 Confirm
-              </button>
+              </LoadingButton>
               <button onClick={() => setReasonPromptFor(null)} disabled={pending} style={{ background: "var(--card-bg)", color: "#666", border: "1px solid var(--input-border)", borderRadius: 6, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>
                 Back
               </button>
@@ -544,25 +570,39 @@ export function AppointmentForm({
         )}
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={save} disabled={pending || checkingConflicts} style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
-            {checkingConflicts ? "Checking…" : editing ? "Save changes" : "Book appointment"}
-          </button>
+          <LoadingButton
+            onClick={save}
+            loading={(pending && activeAction === "save") || checkingConflicts}
+            loadingText={checkingConflicts ? "Checking..." : editing ? "Saving..." : "Booking..."}
+            disabled={pending && activeAction !== "save"}
+            style={{ background: "var(--brand-primary)", color: "white", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600 }}
+          >
+            {editing ? "Save changes" : "Book appointment"}
+          </LoadingButton>
 
           {editing && !TERMINAL_STATUSES.has(editing.status) && (
             <>
               {STATUS_FLOW.filter((s) => s.key !== editing.status).map((s) => (
-                <button
+                <LoadingButton
                   key={s.key}
                   onClick={() => changeStatus(s.key)}
-                  disabled={pending}
-                  style={{ background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}
+                  loading={pending && activeAction === s.key}
+                  loadingText="Updating..."
+                  disabled={pending && activeAction !== s.key}
+                  style={{ background: "#f0f4ff", color: "var(--text-heading)", border: "1px solid #c7d4f5", borderRadius: 8, padding: "8px 12px", fontSize: 12.5 }}
                 >
                   Mark {s.label}
-                </button>
+                </LoadingButton>
               ))}
-              <button onClick={() => changeStatus("no_show")} disabled={pending} style={{ background: "#fff6e6", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}>
+              <LoadingButton
+                onClick={() => changeStatus("no_show")}
+                loading={pending && activeAction === "no_show"}
+                loadingText="Updating..."
+                disabled={pending && activeAction !== "no_show"}
+                style={{ background: "#fff6e6", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 8, padding: "8px 12px", fontSize: 12.5 }}
+              >
                 No-show
-              </button>
+              </LoadingButton>
               <button onClick={() => requestStatusWithReason("late_cancellation")} disabled={pending} style={{ background: "#fff6e6", color: "#8a6100", border: "1px solid #f0d998", borderRadius: 8, padding: "8px 12px", fontSize: 12.5, cursor: "pointer" }}>
                 Late cancellation
               </button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadSignatureAction } from "../actions";
+import { UploadProgress } from "@/components/loading/upload-progress";
 
 // A new upload replaces the active signature immediately — no Clinic Admin
 // approval step (per explicit instruction; see migration
@@ -13,20 +14,26 @@ import { uploadSignatureAction } from "../actions";
 export function SignatureManager({ activeSignatureUrl }: { activeSignatureUrl: string | null }) {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
   function handlePick(file: File | null) {
     if (!file) return;
     setUploading(true);
+    setUploadStatus("uploading");
     setMessage(null);
     const formData = new FormData();
     formData.set("file", file);
     uploadSignatureAction(formData)
       .then(() => {
+        setUploadStatus("success");
         setMessage("Signature updated — it's active immediately.");
         router.refresh();
       })
-      .catch((e: any) => setMessage(`Error: ${e.message}`))
+      .catch((e: any) => {
+        setUploadStatus("error");
+        setMessage(`Error: ${e.message}`);
+      })
       .finally(() => setUploading(false));
   }
 
@@ -50,10 +57,18 @@ export function SignatureManager({ activeSignatureUrl }: { activeSignatureUrl: s
         <div>
           <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => handlePick(e.target.files?.[0] ?? null)} disabled={uploading} style={{ fontSize: 12 }} />
           <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>PNG, JPG, or WEBP, up to 1MB.</p>
+          {uploadStatus !== "idle" && (
+            <div style={{ marginTop: 6 }}>
+              <UploadProgress
+                status={uploadStatus}
+                label="Uploading signature..."
+                successLabel="Signature updated — active immediately."
+                errorLabel={message?.replace(/^Error:\s*/, "") || "Upload failed. Please try again."}
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {message && <p style={{ fontSize: 12, color: message.startsWith("Error") ? "crimson" : "#1a7f37", marginTop: 10 }}>{message}</p>}
     </div>
   );
 }
