@@ -12,11 +12,14 @@ export default async function PatientProfilePage() {
   const { supabase, account } = await requirePatientPortal();
   const patientId = (account as any).patient_id;
 
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("first_name, last_name, middle_name, date_of_birth, sex, mobile_phone, email, patient_code, address_line1, city, province")
-    .eq("id", patientId)
-    .maybeSingle();
+  const [{ data: patient }, { data: mycaredeskAccount }] = await Promise.all([
+    supabase
+      .from("patients")
+      .select("first_name, last_name, middle_name, date_of_birth, sex, mobile_phone, email, patient_code, address_line1, city, province")
+      .eq("id", patientId)
+      .maybeSingle(),
+    supabase.rpc("get_my_mycaredesk_account"),
+  ]);
 
   const fullName = patient ? `${patient.first_name} ${patient.middle_name ? patient.middle_name + " " : ""}${patient.last_name}` : "";
 
@@ -24,6 +27,16 @@ export default async function PatientProfilePage() {
     <PortalShell patientName={patient?.first_name}>
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>Profile</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your information on file at this clinic.</p>
+
+      {(mycaredeskAccount as any)?.patient_number && (
+        <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: "14px 18px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: 0.3 }}>MyCareDesk Patient Number</div>
+            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "monospace", color: "var(--brand-primary)" }}>{(mycaredeskAccount as any).patient_number}</div>
+          </div>
+          <div style={{ fontSize: 11, color: "#aaa", maxWidth: 160, textAlign: "right" }}>Your permanent MyCareDesk ID — not a password.</div>
+        </div>
+      )}
 
       <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: 18, marginBottom: 12 }}>
         {patient ? (

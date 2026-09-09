@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BrandHeader } from "@/components/brand-header";
 import { PasswordInput } from "@/components/password-input";
-import { activateByOtpAction } from "../actions";
+import { activateByOtpAction, requestPortalInviteResendAction } from "../actions";
 
 // The automated-SMS activation path (paid SMS add-on): the text carries
 // this link with the account id (?a=...) plus a 6-digit code in the
@@ -19,6 +19,18 @@ function VerifyForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  async function handleResend() {
+    if (!accountId) return;
+    setResendLoading(true);
+    setResendMessage(null);
+    const result = await requestPortalInviteResendAction({ accountId });
+    setResendMessage(result.message);
+    setResendLoading(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -27,11 +39,16 @@ function VerifyForm() {
     if (password !== confirm) return setError("Passwords don't match.");
     setLoading(true);
     try {
-      await activateByOtpAction(accountId, code.trim(), password);
+      const result = await activateByOtpAction(accountId, code.trim(), password);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
       router.push("/portal");
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message ?? "Something went wrong. Please try again.");
       setLoading(false);
     }
   }
@@ -75,6 +92,18 @@ function VerifyForm() {
           {loading ? "Verifying…" : "Activate account"}
         </button>
       </form>
+
+      <div style={{ marginTop: 16, textAlign: "center" }}>
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resendLoading || !accountId}
+          style={{ background: "none", border: "none", color: "#888", fontSize: 12.5, textDecoration: "underline", cursor: "pointer", padding: 0 }}
+        >
+          {resendLoading ? "Sending…" : "Didn't get a text? Send a new code"}
+        </button>
+        {resendMessage && <p style={{ fontSize: 12, color: "#1a7f37", marginTop: 8 }}>{resendMessage}</p>}
+      </div>
     </main>
   );
 }

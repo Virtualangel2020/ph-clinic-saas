@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BrandHeader } from "@/components/brand-header";
 import { PasswordInput } from "@/components/password-input";
-import { activateByTokenAction } from "../actions";
+import { activateByTokenAction, requestPortalInviteResendAction } from "../actions";
 
 // Handles both an emailed activation link (?token=... in the URL, already
 // filled in) and a staff-relayed in-person code (patient types it in
@@ -19,6 +19,20 @@ function ActivateForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [showResend, setShowResend] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  async function handleResend(e: React.FormEvent) {
+    e.preventDefault();
+    setResendLoading(true);
+    setResendMessage(null);
+    const result = await requestPortalInviteResendAction({ contact: resendEmail });
+    setResendMessage(result.message);
+    setResendLoading(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -26,11 +40,16 @@ function ActivateForm() {
     if (password !== confirm) return setError("Passwords don't match.");
     setLoading(true);
     try {
-      await activateByTokenAction(code.trim(), password);
+      const result = await activateByTokenAction(code.trim(), password);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
       router.push("/portal");
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      setError(e.message ?? "Something went wrong. Please try again.");
       setLoading(false);
     }
   }
@@ -75,6 +94,42 @@ function ActivateForm() {
           {loading ? "Activating…" : "Activate account"}
         </button>
       </form>
+
+      <div style={{ marginTop: 18, textAlign: "center" }}>
+        {!showResend ? (
+          <button
+            type="button"
+            onClick={() => setShowResend(true)}
+            style={{ background: "none", border: "none", color: "#888", fontSize: 12.5, textDecoration: "underline", cursor: "pointer", padding: 0 }}
+          >
+            Didn't get an email, or has your code expired? Send a new one
+          </button>
+        ) : (
+          <form onSubmit={handleResend} style={{ marginTop: 4, textAlign: "left", background: "#f7f9fb", border: "1px solid #dde6ee", borderRadius: 8, padding: 12 }}>
+            <p style={{ fontSize: 12, color: "#666", marginTop: 0, marginBottom: 8 }}>
+              Enter the email your clinic has on file and we'll send a new activation link.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="email"
+                placeholder="Your email"
+                value={resendEmail}
+                onChange={(e) => setResendEmail(e.target.value)}
+                required
+                style={{ flex: 1, padding: 9, borderRadius: 8, border: "1px solid #ccc", fontSize: 13 }}
+              />
+              <button
+                type="submit"
+                disabled={resendLoading}
+                style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "white", fontWeight: 600, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}
+              >
+                {resendLoading ? "Sending…" : "Send new code"}
+              </button>
+            </div>
+            {resendMessage && <p style={{ fontSize: 12, color: "#1a7f37", marginTop: 8, marginBottom: 0 }}>{resendMessage}</p>}
+          </form>
+        )}
+      </div>
     </main>
   );
 }

@@ -11,6 +11,7 @@ type Match = {
   date_of_birth: string;
   masked_email: string | null;
   masked_mobile: string | null;
+  patient_number_last4: string | null;
 };
 
 // Spec (chart-integration doc, "patient-provider relationship" section):
@@ -99,6 +100,7 @@ export function MyCareDeskDedupSearch() {
                         </div>
                         <div style={{ fontSize: 11.5, color: "#888" }}>
                           DOB {new Date(m.date_of_birth).toLocaleDateString()} · {m.masked_email ?? m.masked_mobile ?? "no contact on file"}
+                          {m.patient_number_last4 ? ` · MyCareDesk ID ending •${m.patient_number_last4}` : ""}
                         </div>
                       </div>
                       {requestedIds.has(m.mycaredesk_account_id) ? (

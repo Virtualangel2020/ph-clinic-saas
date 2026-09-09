@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizePhMobile } from "@/lib/patient-portal/send";
+import { normalizePhMobile, sendPortalEmail, sendPortalSms } from "@/lib/patient-portal/send";
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 
 // Same per-file helper used in app/dashboard/patients/actions.ts,
@@ -29,66 +29,146 @@ async function siteOrigin() {
 // code (migration patient_portal_manual_channel) — either way this is a
 // token lookup, and the contact_value it resolves to may be an email or a
 // PH mobile number depending on which the patient had on file.
-export async function activateByTokenAction(token: string, password: string) {
-  const supabase = await createClient();
+//
+// Returns { error } instead of throwing. Next.js redacts the message of
+// any error THROWN out of a Server Action in production ("An error
+// occurred in the Server Components render...") to avoid leaking internal
+// details — which meant every failure here (an expired code, a duplicate
+// account, a real misconfiguration) showed the patient the exact same
+// useless generic message. Returning a plain value instead is the
+// supported way to get a real, safe message in front of the user.
+export async function activateByTokenAction(token: string, password: string): Promise<{ error: string } | undefined> {
+  try {
+    const supabase = await createClient();
 
-  const { data: invite, error: verifyError } = await supabase.rpc("verify_patient_portal_invite_token", { p_token: token.trim() });
-  if (verifyError) throw new Error(verifyError.message);
+    const { data: invite, error: verifyError } = await supabase.rpc("verify_patient_portal_invite_token", { p_token: token.trim() });
+    if (verifyError) return { error: verifyError.message };
+    if (!invite) return { error: "That activation code is invalid or has expired. Please double-check it or ask your clinic to resend it." };
 
-  const isEmail = invite.contact_value.includes("@");
-  const admin = createAdminClient();
-  const { data: created, error: createError } = await admin.auth.admin.createUser(
-    isEmail
-      ? { email: invite.contact_value, password, email_confirm: true }
-      : { phone: normalizePhMobile(invite.contact_value), password, phone_confirm: true }
-  );
-  if (createError) {
-    if (/already.*regist|already exist/i.test(createError.message)) {
-      throw new Error("An account with this contact info already exists on MyCareDesk — please contact your clinic for help activating your portal access.");
+    const isEmail = invite.contact_value.includes("@");
+    const admin = createAdminClient();
+    const { data: created, error: createError } = await admin.auth.admin.createUser(
+      isEmail
+        ? { email: invite.contact_value, password, email_confirm: true }
+        : { phone: normalizePhMobile(invite.contact_value), password, phone_confirm: true }
+    );
+    if (createError) {
+      if (/already.*regist|already exist/i.test(createError.message)) {
+        return { error: "An account with this contact info already exists on MyCareDesk — please contact your clinic for help activating your portal access." };
+      }
+      return { error: createError.message };
     }
-    throw new Error(createError.message);
+
+    const { error: finalizeError } = await supabase.rpc("finalize_patient_portal_activation", {
+      p_account_id: invite.account_id,
+      p_auth_user_id: created.user!.id,
+    });
+    if (finalizeError) return { error: finalizeError.message };
+
+    const { error: signInError } = await supabase.auth.signInWithPassword(
+      isEmail ? { email: invite.contact_value, password } : { phone: normalizePhMobile(invite.contact_value), password }
+    );
+    if (signInError) return { error: "Account activated, but automatic sign-in failed — please sign in manually." };
+  } catch (e: any) {
+    console.error("activateByTokenAction failed:", e);
+    return { error: "Something went wrong activating your account. Please try again, or contact your clinic if it keeps happening." };
   }
-
-  const { error: finalizeError } = await supabase.rpc("finalize_patient_portal_activation", {
-    p_account_id: invite.account_id,
-    p_auth_user_id: created.user!.id,
-  });
-  if (finalizeError) throw new Error(finalizeError.message);
-
-  const { error: signInError } = await supabase.auth.signInWithPassword(
-    isEmail ? { email: invite.contact_value, password } : { phone: normalizePhMobile(invite.contact_value), password }
-  );
-  if (signInError) throw new Error("Account activated, but automatic sign-in failed — please sign in manually.");
 }
 
-export async function activateByOtpAction(accountId: string, code: string, password: string) {
-  const supabase = await createClient();
+// Same return-instead-of-throw reasoning as activateByTokenAction above.
+export async function activateByOtpAction(accountId: string, code: string, password: string): Promise<{ error: string } | undefined> {
+  try {
+    const supabase = await createClient();
 
-  const { data: invite, error: verifyError } = await supabase.rpc("verify_patient_portal_otp", { p_account_id: accountId, p_code: code });
-  if (verifyError) throw new Error(verifyError.message);
+    const { data: invite, error: verifyError } = await supabase.rpc("verify_patient_portal_otp", { p_account_id: accountId, p_code: code });
+    if (verifyError) return { error: verifyError.message };
+    if (!invite) return { error: "That code is invalid or has expired. Please double-check it or ask your clinic to resend it." };
 
-  const phone = normalizePhMobile(invite.contact_value);
-  const admin = createAdminClient();
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    phone,
-    password,
-    phone_confirm: true,
-  });
-  if (createError) {
-    if (/already.*regist|already exist/i.test(createError.message)) {
-      throw new Error("An account with this mobile number already exists on MyCareDesk — please contact your clinic for help activating your portal access.");
+    const phone = normalizePhMobile(invite.contact_value);
+    const admin = createAdminClient();
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      phone,
+      password,
+      phone_confirm: true,
+    });
+    if (createError) {
+      if (/already.*regist|already exist/i.test(createError.message)) {
+        return { error: "An account with this mobile number already exists on MyCareDesk — please contact your clinic for help activating your portal access." };
+      }
+      return { error: createError.message };
     }
-    throw new Error(createError.message);
+
+    const { error: finalizeError } = await supabase.rpc("finalize_patient_portal_activation", {
+      p_account_id: invite.account_id,
+      p_auth_user_id: created.user!.id,
+    });
+    if (finalizeError) return { error: finalizeError.message };
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ phone, password });
+    if (signInError) return { error: "Account activated, but automatic sign-in failed — please sign in manually." };
+  } catch (e: any) {
+    console.error("activateByOtpAction failed:", e);
+    return { error: "Something went wrong activating your account. Please try again, or contact your clinic if it keeps happening." };
+  }
+}
+
+// Patient self-service "I didn't get the code" — previously the only way
+// to get a fresh activation link/OTP was to ask clinic staff to click
+// Resend from the dashboard. Callable from /portal/activate (by the email
+// the patient types in) and /portal/verify (by the account id already in
+// that page's URL). Always returns the same generic message regardless of
+// whether anything matched, same anti-enumeration shape as a
+// password-reset request — see migration
+// mycaredesk_portal_invite_resend for why the underlying RPC is
+// service_role-only rather than something the browser could call
+// directly (it looks up by an easily-guessable value and hands back a
+// live activation secret, so it must never be reachable from the client).
+export async function requestPortalInviteResendAction(opts: { contact?: string; accountId?: string }): Promise<{ message: string }> {
+  const generic = "If that matches a pending invite, we've sent a new code — check your email or messages in a minute (including spam/junk).";
+  const contact = opts.contact?.trim();
+  const accountId = opts.accountId?.trim();
+  if (!contact && !accountId) return { message: generic };
+
+  try {
+    const admin = createAdminClient();
+    const { data: matches, error } = await admin.rpc("resend_patient_portal_invite", {
+      p_contact: contact || null,
+      p_account_id: accountId || null,
+    });
+    if (error) {
+      console.error("resend_patient_portal_invite failed:", error);
+      return { message: generic };
+    }
+
+    const origin = await siteOrigin();
+    for (const m of (matches as any[]) ?? []) {
+      try {
+        if (m.channel === "email" && m.raw_token) {
+          const link = `${origin}/portal/activate?token=${m.raw_token}`;
+          await sendPortalEmail({
+            toEmail: m.contact_value,
+            toName: m.patient_name,
+            subject: `Your ${m.clinic_name} Patient Portal activation link`,
+            html: `<p>Hi ${m.patient_name},</p><p>Here's a new activation link for your ${m.clinic_name} Patient Portal:</p><p><a href="${link}">Activate your account</a></p><p>This link expires in 24 hours. If you didn't request this, you can safely ignore this email.</p>`,
+          });
+        } else if (m.channel === "sms" && m.otp) {
+          const link = `${origin}/portal/verify?a=${m.account_id}`;
+          await sendPortalSms({
+            toPhone: m.contact_value,
+            message: `${m.clinic_name}: Your new Patient Portal code is ${m.otp}. Activate here: ${link} (expires in 10 min)`,
+          });
+        }
+      } catch (sendErr) {
+        // Don't let one failed send (e.g. provider not configured) change
+        // the response — the message stays generic either way.
+        console.error("resend_patient_portal_invite: send failed:", sendErr);
+      }
+    }
+  } catch (e) {
+    console.error("requestPortalInviteResendAction failed:", e);
   }
 
-  const { error: finalizeError } = await supabase.rpc("finalize_patient_portal_activation", {
-    p_account_id: invite.account_id,
-    p_auth_user_id: created.user!.id,
-  });
-  if (finalizeError) throw new Error(finalizeError.message);
-
-  const { error: signInError } = await supabase.auth.signInWithPassword({ phone, password });
-  if (signInError) throw new Error("Account activated, but automatic sign-in failed — please sign in manually.");
+  return { message: generic };
 }
 
 // ── Authenticated portal actions (spec §15) ───────────────────────────────

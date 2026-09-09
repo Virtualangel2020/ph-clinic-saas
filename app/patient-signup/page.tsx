@@ -23,9 +23,20 @@ export default function PatientSignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "already-registered" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "already-registered" | "check-email" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Angel: "Do NOT turn confirmation into Register → Email → Confirm →
+  // Login again → More verification." The account-creation RPC needs a
+  // real session (it reads auth.uid()) — which doesn't exist yet if this
+  // Supabase project requires email confirmation before a session is
+  // issued. So: stash everything the RPC needs in the auth user's own
+  // metadata at signUp() time, and actually call the RPC from
+  // /portal/finish-signup, which the confirmation link (via
+  // emailRedirectTo below → /auth/callback) lands on once a session
+  // exists — whether that's immediately (confirmation off) or after the
+  // patient clicks the emailed link (confirmation on). Either way this
+  // page never has to guess which mode is active.
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg("");
@@ -44,7 +55,18 @@ export default function PatientSignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: `${firstName} ${lastName}`, account_kind: "mycaredesk_patient" } },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/portal/finish-signup`,
+        data: {
+          account_kind: "mycaredesk_patient",
+          full_name: `${firstName} ${lastName}`,
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dateOfBirth,
+          sex,
+          mobile_phone: mobilePhone,
+        },
+      },
     });
 
     if (error) {
@@ -53,30 +75,55 @@ export default function PatientSignupPage() {
       return;
     }
 
-    // Same anti-enumeration case as the clinic signup form: an email that's
-    // already a confirmed account returns success with no session.
-    if (!data.session || (data.user?.identities && data.user.identities.length === 0)) {
+    // An email that's already a confirmed account comes back "successful"
+    // with an empty identities array — the real anti-enumeration signal.
+    // (A brand-new signup that still needs confirmation ALSO has no
+    // session yet, which is why that alone can't be used to detect this.)
+    if (data.user?.identities && data.user.identities.length === 0) {
       setStatus("already-registered");
       return;
     }
 
-    const { error: accountError } = await supabase.rpc("self_register_mycaredesk_account", {
-      p_first_name: firstName,
-      p_last_name: lastName,
-      p_date_of_birth: dateOfBirth,
-      p_sex: sex,
-      p_mobile_phone: mobilePhone,
-      p_email: email,
-    });
-
-    if (accountError) {
-      setStatus("error");
-      setErrorMsg(accountError.message);
+    if (data.session) {
+      // Confirmation isn't required for this project — session exists
+      // immediately, so finish account creation right now instead of
+      // waiting on a click that isn't coming.
+      const { error: accountError } = await supabase.rpc("self_register_mycaredesk_account", {
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_date_of_birth: dateOfBirth,
+        p_sex: sex,
+        p_mobile_phone: mobilePhone,
+        p_email: email,
+      });
+      if (accountError) {
+        setStatus("error");
+        setErrorMsg(accountError.message);
+        return;
+      }
+      router.push("/portal/welcome");
+      router.refresh();
       return;
     }
 
-    router.push("/portal/welcome");
-    router.refresh();
+    setStatus("check-email");
+  }
+
+  if (status === "check-email") {
+    return (
+      <main style={{ maxWidth: 420, margin: "80px auto", padding: 24 }}>
+        <div style={{ marginBottom: 24 }}>
+          <BrandHeader />
+        </div>
+        <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: 24 }}>
+          <h1 style={{ fontSize: 18, marginTop: 0 }}>Check your email</h1>
+          <p style={{ color: "#333", fontSize: 14, marginBottom: 4 }}>
+            We sent a confirmation link to <strong>{email}</strong>.
+          </p>
+          <p style={{ color: "#666", fontSize: 13 }}>Click it and you'll be taken straight into your MyCareDesk account — no need to sign in again first.</p>
+        </div>
+      </main>
+    );
   }
 
   if (status === "already-registered") {
