@@ -1,6 +1,7 @@
 import { requireClinicMember } from "@/lib/require-clinic-member";
 import { BackLink } from "@/components/back-link";
 import { PatientForm } from "../patient-form";
+import { MyCareDeskDedupSearch } from "../mycaredesk-dedup-search";
 
 export default async function NewPatientPage() {
   await requireClinicMember();
@@ -8,6 +9,7 @@ export default async function NewPatientPage() {
     <div>
       <BackLink href="/dashboard/patients" label="Patients" />
       <h1 style={{ fontSize: 22, marginBottom: 16 }}>Add Patient</h1>
+      <MyCareDeskDedupSearch />
       <PatientForm patient={null} />
     </div>
   );

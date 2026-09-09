@@ -61,6 +61,24 @@ function effectiveMessaging(p: Provider): boolean {
   return p.messaging_enabled_override ?? p.clinic_messaging_enabled ?? false;
 }
 
+// public_consultation_type already existed on user_profiles before this
+// pass (only "in_person" and "both" are in use today, per a live check —
+// "telehealth" is a valid third value the column already supports). This
+// derives the doctor-card visit-mode badge and filter purely from that
+// existing field — no schema change needed for this part of the spec.
+function visitModes(p: Provider): { inPerson: boolean; telehealth: boolean } {
+  const t = p.public_consultation_type;
+  if (t === "telehealth") return { inPerson: false, telehealth: true };
+  if (t === "both") return { inPerson: true, telehealth: true };
+  return { inPerson: true, telehealth: false }; // null/"in_person"/anything else defaults to in-person
+}
+function visitModeLabel(p: Provider): string {
+  const { inPerson, telehealth } = visitModes(p);
+  if (inPerson && telehealth) return "In-Person • Telehealth";
+  if (telehealth) return "Telehealth";
+  return "In-Person";
+}
+
 const BOOKING_FILTERS = [
   { value: "walk_in", label: "Walk-In" },
   { value: "appointment", label: "Appointment" },
@@ -71,12 +89,17 @@ const COVERAGE_FILTERS = [
   { value: "yakap", label: "YAKAP" },
   { value: "online_payment", label: "Online Payment" },
 ];
+const VISIT_MODE_FILTERS = [
+  { value: "in_person", label: "In-Person" },
+  { value: "telehealth", label: "Telehealth" },
+];
 
 export function DirectorySearch({ providers, externalProviders }: { providers: Provider[]; externalProviders: ExternalProvider[] }) {
   const [filter, setFilter] = useState<"all" | "angelclinic" | "other">("all");
   const [query, setQuery] = useState("");
   const [bookingFilters, setBookingFilters] = useState<Set<string>>(new Set());
   const [coverageFilters, setCoverageFilters] = useState<Set<string>>(new Set());
+  const [visitModeFilters, setVisitModeFilters] = useState<Set<string>>(new Set());
   const [requestingFor, setRequestingFor] = useState<Provider | null>(null);
 
   function toggleSet(set: Set<string>, setter: (s: Set<string>) => void, value: string) {
@@ -105,20 +128,27 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
       (coverageFilters.has("online_payment") && !!p.accept_online_payments)
     );
   };
+  const matchesVisitMode = (p: Provider) => {
+    if (visitModeFilters.size === 0) return true;
+    const { inPerson, telehealth } = visitModes(p);
+    return (visitModeFilters.has("in_person") && inPerson) || (visitModeFilters.has("telehealth") && telehealth);
+  };
 
   const filteredProviders = useMemo(
     () =>
       filter === "other"
         ? []
-        : providers.filter((p) => matchesQuery([p.full_name, p.specialty, p.subspecialty, p.city, p.clinic_name]) && matchesBooking(p) && matchesCoverage(p)),
-    [providers, filter, q, bookingFilters, coverageFilters]
+        : providers.filter(
+            (p) => matchesQuery([p.full_name, p.specialty, p.subspecialty, p.city, p.clinic_name]) && matchesBooking(p) && matchesCoverage(p) && matchesVisitMode(p)
+          ),
+    [providers, filter, q, bookingFilters, coverageFilters, visitModeFilters]
   );
   const filteredExternal = useMemo(
     () =>
-      filter === "angelclinic" || bookingFilters.size > 0 || coverageFilters.size > 0
+      filter === "angelclinic" || bookingFilters.size > 0 || coverageFilters.size > 0 || visitModeFilters.size > 0
         ? []
         : externalProviders.filter((p) => matchesQuery([p.full_name, p.specialty, p.subspecialty, p.city, p.clinic_name, p.hospital])),
-    [externalProviders, filter, q, bookingFilters, coverageFilters]
+    [externalProviders, filter, q, bookingFilters, coverageFilters, visitModeFilters]
   );
 
   const totalShown = filteredProviders.length + filteredExternal.length;
@@ -174,6 +204,12 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
             <FilterChip key={f.value} active={coverageFilters.has(f.value)} label={f.label} onClick={() => toggleSet(coverageFilters, setCoverageFilters, f.value)} />
           ))}
         </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ color: "#999", fontWeight: 600 }}>Visit:</span>
+          {VISIT_MODE_FILTERS.map((f) => (
+            <FilterChip key={f.value} active={visitModeFilters.has(f.value)} label={f.label} onClick={() => toggleSet(visitModeFilters, setVisitModeFilters, f.value)} />
+          ))}
+        </div>
       </div>
 
       {totalShown === 0 && (
@@ -202,8 +238,13 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                     </Link>
                     <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ") || "General practice"}</div>
                     <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name, p.city].filter(Boolean).join(" · ")}</div>
-                    <div style={{ fontSize: 11.5, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "2px 9px", display: "inline-block", marginTop: 8 }}>
-                      {BOOKING_TYPE_LABEL[bookingType] ?? bookingType}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                      <div style={{ fontSize: 11.5, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "2px 9px" }}>
+                        {BOOKING_TYPE_LABEL[bookingType] ?? bookingType}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#1a5c8c", background: "#eaf3fb", border: "1px solid #bcd9f0", borderRadius: 999, padding: "2px 9px" }}>
+                        {visitModeLabel(p)}
+                      </div>
                     </div>
                     {p.public_bio && <p style={{ color: "#555", fontSize: 12.5, lineHeight: 1.6, margin: "8px 0 0", maxWidth: 480 }}>{p.public_bio}</p>}
                   </div>

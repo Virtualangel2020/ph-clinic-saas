@@ -51,6 +51,14 @@ export default async function ProviderProfilePage({ params }: { params: Promise<
   const pricedServices = services.filter((s) => s.show_price_to_patient && s.price_type !== "free" && s.price_type !== "variable" && s.price_php != null);
   const onlinePaymentNotAvailable = !effective.acceptOnlinePayments && d.clinic.financial_active && pricedServices.length > 0;
 
+  // public_consultation_type already existed on user_profiles before this
+  // pass; deriving Visit Options from it here (mirroring the same logic
+  // used on the directory cards) needed no schema or RPC change.
+  const consultationType = d.provider.public_consultation_type as string | null;
+  const visitOptions: string[] = [];
+  if (consultationType !== "telehealth") visitOptions.push("In-Person");
+  if (consultationType === "telehealth" || consultationType === "both") visitOptions.push("Telehealth");
+
   const paymentBadges: string[] = ["Cash / Self-Pay"];
   if (effective.acceptHmo) paymentBadges.push("HMO");
   if (effective.acceptYakap) paymentBadges.push("YAKAP");
@@ -89,6 +97,16 @@ export default async function ProviderProfilePage({ params }: { params: Promise<
             {BOOKING_TYPE_LABEL[effective.bookingType] ?? effective.bookingType}
           </div>
           <p style={{ fontSize: 13.5, color: "#444", margin: 0 }}>{BOOKING_TYPE_PATIENT_WORDING[effective.bookingType] ?? ""}</p>
+        </Card>
+
+        <Card title="Visit Options">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {visitOptions.map((v) => (
+              <span key={v} style={{ fontSize: 12, fontWeight: 600, color: "#1a5c8c", background: "#eaf3fb", border: "1px solid #bcd9f0", borderRadius: 999, padding: "5px 12px" }}>
+                ✓ {v}
+              </span>
+            ))}
+          </div>
         </Card>
 
         <Card title="Services & Pricing">

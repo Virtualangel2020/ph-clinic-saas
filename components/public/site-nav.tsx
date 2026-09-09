@@ -53,6 +53,7 @@ export function SiteNav() {
         </nav>
 
         <div style={{ display: "none", alignItems: "center", gap: 10 }} className="site-nav-cta">
+          <Link href="/patient-signup" style={{ fontSize: 13, color: "rgba(244,245,247,0.85)", textDecoration: "none" }}>For Patients</Link>
           <Link href="/login" style={{ fontSize: 13, color: "rgba(244,245,247,0.85)", textDecoration: "none" }}>Sign In</Link>
           <Link href="/request-demo" style={{ fontSize: 13, color: "var(--brand-accent)", border: "1px solid rgba(4,156,160,0.5)", borderRadius: 8, padding: "8px 14px", textDecoration: "none", fontWeight: 600 }}>
             Request a Demo
@@ -78,6 +79,7 @@ export function SiteNav() {
               {l.label}
             </Link>
           ))}
+          <Link href="/patient-signup" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "#f4f5f7", textDecoration: "none" }}>For Patients</Link>
           <Link href="/login" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "#f4f5f7", textDecoration: "none" }}>Sign In</Link>
           <Link href="/request-demo" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "var(--brand-accent)", textDecoration: "none", fontWeight: 700 }}>Request a Demo</Link>
           <Link href="/signup" onClick={() => setOpen(false)} style={{ fontSize: 14, color: "var(--brand-accent)", textDecoration: "none", fontWeight: 700 }}>Start Your Trial →</Link>
