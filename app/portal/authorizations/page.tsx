@@ -15,9 +15,15 @@ export default async function PortalAuthorizationsPage() {
   const { supabase, account } = await requirePatientPortal();
   const patientId = (account as any).patient_id;
 
+  // patient_sharing_preferences has THREE FKs to user_profiles
+  // (authorized_by, revoked_by, provider_user_id) — a bare
+  // "user_profiles(...)" embed is ambiguous and PostgREST silently fails
+  // the whole query, which is why this page could come up with nothing to
+  // show even when an authorization existed. Naming the constraint
+  // disambiguates it.
   const { data: sharing } = await supabase
     .from("patient_sharing_preferences")
-    .select("id, status, authorized_at, revoked_at, user_profiles(full_name, title)")
+    .select("id, status, authorized_at, revoked_at, user_profiles!patient_sharing_preferences_provider_user_id_fkey(full_name, title)")
     .eq("patient_id", patientId)
     .order("authorized_at", { ascending: false });
 

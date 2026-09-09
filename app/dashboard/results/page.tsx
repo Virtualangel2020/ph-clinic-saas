@@ -53,10 +53,17 @@ export default async function ResultsPage({ searchParams }: { searchParams: Sear
   const fromDate = searchParams.from || "";
   const toDate = searchParams.to || "";
 
+  // lab_results has TWO separate FKs to user_profiles (reviewed_by,
+  // released_by) — a bare "user_profiles(full_name)" embed is ambiguous and
+  // PostgREST rejects the whole query with PGRST201, which the
+  // destructuring below silently swallows (only `data` is read, not
+  // `error`). That's exactly why this page came up empty: every clinic's
+  // entire Results workspace was failing silently. Naming the constraint
+  // disambiguates it.
   let query = supabase
     .from("lab_results")
     .select(
-      "id, result_summary, resulted_at, reviewed_at, status, released_at, patients(id, first_name, last_name), user_profiles(full_name), lab_orders(id, ordering_provider_id, lab_order_items(id, test_name))"
+      "id, result_summary, resulted_at, reviewed_at, status, released_at, patients(id, first_name, last_name), user_profiles!lab_results_reviewed_by_fkey(full_name), lab_orders(id, ordering_provider_id, lab_order_items(id, test_name))"
     )
     .eq("tenant_id", profile.tenant_id)
     .order("resulted_at", { ascending: false });

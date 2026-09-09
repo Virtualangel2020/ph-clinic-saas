@@ -56,9 +56,13 @@ export default async function EncounterDetailPage({ params }: { params: Promise<
   // already gone through Records Exchange to that same provider.
   let shareOffer: { providerId: string; providerName: string } | null = null;
   if (isCompleted) {
+    // patient_sharing_preferences has THREE FKs to user_profiles
+    // (authorized_by, revoked_by, provider_user_id) — a bare
+    // "user_profiles(...)" embed is ambiguous and PostgREST silently fails
+    // the whole query. Naming the constraint disambiguates it.
     const { data: pref } = await supabase
       .from("patient_sharing_preferences")
-      .select("provider_user_id, user_profiles(full_name, title)")
+      .select("provider_user_id, user_profiles!patient_sharing_preferences_provider_user_id_fkey(full_name, title)")
       .eq("patient_id", encounter.patient_id)
       .eq("status", "active")
       .maybeSingle();

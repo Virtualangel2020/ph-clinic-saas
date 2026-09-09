@@ -126,8 +126,16 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
       .order("prescribed_at", { ascending: false }),
     supabase
       .from("lab_orders")
+      // lab_results has TWO separate FKs to user_profiles (reviewed_by,
+      // released_by) — same ambiguity as the patient_documents fix above.
+      // A bare "user_profiles(full_name)" inside the lab_results embed made
+      // PostgREST reject the whole query with PGRST201, which this
+      // Promise.all silently swallowed (only `data` is destructured, not
+      // `error`) — so every lab order on the chart silently disappeared
+      // ("No lab orders yet.") even when orders and results existed.
+      // Naming the constraint disambiguates it.
       .select(
-        "id, status, priority, order_type, notes, ordered_at, user_profiles(full_name), lab_order_items(id, test_name), lab_results(id, result_summary, resulted_at, reviewed_at, status, released_at, user_profiles(full_name))"
+        "id, status, priority, order_type, notes, ordered_at, user_profiles(full_name), lab_order_items(id, test_name), lab_results(id, result_summary, resulted_at, reviewed_at, status, released_at, user_profiles!lab_results_reviewed_by_fkey(full_name))"
       )
       .eq("tenant_id", tenantId)
       .eq("patient_id", patientId)
@@ -326,9 +334,15 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     if (ep) primaryProvider = { kind: "external", name: ep.full_name, specialty: ep.specialty, clinicName: ep.clinic_name };
   }
 
+  // patient_sharing_preferences has THREE FKs to user_profiles
+  // (authorized_by, revoked_by, provider_user_id) — the same PGRST201
+  // ambiguity as the lab_results fix above. A bare "user_profiles(...)"
+  // here silently failed the whole query, which is why sharing
+  // preferences/authorizations were coming back empty. Naming the
+  // constraint disambiguates it.
   const { data: sharingPrefRaw } = await supabase
     .from("patient_sharing_preferences")
-    .select("provider_user_id, authorized_at, user_profiles(full_name, title, tenant_id)")
+    .select("provider_user_id, authorized_at, user_profiles!patient_sharing_preferences_provider_user_id_fkey(full_name, title, tenant_id)")
     .eq("patient_id", patient.id)
     .eq("status", "active")
     .maybeSingle();
@@ -354,7 +368,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
   // already-active authorization).
   const { data: sharingPendingRaw } = await supabase
     .from("patient_sharing_preferences")
-    .select("id, provider_user_id, user_profiles(full_name, title)")
+    .select("id, provider_user_id, user_profiles!patient_sharing_preferences_provider_user_id_fkey(full_name, title)")
     .eq("patient_id", patient.id)
     .eq("status", "pending")
     .maybeSingle();
