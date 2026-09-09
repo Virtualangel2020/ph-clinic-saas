@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { BrandHeader } from "@/components/brand-header";
 import { SignOutButton } from "@/app/portal/sign-out-button";
+import { NavigationLoadingIndicator } from "@/components/loading/navigation-loading-indicator";
 
 // Shared shell for every /portal/* page (spec §15's base Patient Portal
 // architecture): a small tab strip so a patient can move between My
@@ -59,7 +60,10 @@ export function PortalShell({ patientName, children }: { patientName?: string | 
           })}
         </div>
 
-        {children}
+        <div style={{ position: "relative", minHeight: 200 }}>
+          <NavigationLoadingIndicator />
+          {children}
+        </div>
       </div>
     </div>
   );

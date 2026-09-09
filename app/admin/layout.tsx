@@ -4,6 +4,7 @@ import { BrandHeader } from "@/components/brand-header";
 import { InstallPwaButton } from "@/components/install-pwa-button";
 import { UnreadBadge } from "@/components/unread-badge";
 import { requireAdmin } from "@/lib/require-admin";
+import { NavigationLoadingIndicator } from "@/components/loading/navigation-loading-indicator";
 
 // Overrides the root manifest so /admin installs as its own app ("MyCareDesk
 // — Super Admin"), separate from the clinic staff dashboard.
@@ -73,7 +74,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div style={{ fontSize: 13, color: "#b9c2d6" }}>{profile.full_name || "Platform Admin"}</div>
         </div>
       </header>
-      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px", overflowX: "hidden" }}>{children}</main>
+      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px", overflowX: "hidden", position: "relative", minHeight: "60vh" }}>
+        <NavigationLoadingIndicator />
+        {children}
+      </main>
     </div>
   );
 }

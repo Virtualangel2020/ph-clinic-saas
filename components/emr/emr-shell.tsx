@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GlobalSearch } from "./global-search";
+import { NavigationLoadingIndicator } from "@/components/loading/navigation-loading-indicator";
 
 type NavItem = { href: string; label: string; short: string };
 
@@ -265,6 +266,8 @@ export function EmrShell({
           maxWidth: "100%",
           overflowX: "hidden",
           transition: "margin-left 0.15s ease",
+          position: "relative",
+          minHeight: "calc(100vh - 56px)",
         }}
       >
         {isMobile && (
@@ -272,6 +275,7 @@ export function EmrShell({
             <AccountMenu clinicName={clinicName} userLabel={userLabel} align="left" />
           </div>
         )}
+        <NavigationLoadingIndicator />
         {children}
       </main>
     </div>
