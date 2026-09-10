@@ -7,7 +7,7 @@ import { classifyDate, computeBookableSlots, cutsFor, type DateBookingStatus } f
 import { addDays, formatDayLabel, formatMonthLabel, monthGridStart, startOfMonth, todayPh } from "@/app/dashboard/calendar/date-utils";
 import { minutesOfDayPh } from "@/app/dashboard/calendar/time-grid";
 import type { EffectivePatientAccessSettings } from "@/lib/patient-access";
-import { fetchProviderAvailabilityAction, bookAppointmentAction, submitPortalAppointmentRequestAction, recordPolicyAcknowledgementAction } from "../actions";
+import { fetchProviderAvailabilityAction, bookAppointmentAction, submitPortalAppointmentRequestAction, recordPolicyAcknowledgementAction, checkExistingClinicLinkAction } from "../actions";
 
 type Service = {
   id: string;
@@ -93,6 +93,23 @@ export function BookingWizard({
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [hmoId, setHmoId] = useState<string>("");
   const [policyChecked, setPolicyChecked] = useState(false);
+
+  // Is this the patient's first time connecting with THIS provider's
+  // clinic? Booking is what creates that clinic-side link (see
+  // self_book_ensure_clinic_patient) — the first time it happens, the
+  // provider's clinic gains access to this patient's MyCareDesk profile
+  // (contact info, allergies, medications, conditions, history), so the
+  // review step below asks the patient to acknowledge that explicitly.
+  // Defaults to true (show the consent step) until the check resolves, so
+  // a slow network never lets a first-time booking skip it.
+  const [isNewProvider, setIsNewProvider] = useState(true);
+  const [sharingChecked, setSharingChecked] = useState(false);
+
+  useEffect(() => {
+    checkExistingClinicLinkAction(provider.id)
+      .then((alreadyLinked) => setIsNewProvider(!alreadyLinked))
+      .catch(() => setIsNewProvider(true));
+  }, [provider.id]);
 
   useEffect(() => {
     if (step !== 1 || isRequestFlow) return;
@@ -181,6 +198,10 @@ export function BookingWizard({
   }
 
   async function confirm() {
+    if (isNewProvider && !sharingChecked) {
+      setError("Please acknowledge sharing your profile with this provider to continue.");
+      return;
+    }
     if (needsAcknowledgement && !policyChecked) {
       setError("Please read and acknowledge the appointment policy to continue.");
       return;
@@ -458,6 +479,23 @@ export function BookingWizard({
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#888", marginBottom: 4 }}>Important Information</div>
               {effective.arrivalReminderEnabled && <p style={{ fontSize: 12, margin: "0 0 4px", color: "#444" }}>Please arrive {effective.arrivalReminderMinutes} minutes early.</p>}
               {effective.customInstructions && <p style={{ fontSize: 12, margin: 0, color: "#444" }}>{effective.customInstructions}</p>}
+            </div>
+          )}
+
+          {isNewProvider && (
+            <div style={{ background: "#eef6fb", border: "1px solid #b9d9ec", borderRadius: 8, padding: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: "#2a5674", marginBottom: 8 }}>
+                <p style={{ margin: "0 0 6px", fontWeight: 700 }}>This is your first booking with {provider.title ? provider.title + " " : ""}{provider.fullName}.</p>
+                <p style={{ margin: 0 }}>
+                  By booking, your MyCareDesk health profile — contact and demographic info, allergies, medications, medical
+                  conditions, and family/surgical history — will be shared with {clinicName ?? "this provider's clinic"} so
+                  they can prepare for your visit.
+                </p>
+              </div>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "#2a5674", cursor: "pointer" }}>
+                <input type="checkbox" checked={sharingChecked} onChange={(e) => setSharingChecked(e.target.checked)} style={{ marginTop: 2 }} />
+                I understand and agree to share my profile with this provider.
+              </label>
             </div>
           )}
 

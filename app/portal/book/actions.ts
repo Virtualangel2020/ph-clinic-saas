@@ -39,6 +39,18 @@ export async function fetchProviderAvailabilityAction(providerId: string, startD
   } | null;
 }
 
+// Read-only pre-check the wizard uses to decide whether to show the
+// "your profile will be shared with this provider" consent step — true
+// only the first time this patient connects with this provider's clinic;
+// once self_book_ensure_clinic_patient has run for them, later bookings
+// with the SAME provider skip the consent step (they've already agreed).
+export async function checkExistingClinicLinkAction(providerId: string): Promise<boolean> {
+  const { supabase } = await requireSignedIn();
+  const { data, error } = await supabase.rpc("self_book_check_existing_link", { p_provider_id: providerId });
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
 export async function bookAppointmentAction(input: {
   providerId: string;
   appointmentTypeId: string;
