@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhMobile, sendPortalEmail, sendPortalSms, logPortalSendAttempt } from "@/lib/patient-portal/send";
-import { requirePatientPortal } from "@/lib/require-patient-portal";
+import { requirePatientPortal, ACTIVE_PROFILE_COOKIE } from "@/lib/require-patient-portal";
 
 // Same per-file helper used in app/dashboard/patients/actions.ts,
 // app/dashboard/settings/actions.ts, and app/admin/actions.ts (not
@@ -339,14 +340,32 @@ export async function acknowledgeStatusEventAction(eventId: string) {
 // patient has connected with a clinic yet. requirePatientPortal() only
 // redirects if not signed in at all — exactly what's needed here, since a
 // brand-new 0-clinic patient must still be able to set this from their
-// Profile page. Private bucket: only the patient themselves and clinic
-// staff they're actually connected to can ever read it back (see
-// patient-photos storage policies + get_patient_photo_path for the
-// staff-side chart read).
+// Profile page. Private bucket: only the profile's own login, an active
+// co-manager, and clinic staff actually connected to it can ever read it
+// back (see patient-photos storage policies + get_patient_photo_path for
+// the staff-side chart read).
+//
+// Family Profiles Phase 1.9: optional `forAccountId` in the form data lets
+// a manager upload a DEPENDENT's photo instead of their own — from the My
+// Family screen, where each dependent has no login of their own to do this
+// itself. Re-validated server-side via is_selectable_mycaredesk_profile
+// (the same real security boundary setActiveProfileCookie uses) rather
+// than trusted from the form — a manager's access can be revoked between
+// page loads. Defaults to the caller's own account when absent, preserving
+// exact prior behavior for the plain Profile-page upload widget.
 export async function uploadMyPhotoAction(formData: FormData) {
   const { supabase } = await requirePatientPortal();
   const { data: mycaredeskAccount } = await supabase.rpc("get_my_mycaredesk_account");
   if (!mycaredeskAccount) throw new Error("Set up your MyCareDesk account first — see Health Profile.");
+
+  let targetAccountId = (mycaredeskAccount as any).id as string;
+  const forAccountId = (formData.get("forAccountId") as string | null)?.trim() || null;
+  if (forAccountId && forAccountId !== targetAccountId) {
+    const { data: ok, error: checkError } = await supabase.rpc("is_selectable_mycaredesk_profile", { p_account_id: forAccountId });
+    if (checkError) throw new Error(checkError.message);
+    if (!ok) throw new Error("You don't have access to that profile.");
+    targetAccountId = forAccountId;
+  }
 
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) throw new Error("Choose a photo first.");
@@ -356,13 +375,67 @@ export async function uploadMyPhotoAction(formData: FormData) {
   if (file.size > 3 * 1024 * 1024) throw new Error("Photo must be under 3MB.");
 
   const ext = file.name.split(".").pop() || "jpg";
-  const path = `${(mycaredeskAccount as any).id}/${Date.now()}.${ext}`;
+  const path = `${targetAccountId}/${Date.now()}.${ext}`;
   const { error: uploadError } = await supabase.storage.from("patient-photos").upload(path, file);
   if (uploadError) throw new Error(uploadError.message);
 
-  const { error: updateError } = await supabase.from("mycaredesk_accounts").update({ photo_path: path }).eq("id", (mycaredeskAccount as any).id);
+  const { error: updateError } = await supabase.from("mycaredesk_accounts").update({ photo_path: path }).eq("id", targetAccountId);
   if (updateError) throw new Error(updateError.message);
 
   revalidatePath("/portal/profile");
-  revalidatePath("/portal");
+  revalidatePath("/portal/family");
+  revalidatePath("/portal", "layout");
+}
+
+// Family Profiles Phase 1.5: "Netflix-style" profile switch. Sets which
+// MyCareDesk identity (the login's own, or a co-managed dependent) is
+// currently active — every /portal/* page resolves its clinic-scoped data
+// FROM this (see requirePatientPortal), and every write action that takes
+// p_for_account_id should be passed this value going forward (Phase 1.8).
+//
+// is_selectable_mycaredesk_profile is the actual security boundary here —
+// re-checked server-side against live data on every switch — not just
+// "the id came from a chooser tile the server itself rendered a moment
+// ago," since a manager's access to a dependent can be revoked between
+// page loads. The cookie itself carries no authorization weight: every
+// RPC that reads it back via p_for_account_id re-validates independently
+// (see _resolve_portal_patient_id) — this cookie is a UI convenience for
+// "which tile is highlighted," not a trust boundary, which is why a long
+// expiry is fine here.
+async function setActiveProfileCookie(accountId: string) {
+  const { supabase } = await requirePatientPortal();
+
+  const { data: ok, error } = await supabase.rpc("is_selectable_mycaredesk_profile", { p_account_id: accountId });
+  if (error) throw new Error(error.message);
+  if (!ok) throw new Error("You don't have access to that profile.");
+
+  const cookieStore = await cookies();
+  cookieStore.set(ACTIVE_PROFILE_COOKIE, accountId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  revalidatePath("/portal", "layout");
+}
+
+// Used directly as a <form action={setActiveProfileAction.bind(null, id)}>
+// — the profile-chooser tiles submit a real form, so the redirect below is
+// the standard, well-supported Next.js pattern (form action + redirect).
+export async function setActiveProfileAction(accountId: string): Promise<void> {
+  await setActiveProfileCookie(accountId);
+  redirect("/portal");
+}
+
+// Used for the one imperative (non-form) call site — right after creating
+// a new dependent from the chooser's "+ Add Family Member" form, where the
+// caller needs to await completion and then navigate itself via
+// useRouter(). Deliberately does NOT call redirect(): calling a
+// server-action redirect from client code that invoked it directly (rather
+// than through a <form action>) is not the pattern Next.js's redirect
+// mechanism is designed for, so this leaves navigation to the caller.
+export async function setActiveProfileNoRedirectAction(accountId: string): Promise<void> {
+  await setActiveProfileCookie(accountId);
 }

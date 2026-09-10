@@ -73,7 +73,7 @@ export default async function PortalHomePage() {
     }
 
     return (
-      <PortalShell patientName={(mycaredeskAccount as any)?.first_name}>
+      <PortalShell>
         <h1 style={{ fontSize: 21, marginBottom: 4 }}>Welcome to MyCareDesk{(mycaredeskAccount as any)?.first_name ? `, ${(mycaredeskAccount as any).first_name}` : ""}!</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account is ready. Fill in your Health Profile whenever you have a few minutes, or jump straight to finding a doctor.</p>
 
@@ -304,7 +304,7 @@ export default async function PortalHomePage() {
   const nextApptWording = nextAppt ? appointmentWording(nextAppt as any) : null;
 
   return (
-    <PortalShell patientName={patient?.first_name}>
+    <PortalShell>
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>Welcome{patient ? `, ${patient.first_name}` : ""}</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Here's what needs your attention.</p>
 

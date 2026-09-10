@@ -50,7 +50,7 @@ export default async function PatientProfilePage() {
   }
 
   return (
-    <PortalShell patientName={patient?.first_name ?? (mycaredeskAccount as any)?.first_name}>
+    <PortalShell>
       <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>Profile</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account, doctors, and family.</p>
@@ -148,12 +148,17 @@ export default async function PatientProfilePage() {
         </div>
       )}
 
-      <h2 style={{ fontSize: 13.5, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>Family / Dependents</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <h2 style={{ fontSize: 13.5, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, margin: 0 }}>Family / Dependents</h2>
+        <a href="/portal/family" style={{ fontSize: 11.5, fontWeight: 700, color: "var(--brand-primary)", textDecoration: "none" }}>
+          Manage Family →
+        </a>
+      </div>
       {familyList.length === 0 ? (
         <p style={{ color: "#999", fontSize: 12.5, margin: 0 }}>
           No dependents added yet — you can add one from{" "}
-          <a href="/portal/health-profile" style={{ color: "var(--brand-primary)", fontWeight: 600 }}>
-            Health Profile
+          <a href="/portal/family" style={{ color: "var(--brand-primary)", fontWeight: 600 }}>
+            My Family
           </a>
           .
         </p>

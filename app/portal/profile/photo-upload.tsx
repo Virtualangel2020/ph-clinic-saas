@@ -19,7 +19,12 @@ import { UploadProgress } from "@/components/loading/upload-progress";
 // server action already calls revalidatePath, so the real signed URL is
 // picked up next time this page is actually navigated to — no client-side
 // refresh needed to make the change durable.
-export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; initials: string }) {
+// forAccountId: omit for "my own photo" (Profile page — unchanged
+// behavior). Pass a dependent's mycaredesk_accounts id to let a manager
+// upload/replace THAT profile's photo instead (My Family screen) — the
+// server action re-validates access to that id independently, so this
+// prop is a UI convenience, not a trust boundary.
+export function PhotoUpload({ photoUrl, initials, forAccountId, caption }: { photoUrl: string | null; initials: string; forAccountId?: string; caption?: string }) {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -32,6 +37,7 @@ export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; i
     setMessage(null);
     const formData = new FormData();
     formData.set("file", file);
+    if (forAccountId) formData.set("forAccountId", forAccountId);
     uploadMyPhotoAction(formData)
       .then(() => {
         setPreviewUrl(URL.createObjectURL(file));
@@ -74,7 +80,7 @@ export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; i
       </div>
       <div>
         <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => handlePick(e.target.files?.[0] ?? null)} disabled={uploading} style={{ fontSize: 12 }} />
-        <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>PNG, JPG, or WEBP, up to 3MB. Only you and your clinic can see this.</p>
+        <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>{caption ?? "PNG, JPG, or WEBP, up to 3MB. Only you and your clinic can see this."}</p>
         {uploadStatus !== "idle" && (
           <div style={{ marginTop: 6 }}>
             <UploadProgress

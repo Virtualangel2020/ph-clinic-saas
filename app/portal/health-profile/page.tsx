@@ -73,7 +73,7 @@ export default async function HealthProfilePage({ searchParams }: { searchParams
   const { data: accessRequests } = await supabase.rpc("patient_list_my_access_requests");
 
   return (
-    <PortalShell patientName={account.first_name}>
+    <PortalShell>
       <BackLink href="/portal/care" label="My Care" />
       {activeAccountId !== account.id && (
         <div style={{ background: "#eef6fb", border: "1px solid #b9d9ec", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#2a5674", fontWeight: 600 }}>

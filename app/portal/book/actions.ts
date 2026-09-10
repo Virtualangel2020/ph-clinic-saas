@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requirePatientPortal } from "@/lib/require-patient-portal";
+import { requirePatientPortal, getMyCaredeskProfileSelection } from "@/lib/require-patient-portal";
 
 // Booking is deliberately lighter than requirePatientPortal(): a
 // self-registered patient (platform mycaredesk_accounts identity only, no
@@ -13,13 +13,23 @@ import { requirePatientPortal } from "@/lib/require-patient-portal";
 // for a first-time booking. This only confirms there's a signed-in
 // session; self_book_ensure_clinic_patient (called below, before the real
 // booking RPCs) is what actually creates the clinic-side link on demand.
+//
+// Family Profiles Phase 1.8: also resolves the currently-active profile
+// (getMyCaredeskProfileSelection — the same cached, non-redirecting lookup
+// requirePatientPortal itself uses) so every booking RPC below can be told
+// WHICH person this booking is for via p_for_account_id, instead of
+// silently booking as the manager whenever a dependent's profile is
+// active. A login with no MyCareDesk identity yet (pre-Phase-1 patient)
+// gets activeAccountId: null, which every one of these RPCs already
+// treats as "resolve the caller's own record" — exactly today's behavior.
 async function requireSignedIn() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Please sign in first.");
-  return { supabase, user };
+  const { activeProfile } = await getMyCaredeskProfileSelection();
+  return { supabase, user, activeAccountId: activeProfile?.accountId ?? null };
 }
 
 // Availability read — deliberately does NOT require portal auth (the RPC
@@ -60,14 +70,14 @@ export async function bookAppointmentAction(input: {
   hmoId: string | null;
   notes?: string;
 }): Promise<{ id: string; patientId: string }> {
-  const { supabase } = await requireSignedIn();
+  const { supabase, activeAccountId } = await requireSignedIn();
 
   // First contact with this clinic? This creates the patients row +
-  // active patient_portal_accounts link from the caller's own
-  // mycaredesk_accounts data. Already connected (booked before, staff
-  // invited them, or they claimed a dedup match)? Idempotent — returns
-  // that same patient, never a second one.
-  const { data: patientId, error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId });
+  // active patient_portal_accounts link for the currently-active MyCareDesk
+  // profile (self, or the co-managed dependent being viewed). Already
+  // connected (booked before, staff invited them, or they claimed a dedup
+  // match)? Idempotent — returns that same patient, never a second one.
+  const { data: patientId, error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId, p_for_account_id: activeAccountId });
   if (ensureError) throw new Error(ensureError.message);
 
   const { data, error } = await supabase.rpc("portal_book_appointment", {
@@ -77,6 +87,7 @@ export async function bookAppointmentAction(input: {
     p_payment_method: input.paymentMethod,
     p_hmo_id: input.hmoId,
     p_notes: input.notes || null,
+    p_for_account_id: activeAccountId,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/portal/appointments");
@@ -101,9 +112,9 @@ export async function bookFlexibleOrWalkInAction(input: {
   hmoId: string | null;
   notes?: string;
 }): Promise<{ id: string; patientId: string }> {
-  const { supabase } = await requireSignedIn();
+  const { supabase, activeAccountId } = await requireSignedIn();
 
-  const { data: patientId, error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId });
+  const { data: patientId, error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId, p_for_account_id: activeAccountId });
   if (ensureError) throw new Error(ensureError.message);
 
   const { data, error } = await supabase.rpc("portal_book_flexible_or_walkin", {
@@ -116,6 +127,7 @@ export async function bookFlexibleOrWalkInAction(input: {
     p_notes: input.notes || null,
     p_payment_method: input.paymentMethod,
     p_hmo_id: input.hmoId,
+    p_for_account_id: activeAccountId,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/portal/appointments");
@@ -123,9 +135,9 @@ export async function bookFlexibleOrWalkInAction(input: {
 }
 
 export async function submitPortalAppointmentRequestAction(input: { providerId: string; appointmentTypeName: string; preferredDate: string; preferredTime: string; reason: string }) {
-  const { supabase } = await requireSignedIn();
+  const { supabase, activeAccountId } = await requireSignedIn();
 
-  const { error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId });
+  const { error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId, p_for_account_id: activeAccountId });
   if (ensureError) throw new Error(ensureError.message);
 
   const { data, error } = await supabase.rpc("portal_submit_appointment_request", {
@@ -134,6 +146,7 @@ export async function submitPortalAppointmentRequestAction(input: { providerId: 
     p_preferred_date: input.preferredDate || null,
     p_preferred_time: input.preferredTime || null,
     p_reason: input.reason || null,
+    p_for_account_id: activeAccountId,
   });
   if (error) throw new Error(error.message);
   return data as string;

@@ -25,7 +25,7 @@ function SignupForm() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "already-registered" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "already-registered" | "flow-conflict" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
   function nextUrl() {
@@ -51,6 +51,19 @@ function SignupForm() {
 
     setStatus("submitting");
     const supabase = createClient();
+
+    // Guard against the metadata-clobbering bug: if this email already has
+    // an unconfirmed patient signup in flight, calling signUp() here would
+    // silently overwrite it with clinic fields (and vice versa on the
+    // patient form) — both flows share the same mutable
+    // auth.users.user_metadata blob keyed only by email. Block instead of
+    // clobbering.
+    const { data: conflict } = await supabase.rpc("check_signup_flow_conflict", { p_email: email, p_intended_kind: "clinic" });
+    if (conflict) {
+      setStatus("flow-conflict");
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -107,6 +120,31 @@ function SignupForm() {
           >
             Sign in →
           </a>
+        </div>
+        <WhatsappButton />
+      </main>
+    );
+  }
+
+  if (status === "flow-conflict") {
+    return (
+      <main style={{ maxWidth: 420, margin: "80px auto", padding: 24 }}>
+        <div style={{ marginBottom: 24 }}>
+          <BrandHeader />
+        </div>
+        <div style={{ background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 12, padding: 24 }}>
+          <h1 style={{ fontSize: 18, marginTop: 0 }}>You're already partway through signing up</h1>
+          <p style={{ color: "#333", fontSize: 14, marginBottom: 16 }}>
+            <strong>{email}</strong> is already partway through creating a patient account. Check your email for that
+            confirmation link, or contact support if you meant to create a clinic account instead.
+          </p>
+          <button
+            type="button"
+            onClick={() => setStatus("idle")}
+            style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #ccc", background: "white", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
+          >
+            ← Back
+          </button>
         </div>
         <WhatsappButton />
       </main>

@@ -1,4 +1,6 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export type PatientPortalAccount = {
@@ -11,6 +13,133 @@ export type PatientPortalAccount = {
   activated_at: string | null;
   patients: { first_name: string; last_name: string } | null;
 };
+
+export type MyCaredeskFamilyMember = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
+  sex: string;
+  photo_path: string | null;
+  relationship: string;
+  relationship_other_description: string | null;
+  is_primary: boolean;
+  co_manager_count: number;
+  has_own_login: boolean;
+  status: string;
+  created_at: string;
+};
+
+// A profile the currently signed-in login can pick in the chooser — the
+// login's own MyCareDesk identity, plus every active dependent they
+// co-manage (Phase 1.1 mycaredesk_account_managers). NOT a clinic
+// relationship — one profile may have zero, one, or many of those (see
+// PatientPortalAccount / `allAccounts` below, resolved FROM the active
+// profile once one is selected).
+export type SelectableProfile = {
+  accountId: string;
+  firstName: string;
+  lastName: string;
+  photoPath: string | null;
+  photoUrl: string | null; // resolved signed URL, see resolveMyCaredeskProfileSelection
+  isSelf: boolean;
+  relationship: string | null; // null for isSelf
+  relationshipOtherDescription: string | null;
+};
+
+export const ACTIVE_PROFILE_COOKIE = "mcd_active_profile";
+
+// Step 1 (WHO): resolve the signed-in login's selectable MyCareDesk
+// profiles and, if one is already chosen (cookie, or the only option),
+// which one is active. Wrapped in React's cache() so it only hits the
+// database once per request no matter how many places ask — every
+// /portal/* page's own requirePatientPortal() call AND PortalShell's
+// banner both need this, and without caching that would double every
+// portal page's auth/profile queries. Deliberately does NOT redirect —
+// requirePatientPortal() (below) is the only place that enforces the
+// profile-choice gate, so this stays safe to call from the chooser page
+// itself and from the shell without risking a redirect loop.
+export const resolveMyCaredeskProfileSelection = cache(async function resolveMyCaredeskProfileSelection() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { supabase, user: null as null, selectable: [] as SelectableProfile[], activeProfile: null as SelectableProfile | null, needsProfileChoice: false };
+  }
+
+  const [{ data: myAccount }, { data: family }] = await Promise.all([
+    supabase.rpc("get_my_mycaredesk_account"),
+    supabase.rpc("get_my_mycaredesk_family"),
+  ]);
+
+  const familyList = (family as any as MyCaredeskFamilyMember[]) ?? [];
+
+  const rawSelectable: Omit<SelectableProfile, "photoUrl">[] = [];
+  if (myAccount) {
+    rawSelectable.push({
+      accountId: (myAccount as any).id,
+      firstName: (myAccount as any).first_name,
+      lastName: (myAccount as any).last_name,
+      photoPath: (myAccount as any).photo_path ?? null,
+      isSelf: true,
+      relationship: null,
+      relationshipOtherDescription: null,
+    });
+  }
+  for (const m of familyList) {
+    rawSelectable.push({
+      accountId: m.id,
+      firstName: m.first_name,
+      lastName: m.last_name,
+      photoPath: m.photo_path ?? null,
+      isSelf: false,
+      relationship: m.relationship,
+      relationshipOtherDescription: m.relationship_other_description ?? null,
+    });
+  }
+
+  // Resolve a signed URL per profile with a photo — same private-bucket
+  // pattern /portal/profile already uses for the caller's own photo, now
+  // applied to every selectable profile (self + dependents) so the chooser
+  // tiles and My Family screen can show real avatars instead of always
+  // falling back to initials (spec 1.9). The storage policies were
+  // extended alongside this (mycaredesk_family_avatars_and_managers) to
+  // let a co-manager's session actually read a dependent's photo object —
+  // without that fix this would silently resolve to null for every
+  // dependent regardless of this code.
+  const selectable: SelectableProfile[] = await Promise.all(
+    rawSelectable.map(async (p) => {
+      if (!p.photoPath) return { ...p, photoUrl: null };
+      const { data } = await supabase.storage.from("patient-photos").createSignedUrl(p.photoPath, 3600);
+      return { ...p, photoUrl: data?.signedUrl ?? null };
+    })
+  );
+
+  const cookieStore = await cookies();
+  const cookieAccountId = cookieStore.get(ACTIVE_PROFILE_COOKIE)?.value ?? null;
+
+  let activeProfile: SelectableProfile | null = (cookieAccountId && selectable.find((p) => p.accountId === cookieAccountId)) || null;
+  if (!activeProfile && selectable.length === 1) {
+    activeProfile = selectable[0];
+  }
+  const needsProfileChoice = !activeProfile && selectable.length > 1;
+
+  return { supabase, user, selectable, activeProfile, needsProfileChoice };
+});
+
+// Used only by the shell (banner) and the chooser page itself, where
+// redirecting on `needsProfileChoice` would be wrong (the shell just wants
+// to know what to display; the chooser page IS the destination of that
+// redirect). Both intentionally skip the sign-in redirect too — the shell
+// never renders for a signed-out visitor in the first place (every page
+// that renders it already called requirePatientPortal() first), and the
+// chooser page does its own sign-in check.
+export async function getMyCaredeskProfileSelection() {
+  return resolveMyCaredeskProfileSelection();
+}
 
 // Patient-side equivalent of requireClinicMember — confirms a signed-in
 // session, nothing more. Every /portal/* page is reachable to any signed-in
@@ -26,36 +155,109 @@ export type PatientPortalAccount = {
 // never redirect a signed-in patient away from a page just because one
 // clinic relationship hasn't been established.
 //
-// `account` resolves to the most-recently-activated clinic relationship
-// when more than one exists (a patient can accumulate a patients/
-// patient_portal_accounts row per clinic they book with or are invited
-// by — see self_book_ensure_clinic_patient). This is a deliberate, scoped
-// choice: it fixes the previous unscoped .maybeSingle() query, which
-// would silently fail (and bounce to login) for ANY multi-clinic patient.
-// A real "which clinic am I viewing" switcher is a bigger follow-up
-// feature (see Task notes) — for now every clinic-scoped page just shows
-// the one most-recent relationship, same as before for the common
-// single-clinic case.
+// Family Profiles Phase 1.5: `account`/`allAccounts` used to be resolved
+// directly from auth.uid() — the single login's own clinic relationships,
+// picking the most-recently-activated one when more than one existed.
+// That's exactly backwards once a login can reach more than one PERSON (a
+// parent managing several kids, spec Test A/C): "most recent activation"
+// has nothing to do with "which person is the parent currently looking
+// at." This now resolves in two steps —
+//   1. WHO (resolveMyCaredeskProfileSelection, above): `selectable` is the
+//      login's own MyCareDesk identity plus every active dependent they
+//      co-manage. `activeProfile`/`activeAccountId` is whichever of those
+//      the mcd_active_profile cookie names, falling back to the only
+//      option when there's exactly one. When there's more than one and no
+//      cookie yet (`needsProfileChoice`), this function redirects to
+//      /portal/switch-profile — the chooser becomes the actual landing
+//      state until a profile is picked, per spec, with zero silent
+//      fallback to the account holder.
+//   2. WHAT (clinic-scoped): `account`/`allAccounts` resolve FROM that
+//      active profile's mycaredesk_account_id — the actual EHR-side
+//      patients/patient_portal_accounts rows for whichever PERSON is
+//      currently selected — instead of directly from auth.uid().
+//
+// A login with no MyCareDesk platform identity at all (pure clinic-invited
+// patient who never self-registered — still the common case pre-rollout)
+// has `selectable: []`, `activeProfile: null`, `needsProfileChoice: false`,
+// and `account`/`allAccounts` fall back to the exact pre-Phase-1 direct
+// auth_user_id lookup below — zero behavior change for that patient.
+//
+// Every existing caller (~16 files) that only destructures
+// `{ supabase, account }` or similar keeps working unchanged; the new
+// fields are additive. Threading `activeAccountId` into write actions as
+// `p_for_account_id` is deliberately NOT done by this function itself —
+// that's per-action wiring (Phase 1.8), kept out of this shared gate so it
+// can land action-by-action without every call site changing at once.
 export async function requirePatientPortal() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, selectable, activeProfile, needsProfileChoice } = await resolveMyCaredeskProfileSelection();
 
   if (!user) {
     redirect("/portal/login");
   }
+  if (needsProfileChoice) {
+    redirect("/portal/switch-profile");
+  }
 
-  const { data: accounts } = await supabase
-    .from("patient_portal_accounts")
-    .select("id, tenant_id, patient_id, status, channel, contact_value, activated_at, patients(first_name, last_name)")
-    .eq("auth_user_id", user!.id)
-    .eq("status", "active")
-    .order("activated_at", { ascending: false });
+  const activeAccountId = activeProfile?.accountId ?? null;
 
-  const allAccounts = (accounts as any as PatientPortalAccount[]) ?? [];
+  let allAccounts: PatientPortalAccount[] = [];
+  if (activeAccountId) {
+    // Clinic-scoped relationship(s) resolve FROM the active profile's
+    // mycaredesk_account_id — this is what lets a manager view a
+    // dependent's appointments/results/etc. while that dependent's
+    // profile is selected, scoped by the RLS this same join already
+    // requires (patients_portal_self_read → is_portal_patient, extended
+    // for co-managers in Phase 1.3).
+    const { data: accounts } = await supabase
+      .from("patient_portal_accounts")
+      .select(
+        "id, tenant_id, patient_id, status, channel, contact_value, activated_at, patients!inner(first_name, last_name, mycaredesk_account_id)"
+      )
+      .eq("status", "active")
+      .eq("patients.mycaredesk_account_id", activeAccountId)
+      .order("activated_at", { ascending: false });
+    allAccounts = (accounts as any as PatientPortalAccount[]) ?? [];
+
+    // Legacy fallback, self only: a patient record created before
+    // mycaredesk_account_id linking existed has patients.mycaredesk_account_id
+    // = null even though it's really the caller's own. A dependent's
+    // patient_portal_accounts row is never keyed by a manager's
+    // auth_user_id, so this fallback is meaningless (and unreachable) for
+    // any profile other than the caller's own.
+    if (allAccounts.length === 0 && activeProfile?.isSelf) {
+      const { data: legacyAccounts } = await supabase
+        .from("patient_portal_accounts")
+        .select("id, tenant_id, patient_id, status, channel, contact_value, activated_at, patients(first_name, last_name)")
+        .eq("auth_user_id", user.id)
+        .eq("status", "active")
+        .order("activated_at", { ascending: false });
+      allAccounts = (legacyAccounts as any as PatientPortalAccount[]) ?? [];
+    }
+  } else {
+    // No MyCareDesk platform identity at all — pre-Phase-1 behavior,
+    // unchanged: resolve directly from auth.uid(), picking the
+    // most-recently-activated relationship when more than one exists.
+    // (needsProfileChoice is guaranteed false here — handled above.)
+    const { data: accounts } = await supabase
+      .from("patient_portal_accounts")
+      .select("id, tenant_id, patient_id, status, channel, contact_value, activated_at, patients(first_name, last_name)")
+      .eq("auth_user_id", user.id)
+      .eq("status", "active")
+      .order("activated_at", { ascending: false });
+    allAccounts = (accounts as any as PatientPortalAccount[]) ?? [];
+  }
+
   const account = allAccounts[0] ?? null;
 
-  return { supabase, user: user!, account, allAccounts, hasMultipleClinics: allAccounts.length > 1 };
+  return {
+    supabase,
+    user,
+    account,
+    allAccounts,
+    hasMultipleClinics: allAccounts.length > 1,
+    selectable,
+    activeProfile,
+    activeAccountId,
+    needsProfileChoice,
+  };
 }

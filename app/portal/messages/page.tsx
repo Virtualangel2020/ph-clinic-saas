@@ -18,8 +18,8 @@ type ThreadRow = {
 // a provider you haven't messaged yet simply doesn't show up here — you
 // start a thread from that provider's profile page instead.
 export default async function PortalMessagesPage() {
-  const { supabase } = await requirePatientPortal();
-  const { data } = await supabase.rpc("portal_list_message_threads");
+  const { supabase, activeAccountId } = await requirePatientPortal();
+  const { data } = await supabase.rpc("portal_list_message_threads", { p_for_account_id: activeAccountId });
   const threads = (data as ThreadRow[]) ?? [];
 
   return (

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { BackLink } from "@/components/back-link";
 import { PatientThread } from "./patient-thread";
 
@@ -11,14 +12,34 @@ import { PatientThread } from "./patient-thread";
 // the SAME resolution the profile page's locked-badge decision is based
 // on — so a patient can never see a working composer here that the
 // profile page told them was unavailable, or vice versa.
+//
+// Bug fix: portal_get_messaging_status legitimately raises 'not authorized'
+// (not a "route doesn't exist" case) for a patient with zero active
+// patient_portal_accounts anywhere — a brand-new self-registered patient,
+// or one messaging a doctor they've never connected with/booked. That used
+// to get mapped to notFound(), producing a plain 404 right after the login
+// redirect. Only a genuinely missing/disabled provider ("Provider not
+// found.") is a real 404 — the "not authorized" case gets the same
+// graceful "connect with a clinic first" empty state used everywhere else
+// in the portal for accountless patients, inside the normal shell.
 export default async function PortalMessageThreadPage({ params }: { params: Promise<{ providerId: string }> }) {
   const { providerId } = await params;
-  const { supabase } = await requirePatientPortal();
+  const { supabase, activeAccountId } = await requirePatientPortal();
 
   const [{ data: status, error: statusError }, { data: messages }] = await Promise.all([
-    supabase.rpc("portal_get_messaging_status", { p_provider_id: providerId }),
-    supabase.rpc("portal_get_provider_thread", { p_provider_id: providerId }),
+    supabase.rpc("portal_get_messaging_status", { p_provider_id: providerId, p_for_account_id: activeAccountId }),
+    supabase.rpc("portal_get_provider_thread", { p_provider_id: providerId, p_for_account_id: activeAccountId }),
   ]);
+
+  if (statusError?.message?.toLowerCase().includes("not authorized")) {
+    return (
+      <PortalShell>
+        <BackLink href="/portal/messages" label="My Messages" />
+        <h1 style={{ fontSize: 20, marginBottom: 16 }}>Messages</h1>
+        <PortalNoClinicState what="messages" />
+      </PortalShell>
+    );
+  }
 
   if (statusError || !status) notFound();
 

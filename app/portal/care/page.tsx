@@ -36,7 +36,7 @@ export default async function PatientCarePage() {
   const lastVisit = account ? await getLastCompletedEncounter(supabase, account.patient_id) : null;
 
   return (
-    <PortalShell patientName={account?.patients?.first_name}>
+    <PortalShell>
       <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>My Care</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Everything about your care, in one place.</p>
