@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { uploadProviderPhotoAction } from "../actions";
 import { UploadProgress } from "@/components/loading/upload-progress";
 
@@ -9,11 +8,21 @@ import { UploadProgress } from "@/components/loading/upload-progress";
 // listing (currently off — see providers/page.tsx), on the public
 // Find-a-Doctor directory + their profile page. A new upload replaces the
 // active photo immediately, same as the signature manager right above it.
+//
+// Shows a local object-URL preview of the picked file as soon as the upload
+// succeeds, instead of calling router.refresh() to fetch the new public URL.
+// router.refresh() used to run right after the "Photo updated." message was
+// set, which re-rendered this section from the server and reset the upload
+// widget (message included) before it ever became visible — the upload was
+// actually succeeding the whole time, there was just never any visible
+// confirmation. uploadProviderPhotoAction already revalidates the relevant
+// paths, so the real (public) URL is picked up next time these pages are
+// navigated to.
 export function ProviderPhotoManager({ photoUrl, initials }: { photoUrl: string | null; initials: string }) {
-  const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   function handlePick(file: File | null) {
     if (!file) return;
@@ -24,9 +33,9 @@ export function ProviderPhotoManager({ photoUrl, initials }: { photoUrl: string 
     formData.set("file", file);
     uploadProviderPhotoAction(formData)
       .then(() => {
+        setPreviewUrl(URL.createObjectURL(file));
         setUploadStatus("success");
         setMessage("Photo updated.");
-        router.refresh();
       })
       .catch((e: any) => {
         setUploadStatus("error");
@@ -34,6 +43,8 @@ export function ProviderPhotoManager({ photoUrl, initials }: { photoUrl: string 
       })
       .finally(() => setUploading(false));
   }
+
+  const displayUrl = previewUrl ?? photoUrl;
 
   return (
     <div style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", borderRadius: 12, padding: 24 }}>
@@ -59,9 +70,9 @@ export function ProviderPhotoManager({ photoUrl, initials }: { photoUrl: string 
             flexShrink: 0,
           }}
         >
-          {photoUrl ? (
+          {displayUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="Your photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src={displayUrl} alt="Your photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             initials
           )}

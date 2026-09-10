@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { uploadMyPhotoAction } from "../actions";
 import { UploadProgress } from "@/components/loading/upload-progress";
 
@@ -9,11 +8,22 @@ import { UploadProgress } from "@/components/loading/upload-progress";
 // Profile) and, if a clinic connection exists, on your record in that
 // clinic's EHR chart too — never public, only you and clinic staff you're
 // actually connected to can ever see it (patient-photos storage policies).
+//
+// The avatar shows a local object-URL preview of the picked file the instant
+// the upload succeeds, rather than waiting on router.refresh() to fetch a
+// fresh signed URL from the server. router.refresh() used to be called here
+// immediately after showing the "Photo updated." message — but that
+// re-renders this whole section from the server, which reset the upload
+// widget (including this success message) before it was ever visible. The
+// upload itself was working the whole time; nothing ever confirmed it. The
+// server action already calls revalidatePath, so the real signed URL is
+// picked up next time this page is actually navigated to — no client-side
+// refresh needed to make the change durable.
 export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; initials: string }) {
-  const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   function handlePick(file: File | null) {
     if (!file) return;
@@ -24,9 +34,9 @@ export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; i
     formData.set("file", file);
     uploadMyPhotoAction(formData)
       .then(() => {
+        setPreviewUrl(URL.createObjectURL(file));
         setUploadStatus("success");
         setMessage("Photo updated.");
-        router.refresh();
       })
       .catch((e: any) => {
         setUploadStatus("error");
@@ -34,6 +44,8 @@ export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; i
       })
       .finally(() => setUploading(false));
   }
+
+  const displayUrl = previewUrl ?? photoUrl;
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
@@ -53,9 +65,9 @@ export function PhotoUpload({ photoUrl, initials }: { photoUrl: string | null; i
           flexShrink: 0,
         }}
       >
-        {photoUrl ? (
+        {displayUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photoUrl} alt="Your photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={displayUrl} alt="Your photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           initials
         )}
