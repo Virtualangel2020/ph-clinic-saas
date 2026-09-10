@@ -333,3 +333,36 @@ export async function acknowledgeStatusEventAction(eventId: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/portal");
 }
+
+// Profile photo — identity-level (stored on mycaredesk_accounts, not a
+// per-clinic patients row), so this works the same whether or not the
+// patient has connected with a clinic yet. requirePatientPortal() only
+// redirects if not signed in at all — exactly what's needed here, since a
+// brand-new 0-clinic patient must still be able to set this from their
+// Profile page. Private bucket: only the patient themselves and clinic
+// staff they're actually connected to can ever read it back (see
+// patient-photos storage policies + get_patient_photo_path for the
+// staff-side chart read).
+export async function uploadMyPhotoAction(formData: FormData) {
+  const { supabase } = await requirePatientPortal();
+  const { data: mycaredeskAccount } = await supabase.rpc("get_my_mycaredesk_account");
+  if (!mycaredeskAccount) throw new Error("Set up your MyCareDesk account first — see Health Profile.");
+
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) throw new Error("Choose a photo first.");
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    throw new Error("Photo must be a PNG, JPG, or WEBP image.");
+  }
+  if (file.size > 3 * 1024 * 1024) throw new Error("Photo must be under 3MB.");
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${(mycaredeskAccount as any).id}/${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("patient-photos").upload(path, file);
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { error: updateError } = await supabase.from("mycaredesk_accounts").update({ photo_path: path }).eq("id", (mycaredeskAccount as any).id);
+  if (updateError) throw new Error(updateError.message);
+
+  revalidatePath("/portal/profile");
+  revalidatePath("/portal");
+}

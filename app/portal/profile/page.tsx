@@ -1,6 +1,7 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
+import { PhotoUpload } from "./photo-upload";
 import { age } from "@/lib/patients/get-patient-chart-data";
 import { getMyDoctors } from "@/lib/patients/my-doctors";
 
@@ -33,11 +34,28 @@ export default async function PatientProfilePage() {
   const fullName = patient ? `${patient.first_name} ${patient.middle_name ? patient.middle_name + " " : ""}${patient.last_name}` : "";
   const familyList = (family as any[]) ?? [];
 
+  const displayName = fullName || `${(mycaredeskAccount as any)?.first_name ?? ""} ${(mycaredeskAccount as any)?.last_name ?? ""}`.trim();
+  const initials =
+    displayName
+      .split(" ")
+      .map((s) => s.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
+
+  let photoUrl: string | null = null;
+  if ((mycaredeskAccount as any)?.photo_path) {
+    const { data } = await supabase.storage.from("patient-photos").createSignedUrl((mycaredeskAccount as any).photo_path, 3600);
+    photoUrl = data?.signedUrl ?? null;
+  }
+
   return (
     <PortalShell patientName={patient?.first_name ?? (mycaredeskAccount as any)?.first_name}>
       <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>Profile</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account, doctors, and family.</p>
+
+      <PhotoUpload photoUrl={photoUrl} initials={initials} />
 
       {(mycaredeskAccount as any)?.patient_number && (
         <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: "14px 18px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>

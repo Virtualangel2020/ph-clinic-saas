@@ -113,6 +113,37 @@ export async function uploadSignatureAction(formData: FormData) {
   revalidatePath("/dashboard/settings/note-templates");
 }
 
+// Profile photo — shown on the provider's own Settings page and, if/when
+// they turn on the public directory listing, on the public Find-a-Doctor
+// directory + profile page. Stored on the ALREADY-EXISTING (previously
+// unused) user_profiles.public_photo_path column, so no schema change was
+// needed there — just the storage bucket + this upload action. "users can
+// update own profile" RLS already lets a provider update their own row
+// directly, same as the signature/logo pattern's storage-then-DB-write
+// shape but without needing a dedicated RPC (there's no separate audit
+// trail for a photo the way there is for a legal e-signature).
+export async function uploadProviderPhotoAction(formData: FormData) {
+  const { supabase, user, profile } = await requireClinicMember();
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) throw new Error("Choose a photo first.");
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    throw new Error("Photo must be a PNG, JPG, or WEBP image.");
+  }
+  if (file.size > 3 * 1024 * 1024) throw new Error("Photo must be under 3MB.");
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${profile.tenant_id}/${user.id}/${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("provider-photos").upload(path, file);
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { error: updateError } = await supabase.from("user_profiles").update({ public_photo_path: path }).eq("id", user.id);
+  if (updateError) throw new Error(updateError.message);
+
+  revalidatePath("/dashboard/settings/providers");
+  revalidatePath("/find-a-doctor");
+  return path;
+}
+
 // ── Users & Permissions (Part 63) ───────────────────────────────────────
 
 // Clinic Admin invites their own staff directly — no need to go through

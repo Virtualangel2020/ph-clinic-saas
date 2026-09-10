@@ -16,6 +16,7 @@ type Provider = {
   public_consultation_type: string | null;
   public_consultation_fee_php: number | null;
   public_booking_mode: string | null;
+  photo_url: string | null;
   clinic_name: string | null;
   city: string | null;
   default_booking_type: string | null;
@@ -59,6 +60,16 @@ function effectiveAcceptYakap(p: Provider): boolean {
 }
 function effectiveMessaging(p: Provider): boolean {
   return p.messaging_enabled_override ?? p.clinic_messaging_enabled ?? false;
+}
+function providerInitials(name: string): string {
+  return (
+    name
+      .split(" ")
+      .map((s) => s.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  );
 }
 
 // public_consultation_type already existed on user_profiles before this
@@ -226,27 +237,52 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
             return (
               <div key={p.id} style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: "18px 20px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-                  <div>
-                    <Link href={`/find-a-doctor/${p.id}`} style={{ textDecoration: "none" }}>
-                      <div style={{ fontWeight: 700, fontSize: 15.5, color: NAVY }}>
-                        {p.title ? `${p.title} ` : ""}
-                        {p.full_name}
-                        <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: "#1a7f37", background: "#e6f4ea", padding: "2px 8px", borderRadius: 999, verticalAlign: "middle" }}>
-                          MyCareDesk
-                        </span>
-                      </div>
-                    </Link>
-                    <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ") || "General practice"}</div>
-                    <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name, p.city].filter(Boolean).join(" · ")}</div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                      <div style={{ fontSize: 11.5, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "2px 9px" }}>
-                        {BOOKING_TYPE_LABEL[bookingType] ?? bookingType}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: "#1a5c8c", background: "#eaf3fb", border: "1px solid #bcd9f0", borderRadius: 999, padding: "2px 9px" }}>
-                        {visitModeLabel(p)}
-                      </div>
+                  <div style={{ display: "flex", gap: 14 }}>
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        background: NAVY,
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 15,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {p.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.photo_url} alt={p.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        providerInitials(p.full_name)
+                      )}
                     </div>
-                    {p.public_bio && <p style={{ color: "#555", fontSize: 12.5, lineHeight: 1.6, margin: "8px 0 0", maxWidth: 480 }}>{p.public_bio}</p>}
+                    <div>
+                      <Link href={`/find-a-doctor/${p.id}`} style={{ textDecoration: "none" }}>
+                        <div style={{ fontWeight: 700, fontSize: 15.5, color: NAVY }}>
+                          {p.title ? `${p.title} ` : ""}
+                          {p.full_name}
+                          <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: "#1a7f37", background: "#e6f4ea", padding: "2px 8px", borderRadius: 999, verticalAlign: "middle" }}>
+                            MyCareDesk
+                          </span>
+                        </div>
+                      </Link>
+                      <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ") || "General practice"}</div>
+                      <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name, p.city].filter(Boolean).join(" · ")}</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                        <div style={{ fontSize: 11.5, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "2px 9px" }}>
+                          {BOOKING_TYPE_LABEL[bookingType] ?? bookingType}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: "#1a5c8c", background: "#eaf3fb", border: "1px solid #bcd9f0", borderRadius: 999, padding: "2px 9px" }}>
+                          {visitModeLabel(p)}
+                        </div>
+                      </div>
+                      {p.public_bio && <p style={{ color: "#555", fontSize: 12.5, lineHeight: 1.6, margin: "8px 0 0", maxWidth: 480 }}>{p.public_bio}</p>}
+                    </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                     <Link

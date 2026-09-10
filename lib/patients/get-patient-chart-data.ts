@@ -27,6 +27,14 @@ export function age(dob: string) {
   return a;
 }
 
+// Same shape as patient-search-panel.tsx's local initials() — kept as one
+// shared export now that the chart header also needs it (photo fallback).
+export function patientInitials(p: { first_name?: string | null; last_name?: string | null }) {
+  const f = p.first_name?.trim().charAt(0) ?? "";
+  const l = p.last_name?.trim().charAt(0) ?? "";
+  return (f + l).toUpperCase() || "?";
+}
+
 export type PatientChartData = NonNullable<Awaited<ReturnType<typeof getPatientChartData>>>;
 
 export async function getPatientChartData(supabase: SupabaseClient, tenantId: string, patientId: string, providerId?: string) {
@@ -38,6 +46,23 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
     .maybeSingle();
 
   if (!patient) return null;
+
+  // Photo (Angel: "allow patients ... to upload a photo for their
+  // profile"), uploaded by the patient themselves in the Patient Portal
+  // and stored on their platform mycaredesk_accounts identity, not this
+  // clinic's own patients row — one photo follows a patient across every
+  // clinic they connect with. get_patient_photo_path is a narrow
+  // SECURITY DEFINER read scoped to "this patient is connected to MY
+  // tenant" — it returns null (not an error) for a patient with no linked
+  // mycaredesk account, or one who hasn't uploaded a photo yet.
+  let patientPhotoUrl: string | null = null;
+  if (patient.mycaredesk_account_id) {
+    const { data: photoPath } = await supabase.rpc("get_patient_photo_path", { p_patient_id: patientId });
+    if (photoPath) {
+      const { data } = await supabase.storage.from("patient-photos").createSignedUrl(photoPath as string, 3600);
+      patientPhotoUrl = data?.signedUrl ?? null;
+    }
+  }
 
   const nowIso = new Date().toISOString();
 
@@ -485,6 +510,7 @@ export async function getPatientChartData(supabase: SupabaseClient, tenantId: st
   return {
     patient,
     fullName,
+    patientPhotoUrl,
     activeProblems,
     billing,
     referredBy,

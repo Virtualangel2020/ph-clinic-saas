@@ -1,6 +1,7 @@
 import { requireClinicMember } from "@/lib/require-clinic-member";
 import { BackLink } from "@/components/back-link";
 import { ProviderCredentialsForm } from "./provider-credentials-form";
+import { ProviderPhotoManager } from "./provider-photo-manager";
 import { SignatureManager } from "./signature-manager";
 import { SeatUsage } from "./seat-usage";
 // Public directory listing is turned off for now (Angel wants to focus on
@@ -42,6 +43,18 @@ export default async function ProvidersPage() {
     activeSignatureUrl = data?.signedUrl ?? null;
   }
 
+  let photoUrl: string | null = null;
+  if ((profile as any).public_photo_path) {
+    const { data } = supabase.storage.from("provider-photos").getPublicUrl((profile as any).public_photo_path);
+    photoUrl = data.publicUrl;
+  }
+  const initials = ((profile.full_name as string | null) ?? "")
+    .split(" ")
+    .map((s: string) => s.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+
   return (
     <div style={{ maxWidth: 720, display: "grid", gap: 24 }}>
       <div>
@@ -52,6 +65,8 @@ export default async function ProvidersPage() {
           sign something.
         </p>
       </div>
+
+      <ProviderPhotoManager photoUrl={photoUrl} initials={initials} />
 
       <ProviderCredentialsForm profile={profile as any} />
 

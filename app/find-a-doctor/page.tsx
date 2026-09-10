@@ -29,6 +29,11 @@ export default async function FindADoctorPage() {
     photo_url: p.photo_path ? supabase.storage.from("external-provider-photos").getPublicUrl(p.photo_path).data.publicUrl : null,
   }));
 
+  const providersWithPhotos = ((providers as any[]) ?? []).map((p) => ({
+    ...p,
+    photo_url: p.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(p.public_photo_path).data.publicUrl : null,
+  }));
+
   return (
     <div style={{ background: "var(--brand-background)" }}>
       <SiteNav />
@@ -43,7 +48,7 @@ export default async function FindADoctorPage() {
       </section>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "44px 24px 72px" }}>
-        <DirectorySearch providers={(providers as any) ?? []} externalProviders={externalWithPhotos as any} />
+        <DirectorySearch providers={providersWithPhotos as any} externalProviders={externalWithPhotos as any} />
       </main>
 
       <SiteFooter />

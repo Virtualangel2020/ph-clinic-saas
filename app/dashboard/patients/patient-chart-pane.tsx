@@ -5,7 +5,7 @@ import { canViewClinicalContent } from "@/lib/permissions";
 import { PatientAlertsBanner } from "./[id]/patient-alerts-banner";
 import { PatientChartTabs } from "./[id]/patient-chart-tabs";
 import { ArchiveButton } from "./[id]/archive-button";
-import { getPatientChartData, age } from "@/lib/patients/get-patient-chart-data";
+import { getPatientChartData, age, patientInitials } from "@/lib/patients/get-patient-chart-data";
 
 // Right-pane chart for the master-detail Patients list. Same data loader,
 // same tab component as the standalone /dashboard/patients/[id] route —
@@ -19,20 +19,45 @@ export async function PatientChartPane({ patientId }: { patientId: string }) {
 
   const data = await getPatientChartData(supabase, profile.tenant_id, patientId, profile.id);
   if (!data) notFound();
-  const { patient, fullName } = data;
+  const { patient, fullName, patientPhotoUrl } = data;
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 4 }}>
-        <div>
-          <h1 style={{ fontSize: 20, marginBottom: 2 }}>
-            {fullName}
-            {!patient.is_active && <span style={{ marginLeft: 10, fontSize: 12, color: "#a12a2a", fontWeight: 600 }}>ARCHIVED</span>}
-          </h1>
-          <p style={{ color: "#666", fontSize: 12.5 }}>
-            {age(patient.date_of_birth)} y/o {patient.sex} · Born {new Date(patient.date_of_birth).toLocaleDateString()}
-            {patient.patient_code ? ` · ${patient.patient_code}` : ""}
-          </p>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              overflow: "hidden",
+              background: "var(--brand-primary)",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 15,
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
+            {patientPhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={patientPhotoUrl} alt={fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              patientInitials(patient)
+            )}
+          </div>
+          <div>
+            <h1 style={{ fontSize: 20, marginBottom: 2 }}>
+              {fullName}
+              {!patient.is_active && <span style={{ marginLeft: 10, fontSize: 12, color: "#a12a2a", fontWeight: 600 }}>ARCHIVED</span>}
+            </h1>
+            <p style={{ color: "#666", fontSize: 12.5 }}>
+              {age(patient.date_of_birth)} y/o {patient.sex} · Born {new Date(patient.date_of_birth).toLocaleDateString()}
+              {patient.patient_code ? ` · ${patient.patient_code}` : ""}
+            </p>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <Link href={`/dashboard/patients/${patient.id}`} style={{ fontSize: 12, color: "#666", textDecoration: "none" }}>

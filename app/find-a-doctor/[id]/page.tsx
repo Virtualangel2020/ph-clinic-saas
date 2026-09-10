@@ -43,6 +43,14 @@ export default async function ProviderProfilePage({ params }: { params: Promise<
   if (!data) notFound();
 
   const d = data as any;
+  const photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
+  const providerInitials =
+    (d.provider.full_name as string)
+      .split(" ")
+      .map((s: string) => s.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
   const effective = resolveEffectiveSettings(d.clinic, d.override);
   const services: any[] = d.services ?? [];
   const hmos: any[] = d.accepted_hmos ?? [];
@@ -75,19 +83,44 @@ export default async function ProviderProfilePage({ params }: { params: Promise<
       <SiteNav />
 
       <section style={{ background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`, color: "#f4f5f7", padding: "44px 24px 36px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
-            {d.clinic.clinic_name ?? "Your Clinic"}
+        <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", gap: 20 }}>
+          <div
+            style={{
+              width: 88,
+              height: 88,
+              borderRadius: "50%",
+              overflow: "hidden",
+              background: "rgba(255,255,255,0.15)",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 28,
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrl} alt={d.provider.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              providerInitials
+            )}
           </div>
-          <h1 style={{ fontSize: 28, margin: "0 0 6px" }}>
-            {d.provider.title ? `${d.provider.title} ` : ""}
-            {d.provider.full_name}
-          </h1>
-          <p style={{ color: "rgba(244,245,247,0.85)", fontSize: 14, margin: 0 }}>
-            {[d.provider.specialty, d.provider.subspecialty].filter(Boolean).join(" · ") || "General practice"}
-            {d.clinic.city ? ` · ${d.clinic.city}` : ""}
-          </p>
-          {d.provider.public_bio && <p style={{ color: "rgba(244,245,247,0.75)", fontSize: 13.5, lineHeight: 1.7, maxWidth: 560, marginTop: 12 }}>{d.provider.public_bio}</p>}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
+              {d.clinic.clinic_name ?? "Your Clinic"}
+            </div>
+            <h1 style={{ fontSize: 28, margin: "0 0 6px" }}>
+              {d.provider.title ? `${d.provider.title} ` : ""}
+              {d.provider.full_name}
+            </h1>
+            <p style={{ color: "rgba(244,245,247,0.85)", fontSize: 14, margin: 0 }}>
+              {[d.provider.specialty, d.provider.subspecialty].filter(Boolean).join(" · ") || "General practice"}
+              {d.clinic.city ? ` · ${d.clinic.city}` : ""}
+            </p>
+            {d.provider.public_bio && <p style={{ color: "rgba(244,245,247,0.75)", fontSize: 13.5, lineHeight: 1.7, maxWidth: 560, marginTop: 12 }}>{d.provider.public_bio}</p>}
+          </div>
         </div>
       </section>
 
