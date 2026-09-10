@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { PortalFormsClient } from "./portal-forms-client";
 
@@ -13,6 +14,7 @@ export default async function PortalFormsPage() {
   if (!account) {
     return (
       <PortalShell>
+        <BackLink href="/portal/care" label="My Care" />
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Forms</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Intake, consent, and history forms your clinic has asked you to complete.</p>
         <PortalNoClinicState what="forms" />
@@ -29,6 +31,7 @@ export default async function PortalFormsPage() {
 
   return (
     <PortalShell>
+      <BackLink href="/portal/care" label="My Care" />
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Forms</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Intake, consent, and history forms your clinic has asked you to complete.</p>
       {entitlement ? (

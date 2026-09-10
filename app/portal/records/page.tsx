@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { PortalDocumentsList } from "./records-list";
 
@@ -14,6 +15,7 @@ export default async function PortalRecordsPage() {
   if (!account) {
     return (
       <PortalShell>
+        <BackLink href="/portal/care" label="My Care" />
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Records</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Documents your clinic has filed to your record.</p>
         <PortalNoClinicState what="records" />
@@ -31,6 +33,7 @@ export default async function PortalRecordsPage() {
 
   return (
     <PortalShell>
+      <BackLink href="/portal/care" label="My Care" />
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Records</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Documents your clinic has filed to your record.</p>
       <PortalDocumentsList documents={(documents as any) ?? []} />

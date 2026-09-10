@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 
 // My Results (spec §15) — read-only view of this patient's own lab_orders
@@ -13,6 +14,7 @@ export default async function PortalResultsPage() {
   if (!account) {
     return (
       <PortalShell>
+        <BackLink href="/portal/care" label="My Care" />
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Results</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Lab and diagnostic results your clinic has released to you.</p>
         <PortalNoClinicState what="results" />
@@ -29,6 +31,7 @@ export default async function PortalResultsPage() {
 
   return (
     <PortalShell>
+      <BackLink href="/portal/care" label="My Care" />
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Results</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Lab and diagnostic results your clinic has released to you.</p>
 

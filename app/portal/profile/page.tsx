@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { age } from "@/lib/patients/get-patient-chart-data";
 import { getMyDoctors } from "@/lib/patients/my-doctors";
 
@@ -34,6 +35,7 @@ export default async function PatientProfilePage() {
 
   return (
     <PortalShell patientName={patient?.first_name ?? (mycaredeskAccount as any)?.first_name}>
+      <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>Profile</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account, doctors, and family.</p>
 

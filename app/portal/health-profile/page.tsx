@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { HealthProfileForm } from "./health-profile-form";
 import { AccountSetupPanel } from "./account-setup-panel";
 import { AccessRequestsPanel } from "./access-requests-panel";
@@ -48,6 +49,7 @@ export default async function HealthProfilePage({ searchParams }: { searchParams
 
     return (
       <PortalShell>
+        <BackLink href="/portal/care" label="My Care" />
         <h1 style={{ fontSize: 20 }}>Set up your MyCareDesk account</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
           One quick step before you can fill in a Health Profile — this creates your permanent MyCareDesk account, separate from any one clinic.
@@ -72,6 +74,7 @@ export default async function HealthProfilePage({ searchParams }: { searchParams
 
   return (
     <PortalShell patientName={account.first_name}>
+      <BackLink href="/portal/care" label="My Care" />
       {activeAccountId !== account.id && (
         <div style={{ background: "#eef6fb", border: "1px solid #b9d9ec", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#2a5674", fontWeight: 600 }}>
           Viewing {activeAccount?.first_name} {activeAccount?.last_name}'s Health Profile — not your own.

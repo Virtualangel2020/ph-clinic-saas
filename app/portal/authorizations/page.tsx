@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { SharingRequestCard } from "./sharing-request-card";
 
@@ -18,6 +19,7 @@ export default async function PortalAuthorizationsPage() {
   if (!account) {
     return (
       <PortalShell>
+        <BackLink href="/portal/care" label="My Care" />
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>Records & Authorizations</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Which provider your clinic has authorized to view your shared medical record.</p>
         <PortalNoClinicState what="authorizations" />
@@ -43,6 +45,7 @@ export default async function PortalAuthorizationsPage() {
 
   return (
     <PortalShell>
+      <BackLink href="/portal/care" label="My Care" />
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>Records & Authorizations</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
         Which provider your clinic has authorized to view your shared medical record.

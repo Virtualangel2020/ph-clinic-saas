@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { getLastCompletedEncounter } from "@/lib/patients/last-visit";
 
 // "My Care" hub (spec Part 23) — groups the existing Results/Prescriptions/
@@ -36,6 +37,7 @@ export default async function PatientCarePage() {
 
   return (
     <PortalShell patientName={account?.patients?.first_name}>
+      <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>My Care</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Everything about your care, in one place.</p>
 

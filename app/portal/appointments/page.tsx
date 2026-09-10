@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { appointmentWording } from "@/lib/patients/appointment-wording";
 
@@ -31,6 +32,7 @@ export default async function PortalAppointmentsPage() {
   if (!account) {
     return (
       <PortalShell>
+        <BackLink href="/portal" label="Portal Home" />
         <h1 style={{ fontSize: 20, marginBottom: 16 }}>My Appointments</h1>
         <PortalNoClinicState what="appointments" />
       </PortalShell>
@@ -91,6 +93,7 @@ export default async function PortalAppointmentsPage() {
 
   return (
     <PortalShell>
+      <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 20, marginBottom: 16 }}>My Appointments</h1>
 
       <h2 style={{ fontSize: 13.5, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>Upcoming</h2>

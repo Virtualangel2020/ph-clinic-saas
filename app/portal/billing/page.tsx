@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
 import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { paymongoMode } from "@/lib/patient-paymongo";
 import { getPortalBalanceSummary, pesoLabel } from "@/lib/patients/portal-balance";
@@ -31,6 +32,7 @@ export default async function PortalBillingPage() {
   if (!account) {
     return (
       <PortalShell>
+        <BackLink href="/portal" label="Portal Home" />
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Billing</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Charges and payments from your clinic.</p>
         <PortalNoClinicState what="billing history" />
@@ -51,6 +53,7 @@ export default async function PortalBillingPage() {
 
   return (
     <PortalShell>
+      <BackLink href="/portal" label="Portal Home" />
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Billing</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Charges and payments from {clinicSettings?.clinic_name ?? "your clinic"}.</p>
 
