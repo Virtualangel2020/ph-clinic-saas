@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { requireClinicMember } from "@/lib/require-clinic-member";
-import { sendPortalEmail, sendPortalSms } from "@/lib/patient-portal/send";
+import { sendPortalEmail, sendPortalSms, logPortalSendAttempt } from "@/lib/patient-portal/send";
 import { parseFlexibleDate } from "@/lib/dates/parse-flexible-date";
 import { gatherMedicalCertificatePdfData } from "@/lib/pdf/gather-medical-certificate-pdf-data";
 import { MedicalCertificateDocument } from "@/lib/pdf/medical-certificate-document";
@@ -497,21 +497,34 @@ export async function invitePatientToPortalAction(patientId: string, channel: "e
 
   if (channel === "email") {
     const link = `${origin}/portal/activate?token=${invite.raw_token}`;
-    await sendPortalEmail({
-      toEmail: invite.contact_value,
-      toName: invite.patient_name,
-      subject: `Activate your ${clinicName} Patient Portal access`,
-      html: `<p>Hi ${invite.patient_name},</p><p>${clinicName} has invited you to access your Patient Portal, where you can review and authorize record requests.</p><p><a href="${link}">Activate your account</a></p><p>This link expires in 24 hours. If you weren't expecting this, you can ignore this email.</p>`,
-    });
+    try {
+      await sendPortalEmail({
+        toEmail: invite.contact_value,
+        toName: invite.patient_name,
+        subject: `Activate your ${clinicName} Patient Portal`,
+        html: `<p><strong>MyCareDesk</strong><br/>by Virtual Angel Systems</p><p>Hi ${invite.patient_name},</p><p>Your ${clinicName} Patient Portal has been created. Use the secure link below to activate your account and choose your password:</p><p><a href="${link}">Activate My Account</a></p><p>This link expires in 24 hours and can only be used once. If you weren't expecting this invitation, you can safely ignore this email.</p>`,
+      });
+      await logPortalSendAttempt({ accountId: invite.account_id, tenantId: profile.tenant_id, event: "invite", channel: "email", contactValue: invite.contact_value, status: "sent" });
+    } catch (sendErr: any) {
+      await logPortalSendAttempt({ accountId: invite.account_id, tenantId: profile.tenant_id, event: "invite", channel: "email", contactValue: invite.contact_value, status: "failed", errorMessage: sendErr?.message ?? String(sendErr) });
+      throw sendErr;
+    }
   } else if (channel === "sms") {
     const link = `${origin}/portal/verify?a=${invite.account_id}`;
-    await sendPortalSms({
-      toPhone: invite.contact_value,
-      message: `${clinicName}: Your Patient Portal code is ${invite.otp}. Activate here: ${link} (expires in 10 min)`,
-    });
+    try {
+      await sendPortalSms({
+        toPhone: invite.contact_value,
+        message: `${clinicName}: Your Patient Portal code is ${invite.otp}. Activate here: ${link} (expires in 10 min)`,
+      });
+      await logPortalSendAttempt({ accountId: invite.account_id, tenantId: profile.tenant_id, event: "invite", channel: "sms", contactValue: invite.contact_value, status: "sent" });
+    } catch (sendErr: any) {
+      await logPortalSendAttempt({ accountId: invite.account_id, tenantId: profile.tenant_id, event: "invite", channel: "sms", contactValue: invite.contact_value, status: "failed", errorMessage: sendErr?.message ?? String(sendErr) });
+      throw sendErr;
+    }
   }
   // "manual" sends nothing — the raw code is handed back below for staff
-  // to show/read to the patient directly. No provider, no add-on needed.
+  // to show/read to the patient directly. No provider, no add-on needed,
+  // nothing to log since nothing was sent electronically.
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   return channel === "manual" ? { code: invite.raw_token } : {};

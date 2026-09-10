@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizePhMobile, sendPortalEmail, sendPortalSms } from "@/lib/patient-portal/send";
+import { normalizePhMobile, sendPortalEmail, sendPortalSms, logPortalSendAttempt } from "@/lib/patient-portal/send";
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 
 // Same per-file helper used in app/dashboard/patients/actions.ts,
@@ -75,6 +75,25 @@ export async function activateByTokenAction(token: string, password: string): Pr
   }
 }
 
+// Pre-check for the link-flow /portal/activate screen (Angel: don't make
+// a patient who arrived through a real activation link deal with a code
+// field or find out it's expired only AFTER typing a password). Verifies
+// the token WITHOUT consuming it or creating anything — same read-only
+// RPC activateByTokenAction itself calls right before actually acting on
+// it — so this is safe to call as often as the page mounts.
+export async function checkActivationTokenAction(token: string): Promise<{ valid: boolean }> {
+  const trimmed = token.trim();
+  if (!trimmed) return { valid: false };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("verify_patient_portal_invite_token", { p_token: trimmed });
+    return { valid: !error && !!data };
+  } catch (e) {
+    console.error("checkActivationTokenAction failed:", e);
+    return { valid: false };
+  }
+}
+
 // Same return-instead-of-throw reasoning as activateByTokenAction above.
 export async function activateByOtpAction(accountId: string, code: string, password: string): Promise<{ error: string } | undefined> {
   try {
@@ -116,15 +135,19 @@ export async function activateByOtpAction(accountId: string, code: string, passw
 // to get a fresh activation link/OTP was to ask clinic staff to click
 // Resend from the dashboard. Callable from /portal/activate (by the email
 // the patient types in) and /portal/verify (by the account id already in
-// that page's URL). Always returns the same generic message regardless of
-// whether anything matched, same anti-enumeration shape as a
-// password-reset request — see migration
-// mycaredesk_portal_invite_resend for why the underlying RPC is
-// service_role-only rather than something the browser could call
-// directly (it looks up by an easily-guessable value and hands back a
-// live activation secret, so it must never be reachable from the client).
+// that page's URL).
+//
+// The PATIENT-FACING message is always the same generic wording
+// regardless of whether anything matched — Angel confirmed this is fine
+// for privacy ("public-facing wording can remain generic where needed").
+// What changed after the nicole.islani18@gmail.com test failed silently:
+// every attempt now writes a row to patient_portal_send_log (migration
+// mycaredesk_portal_send_log) — no_match / sent / failed, with the real
+// error message — so this is verifiable after the fact instead of a
+// black box. Query it directly (Supabase SQL editor or the MCP tool)
+// with: select * from patient_portal_send_log order by created_at desc.
 export async function requestPortalInviteResendAction(opts: { contact?: string; accountId?: string }): Promise<{ message: string }> {
-  const generic = "If that matches a pending invite, we've sent a new code — check your email or messages in a minute (including spam/junk).";
+  const generic = "If an eligible MyCareDesk invitation exists for this contact, we'll send new activation instructions — check your email or messages in a minute (including spam/junk).";
   const contact = opts.contact?.trim();
   const accountId = opts.accountId?.trim();
   if (!contact && !accountId) return { message: generic };
@@ -137,19 +160,38 @@ export async function requestPortalInviteResendAction(opts: { contact?: string; 
     });
     if (error) {
       console.error("resend_patient_portal_invite failed:", error);
+      await logPortalSendAttempt({
+        accountId: accountId || null,
+        event: "resend",
+        channel: contact?.includes("@") ? "email" : "sms",
+        contactValue: contact || accountId || "",
+        status: "failed",
+        errorMessage: error.message,
+      });
       return { message: generic };
     }
 
+    const rows = (matches as any[]) ?? [];
+    if (rows.length === 0) {
+      await logPortalSendAttempt({
+        accountId: accountId || null,
+        event: "resend",
+        channel: contact?.includes("@") ? "email" : "sms",
+        contactValue: contact || accountId || "",
+        status: "no_match",
+      });
+    }
+
     const origin = await siteOrigin();
-    for (const m of (matches as any[]) ?? []) {
+    for (const m of rows) {
       try {
         if (m.channel === "email" && m.raw_token) {
           const link = `${origin}/portal/activate?token=${m.raw_token}`;
           await sendPortalEmail({
             toEmail: m.contact_value,
             toName: m.patient_name,
-            subject: `Your ${m.clinic_name} Patient Portal activation link`,
-            html: `<p>Hi ${m.patient_name},</p><p>Here's a new activation link for your ${m.clinic_name} Patient Portal:</p><p><a href="${link}">Activate your account</a></p><p>This link expires in 24 hours. If you didn't request this, you can safely ignore this email.</p>`,
+            subject: `Activate your ${m.clinic_name} Patient Portal`,
+            html: `<p><strong>MyCareDesk</strong><br/>by Virtual Angel Systems</p><p>Hi ${m.patient_name},</p><p>Here's a new secure link to activate your ${m.clinic_name} Patient Portal and choose your password:</p><p><a href="${link}">Activate My Account</a></p><p>This link expires in 24 hours and can only be used once. If you weren't expecting this, you can safely ignore this email.</p>`,
           });
         } else if (m.channel === "sms" && m.otp) {
           const link = `${origin}/portal/verify?a=${m.account_id}`;
@@ -157,11 +199,31 @@ export async function requestPortalInviteResendAction(opts: { contact?: string; 
             toPhone: m.contact_value,
             message: `${m.clinic_name}: Your new Patient Portal code is ${m.otp}. Activate here: ${link} (expires in 10 min)`,
           });
+        } else {
+          continue;
         }
-      } catch (sendErr) {
-        // Don't let one failed send (e.g. provider not configured) change
-        // the response — the message stays generic either way.
+        await logPortalSendAttempt({
+          accountId: m.account_id,
+          event: "resend",
+          channel: m.channel,
+          contactValue: m.contact_value,
+          status: "sent",
+        });
+      } catch (sendErr: any) {
+        // Don't let one failed send (e.g. the platform's email provider
+        // isn't configured/enabled yet — see app/admin/settings) change
+        // the patient-facing response — it stays generic either way. But
+        // log it for real, since this is exactly the kind of failure that
+        // otherwise looks identical to "everything worked."
         console.error("resend_patient_portal_invite: send failed:", sendErr);
+        await logPortalSendAttempt({
+          accountId: m.account_id,
+          event: "resend",
+          channel: m.channel,
+          contactValue: m.contact_value,
+          status: "failed",
+          errorMessage: sendErr?.message ?? String(sendErr),
+        });
       }
     }
   } catch (e) {

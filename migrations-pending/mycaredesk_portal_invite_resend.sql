@@ -16,10 +16,20 @@
 -- Only service_role may execute it; the Next.js server action
 -- (app/portal/actions.ts, requestPortalInviteResendAction) calls it via
 -- the admin client, sends the email/SMS itself using the existing
--- lib/patient-portal/send.ts helpers, and returns only a generic
--- "if that matches an invite, we've sent a new code" message to the
--- browser regardless of whether anything actually matched — same
--- anti-enumeration shape as a password-reset request.
+-- lib/patient-portal/send.ts helpers.
+--
+-- v2 (folded in): the first version matched by the ORIGINAL invite
+-- channel (email/sms only), which silently excluded "manual" (in-person
+-- code) invites even when that patient has a perfectly good email or
+-- mobile on file — exactly what happened testing with
+-- nicole.islani18@gmail.com (a manual-channel invite whose contact_value
+-- IS a real email, but the old `channel in ('email','sms')` filter
+-- skipped it, so the resend silently did nothing while the UI still said
+-- "we've sent a new code"). Delivery type is now decided by what the
+-- contact value actually looks like (has an "@" → email, otherwise →
+-- SMS), not by whatever channel the original invite happened to use — a
+-- patient asking for a fresh code here clearly wants it delivered
+-- electronically this time, regardless of how the first one went out.
 create or replace function public.resend_patient_portal_invite(p_contact text default null, p_account_id uuid default null)
 returns jsonb
 language plpgsql
@@ -30,6 +40,7 @@ declare
   v_row record;
   v_raw_token text;
   v_otp text;
+  v_is_email boolean;
   v_results jsonb := '[]'::jsonb;
 begin
   if (p_contact is null or trim(p_contact) = '') and p_account_id is null then
@@ -37,20 +48,21 @@ begin
   end if;
 
   for v_row in
-    select ppa.id, ppa.channel, ppa.contact_value,
+    select ppa.id, ppa.contact_value,
       coalesce(p.first_name || ' ' || p.last_name, 'there') as patient_name,
       coalesce(cs.clinic_name, 'Your Clinic') as clinic_name
     from public.patient_portal_accounts ppa
     join public.patients p on p.id = ppa.patient_id
     left join public.clinic_settings cs on cs.tenant_id = ppa.tenant_id
     where ppa.status = 'invited'
-      and ppa.channel in ('email', 'sms')
       and (
         (p_account_id is not null and ppa.id = p_account_id)
         or (p_contact is not null and trim(p_contact) <> '' and lower(trim(ppa.contact_value)) = lower(trim(p_contact)))
       )
   loop
-    if v_row.channel = 'email' then
+    v_is_email := v_row.contact_value like '%@%';
+
+    if v_is_email then
       v_raw_token := encode(gen_random_bytes(24), 'hex');
       v_otp := null;
       update public.patient_portal_accounts
@@ -69,7 +81,7 @@ begin
 
     v_results := v_results || jsonb_build_object(
       'account_id', v_row.id,
-      'channel', v_row.channel,
+      'channel', case when v_is_email then 'email' else 'sms' end,
       'contact_value', v_row.contact_value,
       'patient_name', v_row.patient_name,
       'clinic_name', v_row.clinic_name,

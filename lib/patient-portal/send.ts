@@ -68,6 +68,50 @@ export async function sendPortalSms(opts: { toPhone: string; message: string }) 
   throw new Error(`Live sending for "${settings.provider}" isn't wired up yet — only Semaphore is implemented so far. Switch the platform's SMS provider to Semaphore, or ask for support to add this one.`);
 }
 
+// Durable send-attempt log (migration mycaredesk_portal_send_log) — the
+// patient-facing invite/resend screens necessarily show a generic message
+// regardless of outcome (privacy: never reveal whether a given contact
+// has a real pending invite), so without this there was no way for
+// anyone — Angel included — to tell "no invite matched" apart from
+// "matched, but the email/SMS provider rejected it" apart from "matched,
+// actually sent" after the fact. Best-effort: a logging failure should
+// never break the actual send/response flow, so this only ever logs to
+// the console if the insert itself fails.
+export async function logPortalSendAttempt(opts: {
+  accountId: string | null;
+  tenantId?: string | null;
+  event: "invite" | "resend";
+  channel: "email" | "sms";
+  contactValue: string;
+  status: "sent" | "failed" | "no_match";
+  errorMessage?: string | null;
+}) {
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.from("patient_portal_send_log").insert({
+      account_id: opts.accountId,
+      tenant_id: opts.tenantId ?? null,
+      event: opts.event,
+      channel: opts.channel,
+      contact_masked: maskContact(opts.contactValue),
+      status: opts.status,
+      error_message: opts.errorMessage ?? null,
+    });
+    if (error) console.error("logPortalSendAttempt insert failed:", error.message);
+  } catch (e) {
+    console.error("logPortalSendAttempt failed:", e);
+  }
+}
+
+function maskContact(value: string): string {
+  if (value.includes("@")) {
+    const [user, domain] = value.split("@");
+    return `${user.slice(0, 2)}${"*".repeat(Math.max(user.length - 2, 1))}@${domain}`;
+  }
+  const digits = value.replace(/\D/g, "");
+  return digits.length > 4 ? `${"*".repeat(digits.length - 4)}${digits.slice(-4)}` : value;
+}
+
 // Read-only status checks for clinic-facing screens (e.g.
 // /dashboard/communications) that need to show whether email/SMS are
 // actually live WITHOUT exposing the api_key itself — same service-role
