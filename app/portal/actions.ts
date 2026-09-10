@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizePhMobile, sendPortalEmail, sendPortalSms, logPortalSendAttempt } from "@/lib/patient-portal/send";
-import { requirePatientPortal, ACTIVE_PROFILE_COOKIE } from "@/lib/require-patient-portal";
+import { requirePatientPortal, getMyCaredeskProfileSelection, ACTIVE_PROFILE_COOKIE } from "@/lib/require-patient-portal";
 
 // Same per-file helper used in app/dashboard/patients/actions.ts,
 // app/dashboard/settings/actions.ts, and app/admin/actions.ts (not
@@ -402,8 +402,20 @@ export async function uploadMyPhotoAction(formData: FormData) {
 // (see _resolve_portal_patient_id) — this cookie is a UI convenience for
 // "which tile is highlighted," not a trust boundary, which is why a long
 // expiry is fine here.
+//
+// BUG FIX: this used to call requirePatientPortal() here, which redirects
+// to /portal/switch-profile whenever needsProfileChoice is true — which is
+// EXACTLY the state every first-time pick starts from (2+ profiles, no
+// cookie set yet). That made requirePatientPortal() immediately redirect
+// back to the chooser the caller had just submitted a tile from, before
+// this function ever reached the is_selectable_mycaredesk_profile check or
+// set the cookie — a self-redirect loop that made every profile tile
+// (including "You") look like it just hung. Uses the non-redirecting
+// getMyCaredeskProfileSelection() instead — the same lookup the chooser
+// page itself uses — which only confirms a session exists.
 async function setActiveProfileCookie(accountId: string) {
-  const { supabase } = await requirePatientPortal();
+  const { supabase, user } = await getMyCaredeskProfileSelection();
+  if (!user) throw new Error("Please sign in first.");
 
   const { data: ok, error } = await supabase.rpc("is_selectable_mycaredesk_profile", { p_account_id: accountId });
   if (error) throw new Error(error.message);
