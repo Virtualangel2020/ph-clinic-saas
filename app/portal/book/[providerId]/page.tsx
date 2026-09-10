@@ -18,8 +18,15 @@ import { BookingWizard } from "./booking-wizard";
 // through the SAME public_get_provider_profile RPC the public profile
 // page uses, so this can never offer something the profile didn't
 // already advertise.
-export default async function PortalBookPage({ params }: { params: Promise<{ providerId: string }> }) {
+export default async function PortalBookPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ providerId: string }>;
+  searchParams: Promise<{ followUpId?: string; appointmentTypeId?: string }>;
+}) {
   const { providerId } = await params;
+  const { followUpId, appointmentTypeId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,6 +65,12 @@ export default async function PortalBookPage({ params }: { params: Promise<{ pro
       </h1>
       <p style={{ fontSize: 12.5, color: "#888", marginBottom: 18 }}>{d.clinic.clinic_name}</p>
 
+      {followUpId && (
+        <div style={{ background: "#eef6fb", border: "1px solid #b9d9ec", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#2a5674" }}>
+          Scheduling your requested follow-up visit. Once you confirm a booking below, it'll be marked scheduled.
+        </div>
+      )}
+
       <BookingWizard
         provider={{ id: d.provider.id, fullName: d.provider.full_name, title: d.provider.title }}
         clinicName={d.clinic.clinic_name}
@@ -65,6 +78,8 @@ export default async function PortalBookPage({ params }: { params: Promise<{ pro
         services={d.services ?? []}
         hmos={d.accepted_hmos ?? []}
         financialActive={!!d.clinic.financial_active}
+        followUpId={followUpId ?? null}
+        presetAppointmentTypeId={appointmentTypeId ?? null}
       />
     </PortalShell>
   );

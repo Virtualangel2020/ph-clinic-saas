@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { getLastCompletedEncounter } from "@/lib/patients/last-visit";
 
 // "My Care" hub (spec Part 23) — groups the existing Results/Prescriptions/
 // Records/Authorizations/Forms tabs plus the new Health Profile under one
@@ -16,13 +17,38 @@ const ITEMS = [
   { href: "/portal/forms", label: "My Forms", desc: "Forms your clinic has assigned to you." },
 ];
 
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-PH", { dateStyle: "medium" });
+}
+
 export default async function PatientCarePage() {
-  const { account } = await requirePatientPortal();
+  const { supabase, account } = await requirePatientPortal();
+  const patientId = (account as any).patient_id;
+
+  // Last Visit summary (Task #139, spec Part 33/Design #6) — same
+  // patient-safe fields and single source of truth as the dashboard's
+  // Recent Care card (lib/patients/last-visit), so the two can never show
+  // different answers to "when did I last see my doctor."
+  const lastVisit = await getLastCompletedEncounter(supabase, patientId);
 
   return (
     <PortalShell patientName={(account as any)?.patients?.first_name}>
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>My Care</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Everything about your care, in one place.</p>
+
+      {lastVisit && (
+        <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: 18, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 0, marginBottom: 10 }}>Last Visit</h2>
+          <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
+            <div>
+              <strong>{fmtDate(lastVisit.encounter_date)}</strong> — {lastVisit.encounter_type ?? "Visit"}
+            </div>
+            {lastVisit.chief_complaint && <div style={{ color: "#666" }}>{lastVisit.chief_complaint}</div>}
+            {lastVisit.provider_name && <div style={{ color: "#666" }}>{lastVisit.provider_name}</div>}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         {ITEMS.map((item) => (
           <a

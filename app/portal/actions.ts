@@ -320,3 +320,15 @@ export async function respondToSharingRequestAction(requestId: string, approve: 
   revalidatePath("/portal/authorizations");
   revalidatePath("/portal");
 }
+
+// Patient Dashboard (Phase 2, spec Part 25's "Appointment Rescheduled/
+// Cancelled" card) — dismisses one appointment_status_events row once the
+// patient has seen it, so it never lingers on the dashboard after that
+// (Angel's no-stale-cards principle). patient_acknowledge_status_event
+// re-verifies the row is really this patient's own.
+export async function acknowledgeStatusEventAction(eventId: string) {
+  const { supabase } = await requirePatientPortal();
+  const { error } = await supabase.rpc("patient_acknowledge_status_event", { p_id: eventId });
+  if (error) throw new Error(error.message);
+  revalidatePath("/portal");
+}

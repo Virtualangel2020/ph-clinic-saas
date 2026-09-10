@@ -1,6 +1,7 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
 import { paymongoMode } from "@/lib/patient-paymongo";
+import { getPortalBalanceSummary, pesoLabel } from "@/lib/patients/portal-balance";
 import { PayNowButton } from "./pay-now-button";
 
 const METHOD_LABEL: Record<string, string> = {
@@ -12,41 +13,30 @@ const METHOD_LABEL: Record<string, string> = {
   other: "Other",
 };
 
-function peso(n: number) {
-  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+const peso = pesoLabel;
 
 // My Billing (spec §16, §38-40) — the SAME patient_charges /
 // patient_charge_payments rows the clinic's own Billing tab reads (portal
 // read RLS), plus "Pay Now" for any open charge once the clinic has
 // turned online payments on. Never shows Paid until the verified webhook
 // records it — this page just displays whatever's actually in the ledger.
+// Balance/charge/payment arithmetic comes from the shared
+// lib/patients/portal-balance helper (spec Part 33/Design #6 — "same data
+// everywhere") so this page can never drift from the patient dashboard's
+// numbers.
 export default async function PortalBillingPage() {
   const { supabase, account } = await requirePatientPortal();
   const patientId = (account as any).patient_id;
   const tenantId = (account as any).tenant_id;
 
-  const [{ data: chargesRaw }, { data: paymentsRaw }, { data: clinicSettings }] = await Promise.all([
-    supabase.from("patient_charges").select("id, description, amount_php, bill_type, status, created_at").eq("patient_id", patientId).order("created_at", { ascending: false }),
-    supabase.from("patient_charge_payments").select("id, charge_id, amount_php, method, reference, paid_at").eq("patient_id", patientId).order("paid_at", { ascending: false }),
+  const [{ totalCharged, totalPaid, balance, charges, payments }, { data: clinicSettings }] = await Promise.all([
+    getPortalBalanceSummary(supabase, patientId),
     supabase.from("clinic_settings").select("accept_online_payments, clinic_name").eq("tenant_id", tenantId).maybeSingle(),
   ]);
 
-  const charges = ((chargesRaw as any[]) ?? []).map((c) => ({ ...c, amount_php: Number(c.amount_php) }));
-  const payments = ((paymentsRaw as any[]) ?? []).map((p) => ({ ...p, amount_php: Number(p.amount_php) }));
-  const paidByCharge = new Map<string, number>();
-  for (const p of payments) {
-    if (!p.charge_id) continue;
-    paidByCharge.set(p.charge_id, (paidByCharge.get(p.charge_id) ?? 0) + p.amount_php);
-  }
-
-  const totalCharged = charges.filter((c) => c.status !== "void").reduce((sum, c) => sum + c.amount_php, 0);
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount_php, 0);
-  const balance = Math.max(0, totalCharged - totalPaid);
-
   const mode = paymongoMode();
   const onlinePaymentsAvailable = !!clinicSettings?.accept_online_payments && mode !== "not_configured";
-  const openCharges = charges.filter((c) => c.status !== "void" && (paidByCharge.get(c.id) ?? 0) < c.amount_php);
+  const openCharges = charges.filter((c) => c.isOpen);
 
   return (
     <PortalShell>
@@ -80,9 +70,6 @@ export default async function PortalBillingPage() {
       ) : (
         <div style={{ display: "grid", gap: 8, marginBottom: 20 }}>
           {charges.map((c) => {
-            const paid = paidByCharge.get(c.id) ?? 0;
-            const remaining = Math.max(0, c.amount_php - paid);
-            const isOpen = c.status !== "void" && remaining > 0;
             return (
               <div key={c.id} style={{ background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", opacity: c.status === "void" ? 0.5 : 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
@@ -90,12 +77,12 @@ export default async function PortalBillingPage() {
                     <div style={{ fontSize: 13.5, fontWeight: 700 }}>{c.description}</div>
                     <div style={{ fontSize: 11.5, color: "#888", marginTop: 2 }}>
                       {new Date(c.created_at).toLocaleDateString()}
-                      {c.status === "void" ? " · Voided" : remaining === 0 ? " · Paid in full" : paid > 0 ? " · Partially paid" : " · Unpaid"}
+                      {c.status === "void" ? " · Voided" : c.remainingPhp === 0 ? " · Paid in full" : c.paidPhp > 0 ? " · Partially paid" : " · Unpaid"}
                     </div>
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{peso(c.amount_php)}</div>
                 </div>
-                {isOpen && onlinePaymentsAvailable && (
+                {c.isOpen && onlinePaymentsAvailable && (
                   <div style={{ marginTop: 10 }}>
                     <PayNowButton chargeId={c.id} />
                   </div>

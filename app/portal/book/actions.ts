@@ -139,6 +139,22 @@ export async function submitPortalAppointmentRequestAction(input: { providerId: 
   return data as string;
 }
 
+// Patient Dashboard's "Schedule Follow-Up" deep link (Task #136, spec Part
+// 19/Design #3) — called once a real appointment id exists from either
+// bookAppointmentAction or bookFlexibleOrWalkInAction above, never before.
+// patient_schedule_follow_up re-verifies both the follow-up and the
+// appointment belong to the calling patient and that the follow-up hasn't
+// already been resolved some other way in the meantime; best-effort from
+// the wizard's point of view — a failure here never undoes the booking
+// that already succeeded.
+export async function scheduleFollowUpAction(followUpId: string, appointmentId: string): Promise<{ ok: boolean; error?: string }> {
+  const { supabase } = await requireSignedIn();
+  const { error } = await supabase.rpc("patient_schedule_follow_up", { p_follow_up_id: followUpId, p_appointment_id: appointmentId });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/portal");
+  return { ok: true };
+}
+
 export async function recordPolicyAcknowledgementAction(input: { patientId: string; appointmentId: string | null; policyVersion: number; policySnapshot: any }) {
   const { supabase } = await requirePatientPortal();
   const { data, error } = await supabase.rpc("record_patient_policy_acknowledgement", {

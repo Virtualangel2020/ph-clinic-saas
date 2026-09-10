@@ -1,15 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
-}
-function fmtDateOnly(iso: string) {
-  return new Date(iso).toLocaleDateString("en-PH", { dateStyle: "medium" });
-}
-function fmtTimeOnly(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-PH", { timeStyle: "short" });
-}
+import { appointmentWording } from "@/lib/patients/appointment-wording";
 
 const STATUS_LABEL: Record<string, string> = {
   booked: "Confirmed",
@@ -56,22 +47,10 @@ export default async function PortalAppointmentsPage() {
     const link = isTelehealth ? resolvedLink(a) : null;
     const joinable = link && !["cancelled", "no_show"].includes(a.status);
 
-    // Wording varies by booking_mode (spec Parts 15/17) — a flexible-
-    // arrival or walk-in-intent row's start_at/end_at is that day's whole
-    // clinic-hours window, never a personal slot, so it's shown as a
-    // window/date rather than an exact time.
-    const bookingMode = a.booking_mode ?? "scheduled";
-    let headline: string;
-    let subline: string | null = null;
-    if (bookingMode === "flexible_arrival") {
-      headline = fmtDateOnly(a.start_at);
-      subline = `Flexible arrival: ${fmtTimeOnly(a.start_at)}–${fmtTimeOnly(a.end_at)}${a.expected_arrival_at ? ` · Planned arrival ~${fmtTimeOnly(a.expected_arrival_at)}` : ""} — not a guaranteed time`;
-    } else if (bookingMode === "walk_in_intent") {
-      headline = fmtDateOnly(a.start_at);
-      subline = `Walk-in — available ${fmtTimeOnly(a.start_at)}–${fmtTimeOnly(a.end_at)} — not a guaranteed time`;
-    } else {
-      headline = fmtDate(a.start_at);
-    }
+    // Wording varies by booking_mode (spec Parts 15/17) — shared with the
+    // dashboard's "Coming Up" card via lib/patients/appointment-wording so
+    // the two places never drift (spec Part 33/Design #6).
+    const { headline, subline } = appointmentWording(a);
 
     return (
       <div style={{ background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>

@@ -14,6 +14,7 @@ import {
   submitPortalAppointmentRequestAction,
   recordPolicyAcknowledgementAction,
   checkExistingClinicLinkAction,
+  scheduleFollowUpAction,
 } from "../actions";
 
 type Service = {
@@ -73,6 +74,8 @@ export function BookingWizard({
   services,
   hmos,
   financialActive,
+  followUpId,
+  presetAppointmentTypeId,
 }: {
   provider: { id: string; fullName: string; title: string | null };
   clinicName: string | null;
@@ -80,6 +83,8 @@ export function BookingWizard({
   services: Service[];
   hmos: Hmo[];
   financialActive: boolean;
+  followUpId?: string | null;
+  presetAppointmentTypeId?: string | null;
 }) {
   const router = useRouter();
   // Legacy request flow (bookingType is the raw, still-synced legacy
@@ -98,7 +103,15 @@ export function BookingWizard({
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
   const [confirmedMode, setConfirmedMode] = useState<"scheduled" | "flexible_arrival" | "walk_in_intent" | "request">("scheduled");
 
-  const [serviceId, setServiceId] = useState<string>(services[0]?.id ?? "");
+  // Deep-linked from the dashboard's "Schedule Follow-Up" button (Task
+  // #136) with a specific appointment type preselected, when one is given
+  // — falls back to the first service exactly like before when it isn't
+  // (patient_follow_ups has no appointment_type_id column today, so the
+  // dashboard doesn't send one yet; this stays ready for when it does).
+  const [serviceId, setServiceId] = useState<string>(
+    (presetAppointmentTypeId && services.some((s) => s.id === presetAppointmentTypeId) ? presetAppointmentTypeId : services[0]?.id) ?? ""
+  );
+  const [followUpStamped, setFollowUpStamped] = useState(false);
   const service = services.find((s) => s.id === serviceId) ?? null;
 
   // A visit type whose delivery_mode is "both" needs the patient to pick
@@ -333,6 +346,10 @@ export function BookingWizard({
         if (needsAcknowledgement) {
           await recordPolicyAcknowledgementAction({ patientId, appointmentId: id, policyVersion: effective.cancellationPolicyVersion, policySnapshot: policy });
         }
+        if (followUpId) {
+          const result = await scheduleFollowUpAction(followUpId, id);
+          setFollowUpStamped(result.ok);
+        }
         setConfirmedMode("scheduled");
         setConfirmedId(id);
       } else {
@@ -355,6 +372,10 @@ export function BookingWizard({
         });
         if (needsAcknowledgement) {
           await recordPolicyAcknowledgementAction({ patientId, appointmentId: id, policyVersion: effective.cancellationPolicyVersion, policySnapshot: policy });
+        }
+        if (followUpId) {
+          const result = await scheduleFollowUpAction(followUpId, id);
+          setFollowUpStamped(result.ok);
         }
         setConfirmedMode(bookingMode);
         setConfirmedId(id);
@@ -392,6 +413,7 @@ export function BookingWizard({
           <p style={{ fontSize: 12.5, color: "#888" }}>Please arrive {effective.arrivalReminderMinutes} minutes early.</p>
         )}
         {effective.customInstructions && <p style={{ fontSize: 12.5, color: "#888" }}>{effective.customInstructions}</p>}
+        {followUpId && followUpStamped && <p style={{ fontSize: 12.5, color: "#1a7f37" }}>Your follow-up has also been marked scheduled.</p>}
         <button
           onClick={() => router.push("/portal/appointments")}
           style={{ background: NAVY, color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer" }}
