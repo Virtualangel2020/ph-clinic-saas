@@ -4,6 +4,24 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 
+// Booking is deliberately lighter than requirePatientPortal(): a
+// self-registered patient (platform mycaredesk_accounts identity only, no
+// clinic relationship yet) must be able to reach and complete a booking —
+// per Angel, "the only time patient's account gets linked to a provider
+// is if they book with this certain doctor." requirePatientPortal()
+// requires that clinic link to ALREADY exist, which is exactly backwards
+// for a first-time booking. This only confirms there's a signed-in
+// session; self_book_ensure_clinic_patient (called below, before the real
+// booking RPCs) is what actually creates the clinic-side link on demand.
+async function requireSignedIn() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Please sign in first.");
+  return { supabase, user };
+}
+
 // Availability read — deliberately does NOT require portal auth (the RPC
 // itself is gated to public_directory_enabled providers only, same as
 // the profile) so a not-yet-logged-in visitor bounced to /portal/login
@@ -21,8 +39,24 @@ export async function fetchProviderAvailabilityAction(providerId: string, startD
   } | null;
 }
 
-export async function bookAppointmentAction(input: { providerId: string; appointmentTypeId: string; startAt: string; paymentMethod: string; hmoId: string | null; notes?: string }) {
-  const { supabase } = await requirePatientPortal();
+export async function bookAppointmentAction(input: {
+  providerId: string;
+  appointmentTypeId: string;
+  startAt: string;
+  paymentMethod: string;
+  hmoId: string | null;
+  notes?: string;
+}): Promise<{ id: string; patientId: string }> {
+  const { supabase } = await requireSignedIn();
+
+  // First contact with this clinic? This creates the patients row +
+  // active patient_portal_accounts link from the caller's own
+  // mycaredesk_accounts data. Already connected (booked before, staff
+  // invited them, or they claimed a dedup match)? Idempotent — returns
+  // that same patient, never a second one.
+  const { data: patientId, error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId });
+  if (ensureError) throw new Error(ensureError.message);
+
   const { data, error } = await supabase.rpc("portal_book_appointment", {
     p_provider_id: input.providerId,
     p_appointment_type_id: input.appointmentTypeId,
@@ -33,11 +67,15 @@ export async function bookAppointmentAction(input: { providerId: string; appoint
   });
   if (error) throw new Error(error.message);
   revalidatePath("/portal/appointments");
-  return data as string;
+  return { id: data as string, patientId: patientId as string };
 }
 
 export async function submitPortalAppointmentRequestAction(input: { providerId: string; appointmentTypeName: string; preferredDate: string; preferredTime: string; reason: string }) {
-  const { supabase } = await requirePatientPortal();
+  const { supabase } = await requireSignedIn();
+
+  const { error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId });
+  if (ensureError) throw new Error(ensureError.message);
+
   const { data, error } = await supabase.rpc("portal_submit_appointment_request", {
     p_provider_id: input.providerId,
     p_appointment_type_name: input.appointmentTypeName,

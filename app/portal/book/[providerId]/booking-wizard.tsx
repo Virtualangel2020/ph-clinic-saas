@@ -52,7 +52,6 @@ function cardStyle(): React.CSSProperties {
 }
 
 export function BookingWizard({
-  patientId,
   provider,
   clinicName,
   effective,
@@ -60,7 +59,6 @@ export function BookingWizard({
   hmos,
   financialActive,
 }: {
-  patientId: string;
   provider: { id: string; fullName: string; title: string | null };
   clinicName: string | null;
   effective: EffectivePatientAccessSettings;
@@ -203,7 +201,12 @@ export function BookingWizard({
         if (!selectedDate || selectedStartMin == null || !service) throw new Error("Please choose a date and time.");
         const [y, m, dd] = selectedDate.split("-").map(Number);
         const startAtUtc = new Date(Date.UTC(y, m - 1, dd, 0, 0, 0) - 8 * 60 * 60 * 1000 + selectedStartMin * 60 * 1000);
-        const id = await bookAppointmentAction({
+        // Booking itself creates the clinic-side patient record and portal
+        // link the first time this patient connects with this provider's
+        // clinic (see self_book_ensure_clinic_patient) — so the real
+        // patientId only exists once bookAppointmentAction returns it,
+        // never before.
+        const { id, patientId } = await bookAppointmentAction({
           providerId: provider.id,
           appointmentTypeId: service.id,
           startAt: startAtUtc.toISOString(),

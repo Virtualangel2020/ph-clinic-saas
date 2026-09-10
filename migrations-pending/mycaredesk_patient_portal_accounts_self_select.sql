@@ -1,0 +1,35 @@
+-- CRITICAL FIX, found while chasing why a logged-in patient couldn't get
+-- into the portal: patient_portal_accounts had exactly ONE RLS policy —
+-- "patient_portal_accounts_tenant_select", using (tenant_id =
+-- current_tenant_id()) — and current_tenant_id() looks up tenant_id from
+-- user_profiles for auth.uid(), a table that only contains CLINIC STAFF,
+-- never patients. That means for any real patient session, this policy
+-- always evaluates to `tenant_id = NULL`, which is never true.
+--
+-- requirePatientPortal() (lib/require-patient-portal.ts) — the gate in
+-- front of EVERY page under /portal/* (home, profile, billing,
+-- appointments, authorizations, records, results, prescriptions,
+-- messages, forms, care) — does exactly
+-- `.from("patient_portal_accounts").select(...).eq("auth_user_id",
+-- user.id).eq("status","active").maybeSingle()` through the user's own
+-- session. With RLS blocking that read for every patient, this call
+-- would return no row regardless of the account's real status, and
+-- requirePatientPortal immediately redirects to /portal/login. In other
+-- words: no patient — including one who just successfully activated or
+-- signed in — could ever actually reach the portal after landing here,
+-- because the read that's supposed to confirm they're allowed in was
+-- itself silently blocked by RLS. This is almost certainly why
+-- activation/login has felt broken end-to-end even after the earlier
+-- error-redaction and pgcrypto fixes: those let the ACTIVATION step
+-- complete, but the very next redirect into /portal hit this wall.
+--
+-- Fix: add the missing self-read policy so a patient can see their OWN
+-- row (and only their own — auth_user_id must match their session,
+-- exactly like the existing patients_portal_self_read /
+-- appointments_portal_self_read policies already do for the tables
+-- downstream of this one). Multiple permissive policies on the same
+-- table are OR'd together, so this purely adds patient self-access
+-- without touching the existing staff/tenant policy.
+create policy "patient_portal_accounts_self_select"
+  on public.patient_portal_accounts for select
+  using (auth_user_id = auth.uid());
