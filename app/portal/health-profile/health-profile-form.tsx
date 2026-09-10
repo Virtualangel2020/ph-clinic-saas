@@ -4,6 +4,13 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingButton } from "@/components/loading/loading-button";
 
+// "None vs. not-answered vs. has-entries" (spec Phase 3): a section can be
+// unknown (patient hasn't gotten to it), none (patient explicitly said
+// they have none), or has_entries (at least one item). The server
+// (upsert_my_health_profile) is the actual source of truth for mutual
+// exclusivity — this is just the client mirroring it for a good UI.
+type SectionStatus = "unknown" | "none" | "has_entries";
+
 type Profile = {
   allergies: string[] | null;
   medications: string[] | null;
@@ -17,14 +24,25 @@ type Profile = {
   emergency_contact_name: string | null;
   emergency_contact_relationship: string | null;
   emergency_contact_phone: string | null;
+  allergies_status: string | null;
+  medications_status: string | null;
+  conditions_status: string | null;
+  surgical_history_status: string | null;
+  family_history_status: string | null;
 } | null;
+
+function asStatus(v: string | null | undefined): SectionStatus {
+  return v === "none" || v === "has_entries" ? v : "unknown";
+}
 
 const FIELD_STYLE: React.CSSProperties = { border: "1px solid #ddd", borderRadius: 8, padding: "9px 11px", fontSize: 13.5, width: "100%", boxSizing: "border-box", background: "white" };
 const LABEL_STYLE: React.CSSProperties = { fontSize: 12, color: "#666", marginBottom: 4, display: "block", fontWeight: 600 };
 const HINT_STYLE: React.CSSProperties = { fontSize: 11.5, color: "#999", margin: "-2px 0 8px", lineHeight: 1.4 };
 const ROW_CARD_STYLE: React.CSSProperties = { background: "#fafafa", border: "1px solid #eee", borderRadius: 8, padding: "10px 10px 10px 12px", marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 };
-const ADD_BTN_STYLE: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px dashed #bbb", background: "transparent", color: "var(--brand-primary)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" };
+const DRAFT_CARD_STYLE: React.CSSProperties = { background: "#fbfcff", border: "1px dashed #bbb", borderRadius: 8, padding: "10px 10px 10px 12px", marginBottom: 8, display: "flex", flexDirection: "column", gap: 8 };
+const ADD_BTN_STYLE: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, border: "1px solid var(--brand-primary)", background: "white", color: "var(--brand-primary)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" };
 const REMOVE_BTN_STYLE: React.CSSProperties = { border: "none", background: "transparent", color: "#aaa", cursor: "pointer", fontSize: 17, lineHeight: 1, padding: "0 4px", flexShrink: 0 };
+const COMMITTED_ROW_STYLE: React.CSSProperties = { display: "flex", gap: 8, alignItems: "center", marginBottom: 8, border: "1px solid #eee", borderRadius: 8, padding: "9px 11px", background: "white" };
 
 // ---- Repeatable-entry data shapes -----------------------------------
 // The underlying DB columns are unchanged (allergies/medications/
@@ -61,6 +79,12 @@ function medicationFromLine(s: string): MedicationEntry {
   }
   return { name: rest, dose: "", frequency: "", notes };
 }
+function medicationSummary(m: MedicationEntry): string {
+  const details = [m.dose.trim(), m.frequency.trim()].filter(Boolean).join(", ");
+  let line = details ? `${m.name.trim()} (${details})` : m.name.trim();
+  if (m.notes.trim()) line += ` — ${m.notes.trim()}`;
+  return line;
+}
 
 const FAMILY_SIDES = ["", "Mother's side", "Father's side", "Both sides", "Not sure"];
 type FamilyEntry = { condition: string; relative: string; side: string };
@@ -86,6 +110,10 @@ function familyEntryFromLine(s: string): FamilyEntry {
   }
   return { condition, relative: who, side: "" };
 }
+function familyEntrySummary(e: FamilyEntry): string {
+  const who = [e.relative.trim(), e.side ? `(${e.side})` : ""].filter(Boolean).join(" ");
+  return who ? `${e.condition.trim()} — ${who}` : e.condition.trim();
+}
 
 type SurgeryEntry = { procedure: string; year: string };
 function emptySurgery(): SurgeryEntry {
@@ -102,6 +130,9 @@ function surgeryFromLine(s: string): SurgeryEntry {
   if (m) return { procedure: m[1].trim(), year: m[2].trim() };
   return { procedure: rest, year: "" };
 }
+function surgerySummary(e: SurgeryEntry): string {
+  return e.year.trim() ? `${e.procedure.trim()} (${e.year.trim()})` : e.procedure.trim();
+}
 
 function linesToList(text: string | null | undefined): string[] {
   return (text ?? "")
@@ -111,24 +142,25 @@ function linesToList(text: string | null | undefined): string[] {
 }
 
 // 8 checkpoints for the "X% Complete" indicator (spec Part 4 / Part 11
-// pre-visit readiness) — same 8 checks as before, just measured against
-// the new list shapes instead of raw textarea text.
+// pre-visit readiness). A section explicitly marked "None" counts as
+// answered, same as one with entries — only "unknown" (never touched)
+// counts as incomplete.
 function completion(p: {
-  allergiesCount: number;
-  medicationsCount: number;
-  conditionsCount: number;
-  surgicalCount: number;
-  familyCount: number;
+  allergiesAnswered: boolean;
+  medicationsAnswered: boolean;
+  conditionsAnswered: boolean;
+  surgicalAnswered: boolean;
+  familyAnswered: boolean;
   hmoName: string;
   philhealthNumber: string;
   emergencyContactName: string;
 }): number {
   const checks = [
-    p.allergiesCount > 0,
-    p.medicationsCount > 0,
-    p.conditionsCount > 0,
-    p.surgicalCount > 0,
-    p.familyCount > 0,
+    p.allergiesAnswered,
+    p.medicationsAnswered,
+    p.conditionsAnswered,
+    p.surgicalAnswered,
+    p.familyAnswered,
     p.hmoName.trim().length > 0,
     p.philhealthNumber.trim().length > 0,
     p.emergencyContactName.trim().length > 0,
@@ -139,10 +171,15 @@ function completion(p: {
 
 export function HealthProfileForm({ initial, forAccountId, forName }: { initial: Profile; forAccountId?: string | null; forName?: string | null }) {
   const [allergies, setAllergies] = useState<string[]>(initial?.allergies ?? []);
+  const [allergiesStatus, setAllergiesStatus] = useState<SectionStatus>(asStatus(initial?.allergies_status));
   const [medications, setMedications] = useState<MedicationEntry[]>((initial?.medications ?? []).map(medicationFromLine));
+  const [medicationsStatus, setMedicationsStatus] = useState<SectionStatus>(asStatus(initial?.medications_status));
   const [conditions, setConditions] = useState<string[]>(initial?.conditions ?? []);
+  const [conditionsStatus, setConditionsStatus] = useState<SectionStatus>(asStatus(initial?.conditions_status));
   const [surgicalHistory, setSurgicalHistory] = useState<SurgeryEntry[]>(linesToList(initial?.surgical_history).map(surgeryFromLine));
+  const [surgicalHistoryStatus, setSurgicalHistoryStatus] = useState<SectionStatus>(asStatus(initial?.surgical_history_status));
   const [familyHistory, setFamilyHistory] = useState<FamilyEntry[]>(linesToList(initial?.family_history).map(familyEntryFromLine));
+  const [familyHistoryStatus, setFamilyHistoryStatus] = useState<SectionStatus>(asStatus(initial?.family_history_status));
   const [socialHistory, setSocialHistory] = useState(initial?.social_history ?? "");
   const [hmoName, setHmoName] = useState(initial?.hmo_name ?? "");
   const [hmoNumber, setHmoNumber] = useState(initial?.hmo_number ?? "");
@@ -157,29 +194,54 @@ export function HealthProfileForm({ initial, forAccountId, forName }: { initial:
   const pct = useMemo(
     () =>
       completion({
-        allergiesCount: allergies.filter((a) => a.trim()).length,
-        medicationsCount: medications.filter((m) => m.name.trim()).length,
-        conditionsCount: conditions.filter((c) => c.trim()).length,
-        surgicalCount: surgicalHistory.filter((s) => s.procedure.trim()).length,
-        familyCount: familyHistory.filter((f) => f.condition.trim()).length,
+        allergiesAnswered: allergies.length > 0 || allergiesStatus === "none",
+        medicationsAnswered: medications.some((m) => m.name.trim()) || medicationsStatus === "none",
+        conditionsAnswered: conditions.length > 0 || conditionsStatus === "none",
+        surgicalAnswered: surgicalHistory.some((s) => s.procedure.trim()) || surgicalHistoryStatus === "none",
+        familyAnswered: familyHistory.some((f) => f.condition.trim()) || familyHistoryStatus === "none",
         hmoName,
         philhealthNumber,
         emergencyContactName,
       }),
-    [allergies, medications, conditions, surgicalHistory, familyHistory, hmoName, philhealthNumber, emergencyContactName]
+    [allergies, allergiesStatus, medications, medicationsStatus, conditions, conditionsStatus, surgicalHistory, surgicalHistoryStatus, familyHistory, familyHistoryStatus, hmoName, philhealthNumber, emergencyContactName]
   );
 
-  async function save() {
+  // Persists the whole profile row (the RPC always upserts everything —
+  // there's no per-field endpoint). `overrides` lets a single section's
+  // action (an "Add", a "None" toggle) send its just-changed value
+  // immediately, without waiting for React state to re-render first —
+  // this is what makes clicking "Add" on one entry actually save it right
+  // away, rather than only updating in-memory state until the bottom
+  // "Save" button is pressed.
+  async function persist(
+    overrides: Partial<{
+      allergies: string[];
+      allergiesStatus: SectionStatus;
+      medications: MedicationEntry[];
+      medicationsStatus: SectionStatus;
+      conditions: string[];
+      conditionsStatus: SectionStatus;
+      surgicalHistory: SurgeryEntry[];
+      surgicalHistoryStatus: SectionStatus;
+      familyHistory: FamilyEntry[];
+      familyHistoryStatus: SectionStatus;
+    }> = {}
+  ) {
     setSaving(true);
     setSaved(false);
     setError(null);
     const supabase = createClient();
+    const nextAllergies = overrides.allergies ?? allergies;
+    const nextMedications = overrides.medications ?? medications;
+    const nextConditions = overrides.conditions ?? conditions;
+    const nextSurgical = overrides.surgicalHistory ?? surgicalHistory;
+    const nextFamily = overrides.familyHistory ?? familyHistory;
     const { error } = await supabase.rpc("upsert_my_health_profile", {
-      p_allergies: allergies.map((a) => a.trim()).filter(Boolean),
-      p_medications: medications.map(medicationToLine).filter(Boolean),
-      p_conditions: conditions.map((c) => c.trim()).filter(Boolean),
-      p_surgical_history: surgicalHistory.map(surgeryToLine).filter(Boolean).join("\n"),
-      p_family_history: familyHistory.map(familyEntryToLine).filter(Boolean).join("\n"),
+      p_allergies: nextAllergies.map((a) => a.trim()).filter(Boolean),
+      p_medications: nextMedications.map(medicationToLine).filter(Boolean),
+      p_conditions: nextConditions.map((c) => c.trim()).filter(Boolean),
+      p_surgical_history: nextSurgical.map(surgeryToLine).filter(Boolean).join("\n"),
+      p_family_history: nextFamily.map(familyEntryToLine).filter(Boolean).join("\n"),
       p_social_history: socialHistory,
       p_hmo_name: hmoName,
       p_hmo_number: hmoNumber,
@@ -188,6 +250,11 @@ export function HealthProfileForm({ initial, forAccountId, forName }: { initial:
       p_emergency_contact_relationship: emergencyContactRelationship,
       p_emergency_contact_phone: emergencyContactPhone,
       p_for_account_id: forAccountId ?? null,
+      p_allergies_status: overrides.allergiesStatus ?? allergiesStatus,
+      p_medications_status: overrides.medicationsStatus ?? medicationsStatus,
+      p_conditions_status: overrides.conditionsStatus ?? conditionsStatus,
+      p_surgical_history_status: overrides.surgicalHistoryStatus ?? surgicalHistoryStatus,
+      p_family_history_status: overrides.familyHistoryStatus ?? familyHistoryStatus,
     });
     setSaving(false);
     if (error) {
@@ -198,12 +265,138 @@ export function HealthProfileForm({ initial, forAccountId, forName }: { initial:
     setTimeout(() => setSaved(false), 2500);
   }
 
+  // ---- Per-section action handlers: each "Add" or "None" click commits
+  // to state AND saves immediately, rather than silently queuing until
+  // the bottom Save button is pressed.
+  function addAllergy(value: string) {
+    const next = [...allergies, value];
+    setAllergies(next);
+    setAllergiesStatus("has_entries");
+    persist({ allergies: next, allergiesStatus: "has_entries" });
+  }
+  function removeAllergy(i: number) {
+    const next = allergies.filter((_, idx) => idx !== i);
+    setAllergies(next);
+    persist({ allergies: next });
+  }
+  function setAllergiesNone() {
+    setAllergies([]);
+    setAllergiesStatus("none");
+    persist({ allergies: [], allergiesStatus: "none" });
+  }
+  function undoAllergiesNone() {
+    setAllergiesStatus("unknown");
+    persist({ allergiesStatus: "unknown" });
+  }
+
+  function addMedication(entry: MedicationEntry) {
+    const next = [...medications, entry];
+    setMedications(next);
+    setMedicationsStatus("has_entries");
+    persist({ medications: next, medicationsStatus: "has_entries" });
+  }
+  function removeMedication(i: number) {
+    const next = medications.filter((_, idx) => idx !== i);
+    setMedications(next);
+    persist({ medications: next });
+  }
+  function setMedicationsNone() {
+    setMedications([]);
+    setMedicationsStatus("none");
+    persist({ medications: [], medicationsStatus: "none" });
+  }
+  function undoMedicationsNone() {
+    setMedicationsStatus("unknown");
+    persist({ medicationsStatus: "unknown" });
+  }
+
+  function addCondition(value: string) {
+    const next = [...conditions, value];
+    setConditions(next);
+    setConditionsStatus("has_entries");
+    persist({ conditions: next, conditionsStatus: "has_entries" });
+  }
+  function removeCondition(i: number) {
+    const next = conditions.filter((_, idx) => idx !== i);
+    setConditions(next);
+    persist({ conditions: next });
+  }
+  function setConditionsNone() {
+    setConditions([]);
+    setConditionsStatus("none");
+    persist({ conditions: [], conditionsStatus: "none" });
+  }
+  function undoConditionsNone() {
+    setConditionsStatus("unknown");
+    persist({ conditionsStatus: "unknown" });
+  }
+
+  function addSurgery(entry: SurgeryEntry) {
+    const next = [...surgicalHistory, entry];
+    setSurgicalHistory(next);
+    setSurgicalHistoryStatus("has_entries");
+    persist({ surgicalHistory: next, surgicalHistoryStatus: "has_entries" });
+  }
+  function removeSurgery(i: number) {
+    const next = surgicalHistory.filter((_, idx) => idx !== i);
+    setSurgicalHistory(next);
+    persist({ surgicalHistory: next });
+  }
+  function setSurgicalHistoryNone() {
+    setSurgicalHistory([]);
+    setSurgicalHistoryStatus("none");
+    persist({ surgicalHistory: [], surgicalHistoryStatus: "none" });
+  }
+  function undoSurgicalHistoryNone() {
+    setSurgicalHistoryStatus("unknown");
+    persist({ surgicalHistoryStatus: "unknown" });
+  }
+
+  function addFamilyHistory(entry: FamilyEntry) {
+    const next = [...familyHistory, entry];
+    setFamilyHistory(next);
+    setFamilyHistoryStatus("has_entries");
+    persist({ familyHistory: next, familyHistoryStatus: "has_entries" });
+  }
+  function removeFamilyHistory(i: number) {
+    const next = familyHistory.filter((_, idx) => idx !== i);
+    setFamilyHistory(next);
+    persist({ familyHistory: next });
+  }
+  function setFamilyHistoryNone() {
+    setFamilyHistory([]);
+    setFamilyHistoryStatus("none");
+    persist({ familyHistory: [], familyHistoryStatus: "none" });
+  }
+  function undoFamilyHistoryNone() {
+    setFamilyHistoryStatus("unknown");
+    persist({ familyHistoryStatus: "unknown" });
+  }
+
+  // Bottom "Save" button — for the free-text fields (social history,
+  // insurance, emergency contact) that don't have their own per-entry Add.
+  function save() {
+    persist({});
+  }
+
+  const pdfHref = `/api/portal/health-profile-pdf${forAccountId ? `?forAccountId=${forAccountId}` : ""}`;
+
   return (
     <div>
       <div style={{ background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5, fontWeight: 600, marginBottom: 6, gap: 10, flexWrap: "wrap" }}>
           <span>{forName ? `Health Profile — ${forName}` : "Health Profile"}</span>
-          <span style={{ color: "var(--brand-primary)" }}>{pct}% Complete</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {saving && <span style={{ color: "#999", fontWeight: 500 }}>Saving…</span>}
+            {!saving && saved && <span style={{ color: "#2a8f5a", fontWeight: 500 }}>Saved ✓</span>}
+            <a
+              href={pdfHref}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--brand-primary)", fontWeight: 700, fontSize: 12.5, textDecoration: "none", border: "1px solid var(--brand-primary)", borderRadius: 7, padding: "5px 10px" }}
+            >
+              ⬇ Download PDF
+            </a>
+            <span style={{ color: "var(--brand-primary)" }}>{pct}% Complete</span>
+          </div>
         </div>
         <div style={{ background: "#eee", borderRadius: 999, height: 6, overflow: "hidden" }}>
           <div style={{ background: "var(--brand-primary)", height: "100%", width: `${pct}%`, transition: "width 0.2s" }} />
@@ -221,25 +414,33 @@ export function HealthProfileForm({ initial, forAccountId, forName }: { initial:
           label="Allergies"
           hint="Include medications, food, or anything else you're allergic to."
           items={allergies}
-          onChange={setAllergies}
+          status={allergiesStatus}
+          onAdd={addAllergy}
+          onRemove={removeAllergy}
+          onSetNone={setAllergiesNone}
+          onUndoNone={undoAllergiesNone}
           placeholder="e.g. Penicillin"
-          addLabel="+ Add allergy"
+          noneLabel="known allergies"
         />
 
-        <MedicationsList items={medications} onChange={setMedications} />
+        <MedicationsList items={medications} status={medicationsStatus} onAdd={addMedication} onRemove={removeMedication} onSetNone={setMedicationsNone} onUndoNone={undoMedicationsNone} />
 
         <SimpleAddableList
           label="Medical conditions"
           hint="Ongoing or past diagnoses your doctor should know about."
           items={conditions}
-          onChange={setConditions}
+          status={conditionsStatus}
+          onAdd={addCondition}
+          onRemove={removeCondition}
+          onSetNone={setConditionsNone}
+          onUndoNone={undoConditionsNone}
           placeholder="e.g. Hypertension"
-          addLabel="+ Add condition"
+          noneLabel="medical conditions"
         />
 
-        <SurgicalHistoryList items={surgicalHistory} onChange={setSurgicalHistory} />
+        <SurgicalHistoryList items={surgicalHistory} status={surgicalHistoryStatus} onAdd={addSurgery} onRemove={removeSurgery} onSetNone={setSurgicalHistoryNone} onUndoNone={undoSurgicalHistoryNone} />
 
-        <FamilyHistoryList items={familyHistory} onChange={setFamilyHistory} />
+        <FamilyHistoryList items={familyHistory} status={familyHistoryStatus} onAdd={addFamilyHistory} onRemove={removeFamilyHistory} onSetNone={setFamilyHistoryNone} onUndoNone={undoFamilyHistoryNone} />
 
         <Field label="Other relevant health history">
           <textarea rows={2} value={socialHistory} onChange={(e) => setSocialHistory(e.target.value)} placeholder="Anything else worth mentioning (lifestyle, habits, etc.)" style={{ ...FIELD_STYLE, resize: "vertical" }} />
@@ -293,113 +494,195 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// Simple repeatable list of single-value entries (allergies, conditions) —
-// click "+ Add" to get another row, click × to remove one.
+// "None reported" toggle, shared by every repeatable section. Only shown
+// when the section currently has zero committed entries — an entry
+// existing always implies has_entries (enforced server-side too), so the
+// two states are mutually exclusive by construction.
+function NoneToggle({ status, hasItems, onSetNone, onUndo, noneLabel }: { status: SectionStatus; hasItems: boolean; onSetNone: () => void; onUndo: () => void; noneLabel: string }) {
+  if (hasItems) return null;
+  if (status === "none") {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#f2faf5", border: "1px solid #cbe9d6", borderRadius: 8, padding: "9px 12px", marginBottom: 8 }}>
+        <span style={{ color: "#2a8f5a", fontSize: 12.5, fontWeight: 700 }}>✓ None reported</span>
+        <button type="button" onClick={onUndo} style={{ border: "none", background: "transparent", color: "var(--brand-primary)", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+          Add one instead
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button type="button" onClick={onSetNone} style={{ display: "block", border: "1px solid #ddd", background: "#fafafa", color: "#555", fontSize: 12, fontWeight: 600, borderRadius: 8, padding: "7px 12px", marginBottom: 8, cursor: "pointer" }}>
+      None — I don't have any {noneLabel}
+    </button>
+  );
+}
+
+// Simple repeatable list of single-value entries (allergies, conditions).
+// Committed entries are shown read-only; a new one only joins the list
+// (and saves immediately) once "+ Add" is explicitly clicked.
 function SimpleAddableList({
   label,
   hint,
   items,
-  onChange,
+  status,
+  onAdd,
+  onRemove,
+  onSetNone,
+  onUndoNone,
   placeholder,
-  addLabel,
+  noneLabel,
 }: {
   label: string;
   hint?: string;
   items: string[];
-  onChange: (items: string[]) => void;
+  status: SectionStatus;
+  onAdd: (value: string) => void;
+  onRemove: (i: number) => void;
+  onSetNone: () => void;
+  onUndoNone: () => void;
   placeholder?: string;
-  addLabel: string;
+  noneLabel: string;
 }) {
-  function update(i: number, value: string) {
-    const next = [...items];
-    next[i] = value;
-    onChange(next);
-  }
-  function remove(i: number) {
-    onChange(items.filter((_, idx) => idx !== i));
+  const [draft, setDraft] = useState("");
+  function commit() {
+    const v = draft.trim();
+    if (!v) return;
+    onAdd(v);
+    setDraft("");
   }
   return (
     <div>
       <span style={LABEL_STYLE}>{label}</span>
       {hint && <p style={HINT_STYLE}>{hint}</p>}
+      <NoneToggle status={status} hasItems={items.length > 0} onSetNone={onSetNone} onUndo={onUndoNone} noneLabel={noneLabel} />
       {items.map((val, i) => (
-        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-          <input value={val} onChange={(e) => update(i, e.target.value)} placeholder={placeholder} style={FIELD_STYLE} />
-          <button type="button" onClick={() => remove(i)} style={REMOVE_BTN_STYLE} aria-label={`Remove ${label.toLowerCase()} entry`}>
+        <div key={i} style={COMMITTED_ROW_STYLE}>
+          <span style={{ flex: 1, fontSize: 13.5 }}>{val}</span>
+          <button type="button" onClick={() => onRemove(i)} style={REMOVE_BTN_STYLE} aria-label={`Remove ${label.toLowerCase()} entry`}>
             ×
           </button>
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...items, ""])} style={ADD_BTN_STYLE}>
-        {addLabel}
-      </button>
+      {status !== "none" && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit();
+              }
+            }}
+            placeholder={placeholder}
+            style={FIELD_STYLE}
+          />
+          <button type="button" onClick={commit} disabled={!draft.trim()} style={{ ...ADD_BTN_STYLE, opacity: draft.trim() ? 1 : 0.45, cursor: draft.trim() ? "pointer" : "default" }}>
+            + Add
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // Medications — guided fields so the entry actually tells the doctor what
-// they need (name, dose, how often, optional notes), not just a bare name.
-function MedicationsList({ items, onChange }: { items: MedicationEntry[]; onChange: (items: MedicationEntry[]) => void }) {
-  function update(i: number, patch: Partial<MedicationEntry>) {
-    const next = [...items];
-    next[i] = { ...next[i], ...patch };
-    onChange(next);
-  }
-  function remove(i: number) {
-    onChange(items.filter((_, idx) => idx !== i));
+// they need (name, dose, how often, optional notes). A draft card holds
+// the fields being typed; nothing joins the saved list until "+ Add
+// medication" is clicked.
+function MedicationsList({
+  items,
+  status,
+  onAdd,
+  onRemove,
+  onSetNone,
+  onUndoNone,
+}: {
+  items: MedicationEntry[];
+  status: SectionStatus;
+  onAdd: (entry: MedicationEntry) => void;
+  onRemove: (i: number) => void;
+  onSetNone: () => void;
+  onUndoNone: () => void;
+}) {
+  const [draft, setDraft] = useState<MedicationEntry>(emptyMedication());
+  function commit() {
+    if (!draft.name.trim()) return;
+    onAdd(draft);
+    setDraft(emptyMedication());
   }
   return (
     <div>
       <span style={LABEL_STYLE}>Current medications</span>
       <p style={HINT_STYLE}>Include the dose and how often it's taken — that's what your doctor needs most (e.g. Metformin, 500mg, twice daily).</p>
+      <NoneToggle status={status} hasItems={items.length > 0} onSetNone={onSetNone} onUndo={onUndoNone} noneLabel="current medications" />
       {items.map((m, i) => (
-        <div key={i} style={ROW_CARD_STYLE}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input value={m.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="Medication name (e.g. Metformin)" style={{ ...FIELD_STYLE, flex: 1 }} />
-            <button type="button" onClick={() => remove(i)} style={REMOVE_BTN_STYLE} aria-label="Remove medication">
-              ×
-            </button>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <input value={m.dose} onChange={(e) => update(i, { dose: e.target.value })} placeholder="Dose (e.g. 500mg)" style={FIELD_STYLE} />
-            <input value={m.frequency} onChange={(e) => update(i, { frequency: e.target.value })} placeholder="How often (e.g. twice daily)" style={FIELD_STYLE} />
-          </div>
-          <input value={m.notes} onChange={(e) => update(i, { notes: e.target.value })} placeholder="Notes (optional — e.g. taken with food)" style={FIELD_STYLE} />
+        <div key={i} style={COMMITTED_ROW_STYLE}>
+          <span style={{ flex: 1, fontSize: 13.5 }}>{medicationSummary(m)}</span>
+          <button type="button" onClick={() => onRemove(i)} style={REMOVE_BTN_STYLE} aria-label="Remove medication">
+            ×
+          </button>
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...items, emptyMedication()])} style={ADD_BTN_STYLE}>
-        + Add medication
-      </button>
+      {status !== "none" && (
+        <div style={DRAFT_CARD_STYLE}>
+          <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Medication name (e.g. Metformin)" style={FIELD_STYLE} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <input value={draft.dose} onChange={(e) => setDraft({ ...draft, dose: e.target.value })} placeholder="Dose (e.g. 500mg)" style={FIELD_STYLE} />
+            <input value={draft.frequency} onChange={(e) => setDraft({ ...draft, frequency: e.target.value })} placeholder="How often (e.g. twice daily)" style={FIELD_STYLE} />
+          </div>
+          <input value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} placeholder="Notes (optional — e.g. taken with food)" style={FIELD_STYLE} />
+          <button type="button" onClick={commit} disabled={!draft.name.trim()} style={{ ...ADD_BTN_STYLE, alignSelf: "flex-start", opacity: draft.name.trim() ? 1 : 0.45, cursor: draft.name.trim() ? "pointer" : "default" }}>
+            + Add medication
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // Family history — guided fields so a condition is paired with who had it
-// and which side of the family, not just a bare condition name.
-function FamilyHistoryList({ items, onChange }: { items: FamilyEntry[]; onChange: (items: FamilyEntry[]) => void }) {
-  function update(i: number, patch: Partial<FamilyEntry>) {
-    const next = [...items];
-    next[i] = { ...next[i], ...patch };
-    onChange(next);
-  }
-  function remove(i: number) {
-    onChange(items.filter((_, idx) => idx !== i));
+// and which side of the family. Same draft-then-Add pattern as medications.
+function FamilyHistoryList({
+  items,
+  status,
+  onAdd,
+  onRemove,
+  onSetNone,
+  onUndoNone,
+}: {
+  items: FamilyEntry[];
+  status: SectionStatus;
+  onAdd: (entry: FamilyEntry) => void;
+  onRemove: (i: number) => void;
+  onSetNone: () => void;
+  onUndoNone: () => void;
+}) {
+  const [draft, setDraft] = useState<FamilyEntry>(emptyFamilyEntry());
+  function commit() {
+    if (!draft.condition.trim()) return;
+    onAdd(draft);
+    setDraft(emptyFamilyEntry());
   }
   return (
     <div>
       <span style={LABEL_STYLE}>Family history</span>
       <p style={HINT_STYLE}>List any conditions that run in the family, who had them, and on which side (e.g. Colon cancer — mother's side, your grandmother).</p>
+      <NoneToggle status={status} hasItems={items.length > 0} onSetNone={onSetNone} onUndo={onUndoNone} noneLabel="family history to report" />
       {items.map((f, i) => (
-        <div key={i} style={ROW_CARD_STYLE}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input value={f.condition} onChange={(e) => update(i, { condition: e.target.value })} placeholder="Condition (e.g. Colon cancer)" style={{ ...FIELD_STYLE, flex: 1 }} />
-            <button type="button" onClick={() => remove(i)} style={REMOVE_BTN_STYLE} aria-label="Remove family history entry">
-              ×
-            </button>
-          </div>
+        <div key={i} style={COMMITTED_ROW_STYLE}>
+          <span style={{ flex: 1, fontSize: 13.5 }}>{familyEntrySummary(f)}</span>
+          <button type="button" onClick={() => onRemove(i)} style={REMOVE_BTN_STYLE} aria-label="Remove family history entry">
+            ×
+          </button>
+        </div>
+      ))}
+      {status !== "none" && (
+        <div style={DRAFT_CARD_STYLE}>
+          <input value={draft.condition} onChange={(e) => setDraft({ ...draft, condition: e.target.value })} placeholder="Condition (e.g. Colon cancer)" style={FIELD_STYLE} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <input value={f.relative} onChange={(e) => update(i, { relative: e.target.value })} placeholder="Who (e.g. Mother, Grandfather)" style={FIELD_STYLE} />
-            <select value={f.side} onChange={(e) => update(i, { side: e.target.value })} style={FIELD_STYLE}>
+            <input value={draft.relative} onChange={(e) => setDraft({ ...draft, relative: e.target.value })} placeholder="Who (e.g. Mother, Grandfather)" style={FIELD_STYLE} />
+            <select value={draft.side} onChange={(e) => setDraft({ ...draft, side: e.target.value })} style={FIELD_STYLE}>
               {FAMILY_SIDES.map((s) => (
                 <option key={s || "none"} value={s}>
                   {s || "Side of family (optional)"}
@@ -407,41 +690,64 @@ function FamilyHistoryList({ items, onChange }: { items: FamilyEntry[]; onChange
               ))}
             </select>
           </div>
+          <button
+            type="button"
+            onClick={commit}
+            disabled={!draft.condition.trim()}
+            style={{ ...ADD_BTN_STYLE, alignSelf: "flex-start", opacity: draft.condition.trim() ? 1 : 0.45, cursor: draft.condition.trim() ? "pointer" : "default" }}
+          >
+            + Add family history
+          </button>
         </div>
-      ))}
-      <button type="button" onClick={() => onChange([...items, emptyFamilyEntry()])} style={ADD_BTN_STYLE}>
-        + Add family history
-      </button>
+      )}
     </div>
   );
 }
 
-// Previous surgeries — procedure plus an optional year, so multiple past
-// surgeries are listed individually instead of jammed into one textarea.
-function SurgicalHistoryList({ items, onChange }: { items: SurgeryEntry[]; onChange: (items: SurgeryEntry[]) => void }) {
-  function update(i: number, patch: Partial<SurgeryEntry>) {
-    const next = [...items];
-    next[i] = { ...next[i], ...patch };
-    onChange(next);
-  }
-  function remove(i: number) {
-    onChange(items.filter((_, idx) => idx !== i));
+// Previous surgeries — procedure plus an optional year. Same draft-then-
+// Add pattern as the other guided sections.
+function SurgicalHistoryList({
+  items,
+  status,
+  onAdd,
+  onRemove,
+  onSetNone,
+  onUndoNone,
+}: {
+  items: SurgeryEntry[];
+  status: SectionStatus;
+  onAdd: (entry: SurgeryEntry) => void;
+  onRemove: (i: number) => void;
+  onSetNone: () => void;
+  onUndoNone: () => void;
+}) {
+  const [draft, setDraft] = useState<SurgeryEntry>(emptySurgery());
+  function commit() {
+    if (!draft.procedure.trim()) return;
+    onAdd(draft);
+    setDraft(emptySurgery());
   }
   return (
     <div>
       <span style={LABEL_STYLE}>Previous surgeries</span>
+      <NoneToggle status={status} hasItems={items.length > 0} onSetNone={onSetNone} onUndo={onUndoNone} noneLabel="previous surgeries" />
       {items.map((s, i) => (
-        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-          <input value={s.procedure} onChange={(e) => update(i, { procedure: e.target.value })} placeholder="Procedure (e.g. Appendectomy)" style={{ ...FIELD_STYLE, flex: 2 }} />
-          <input value={s.year} onChange={(e) => update(i, { year: e.target.value })} placeholder="Year (optional)" style={{ ...FIELD_STYLE, flex: 1 }} />
-          <button type="button" onClick={() => remove(i)} style={REMOVE_BTN_STYLE} aria-label="Remove surgery entry">
+        <div key={i} style={COMMITTED_ROW_STYLE}>
+          <span style={{ flex: 1, fontSize: 13.5 }}>{surgerySummary(s)}</span>
+          <button type="button" onClick={() => onRemove(i)} style={REMOVE_BTN_STYLE} aria-label="Remove surgery entry">
             ×
           </button>
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...items, emptySurgery()])} style={ADD_BTN_STYLE}>
-        + Add surgery
-      </button>
+      {status !== "none" && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input value={draft.procedure} onChange={(e) => setDraft({ ...draft, procedure: e.target.value })} placeholder="Procedure (e.g. Appendectomy)" style={{ ...FIELD_STYLE, flex: 2 }} />
+          <input value={draft.year} onChange={(e) => setDraft({ ...draft, year: e.target.value })} placeholder="Year (optional)" style={{ ...FIELD_STYLE, flex: 1 }} />
+          <button type="button" onClick={commit} disabled={!draft.procedure.trim()} style={{ ...ADD_BTN_STYLE, opacity: draft.procedure.trim() ? 1 : 0.45, cursor: draft.procedure.trim() ? "pointer" : "default" }}>
+            + Add
+          </button>
+        </div>
+      )}
     </div>
   );
 }
