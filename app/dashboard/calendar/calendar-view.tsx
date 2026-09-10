@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppointmentForm } from "./appointment-form";
 import { addDays, formatDayLabel, formatMonthLabel, formatTime, monthGridStart, startOfMonth, startOfWeek, toIsoInstant, todayPh } from "./date-utils";
-import { STATUS_GLYPH, STATUS_LABEL, TERMINAL_STATUSES, statusColor } from "./status-constants";
+import { BOOKING_MODE_BADGE, STATUS_GLYPH, STATUS_LABEL, TERMINAL_STATUSES, statusColor } from "./status-constants";
 import { GRID_HEIGHT, GridLines, PX_PER_MIN, TimeAxis, layoutEvents, minutesOfDayPh, nowMinutesPh, useScrollToHour, yToTime } from "./time-grid";
 import type { DayAvailability } from "./availability";
 import { addProviderTimeBlockAction, checkAppointmentConflictsAction, removeProviderTimeBlockAction, saveAppointmentAction, type AppointmentConflict } from "./actions";
@@ -25,6 +25,8 @@ type Appointment = {
   end_at: string;
   status: string;
   notes: string | null;
+  booking_mode?: string | null;
+  expected_arrival_at?: string | null;
   patients: { first_name: string; last_name: string; mobile_phone: string | null } | null;
   user_profiles: { full_name: string } | null;
   appointment_types: { name: string; color: string } | null;
@@ -572,6 +574,11 @@ function GridEventBlock({
   const isMuted = a.status === "cancelled" || a.status === "no_show" || a.status === "late_cancellation";
   const draggable = !TERMINAL_STATUSES.has(a.status);
   const who = a.patients ? `${a.patients.last_name}, ${a.patients.first_name}` : "Unknown patient";
+  // A flexible-arrival/walk-in-intent row's start_at/end_at is that day's
+  // whole clinic-hours window, not a personal slot — the time badge shown
+  // in the block is what tells staff to read it that way rather than as a
+  // strict reserved time (see status-constants.ts's BOOKING_MODE_BADGE).
+  const bookingBadge = a.booking_mode ? BOOKING_MODE_BADGE[a.booking_mode] : undefined;
 
   return (
     <div
@@ -585,7 +592,9 @@ function GridEventBlock({
         e.dataTransfer.setData("text/plain", a.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      title={`${formatTime(a.start_at)}–${formatTime(a.end_at)} · ${who}${a.appointment_types ? ` · ${a.appointment_types.name}` : ""} · ${STATUS_LABEL[a.status] ?? a.status}${draggable ? " · drag to reschedule" : ""}`}
+      title={`${formatTime(a.start_at)}–${formatTime(a.end_at)} · ${who}${a.appointment_types ? ` · ${a.appointment_types.name}` : ""} · ${STATUS_LABEL[a.status] ?? a.status}${
+        bookingBadge ? ` · ${bookingBadge.label}` : ""
+      }${draggable ? " · drag to reschedule" : ""}`}
       style={{
         position: "absolute",
         top,
@@ -607,7 +616,7 @@ function GridEventBlock({
       }}
     >
       <div style={{ fontWeight: 700, color: "var(--text-heading)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-        {formatTime(a.start_at)} {who}
+        {bookingBadge ? `${formatTime(a.start_at)}–${formatTime(a.end_at)}` : formatTime(a.start_at)} {who}
       </div>
       {height > 30 && (a.appointment_types || a.patients?.mobile_phone) && (
         <div style={{ color: "#777", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -621,6 +630,12 @@ function GridEventBlock({
         {STATUS_GLYPH[a.status] ?? ""}
         {height > 42 ? ` ${STATUS_LABEL[a.status] ?? a.status}` : ""}
       </div>
+      {bookingBadge && height > 30 && (
+        <div style={{ color: "#7a5c12", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {bookingBadge.glyph} {bookingBadge.label}
+          {a.expected_arrival_at ? ` · ~${formatTime(a.expected_arrival_at)}` : ""}
+        </div>
+      )}
     </div>
   );
 }

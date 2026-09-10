@@ -7,7 +7,10 @@
 // sub-page fetches this full row and spreads it unchanged except for the
 // specific fields that page owns.
 export type ClinicPatientAccessRow = {
-  default_booking_type: string;
+  online_booking_enabled: boolean;
+  booking_style: "specific_times" | "flexible_arrival" | "walk_in";
+  flexible_arrival_interval_minutes: number | null;
+  flexible_arrival_max_patients_per_day: number | null;
   default_prioritize_scheduled: boolean;
   booking_cutoff_minutes: number;
   max_advance_booking_days: number;
@@ -27,10 +30,13 @@ export type ClinicPatientAccessRow = {
 };
 
 export const CLINIC_PATIENT_ACCESS_COLUMNS =
-  "default_booking_type, default_prioritize_scheduled, booking_cutoff_minutes, max_advance_booking_days, default_arrival_reminder_enabled, default_arrival_reminder_minutes, default_appointment_instructions, default_messaging_enabled, default_messaging_audience, default_messaging_availability_mode, default_messaging_before_days, default_messaging_after_days, default_messaging_outside_hours_behavior, default_messaging_disclaimer, accept_hmo, accept_yakap, yakap_instructions";
+  "online_booking_enabled, booking_style, flexible_arrival_interval_minutes, flexible_arrival_max_patients_per_day, default_prioritize_scheduled, booking_cutoff_minutes, max_advance_booking_days, default_arrival_reminder_enabled, default_arrival_reminder_minutes, default_appointment_instructions, default_messaging_enabled, default_messaging_audience, default_messaging_availability_mode, default_messaging_before_days, default_messaging_after_days, default_messaging_outside_hours_behavior, default_messaging_disclaimer, accept_hmo, accept_yakap, yakap_instructions";
 
 export const CLINIC_PATIENT_ACCESS_DEFAULTS: ClinicPatientAccessRow = {
-  default_booking_type: "both",
+  online_booking_enabled: true,
+  booking_style: "specific_times",
+  flexible_arrival_interval_minutes: null,
+  flexible_arrival_max_patients_per_day: null,
   default_prioritize_scheduled: false,
   booking_cutoff_minutes: 0,
   max_advance_booking_days: 30,
@@ -51,7 +57,10 @@ export const CLINIC_PATIENT_ACCESS_DEFAULTS: ClinicPatientAccessRow = {
 
 export function toDefaultsActionInput(row: ClinicPatientAccessRow) {
   return {
-    defaultBookingType: row.default_booking_type,
+    onlineBookingEnabled: row.online_booking_enabled,
+    bookingStyle: row.booking_style,
+    flexibleArrivalIntervalMinutes: row.flexible_arrival_interval_minutes,
+    flexibleArrivalMaxPatientsPerDay: row.flexible_arrival_max_patients_per_day,
     defaultPrioritizeScheduled: row.default_prioritize_scheduled,
     bookingCutoffMinutes: row.booking_cutoff_minutes,
     maxAdvanceBookingDays: row.max_advance_booking_days,
@@ -78,7 +87,10 @@ export function toDefaultsActionInput(row: ClinicPatientAccessRow) {
 // nulling them out.
 export type ProviderOverrideRow = {
   provider_id: string;
-  booking_type: string | null;
+  online_booking_enabled: boolean | null;
+  booking_style: "specific_times" | "flexible_arrival" | "walk_in" | null;
+  flexible_arrival_interval_minutes: number | null;
+  flexible_arrival_max_patients_per_day: number | null;
   prioritize_scheduled: boolean | null;
   booking_cutoff_minutes: number | null;
   max_advance_booking_days: number | null;
@@ -99,7 +111,10 @@ export type ProviderOverrideRow = {
 export function emptyOverride(providerId: string): ProviderOverrideRow {
   return {
     provider_id: providerId,
-    booking_type: null,
+    online_booking_enabled: null,
+    booking_style: null,
+    flexible_arrival_interval_minutes: null,
+    flexible_arrival_max_patients_per_day: null,
     prioritize_scheduled: null,
     booking_cutoff_minutes: null,
     max_advance_booking_days: null,
@@ -121,7 +136,10 @@ export function emptyOverride(providerId: string): ProviderOverrideRow {
 export function toOverrideActionInput(row: ProviderOverrideRow) {
   return {
     providerId: row.provider_id,
-    bookingType: row.booking_type,
+    onlineBookingEnabled: row.online_booking_enabled,
+    bookingStyle: row.booking_style,
+    flexibleArrivalIntervalMinutes: row.flexible_arrival_interval_minutes,
+    flexibleArrivalMaxPatientsPerDay: row.flexible_arrival_max_patients_per_day,
     prioritizeScheduled: row.prioritize_scheduled,
     bookingCutoffMinutes: row.booking_cutoff_minutes,
     maxAdvanceBookingDays: row.max_advance_booking_days,

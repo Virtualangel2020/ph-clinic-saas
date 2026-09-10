@@ -86,3 +86,17 @@ export const STATUS_FLOW: { key: AppointmentStatus; label: string }[] = [
 export function statusColor(colors: Record<string, string> | undefined, status: string): string {
   return colors?.[status] ?? DEFAULT_STATUS_COLORS[status] ?? "#888";
 }
+
+// Booking style badge (Angel's booking-style spec, Part 33/Phase 1 task
+// #132) — a SEPARATE vocabulary from appointment status above.
+// appointments.booking_mode says HOW the patient reserved this slot
+// (an exact time vs. a whole day's clinic-hours window); it's additive and
+// defaults to "scheduled" for every pre-existing row, so most appointments
+// never show a badge at all — only flexible-arrival/walk-in-intent rows
+// (which span the day's full window, not a personal slot) get one, so
+// staff scanning the calendar can immediately tell those apart from a real
+// reserved time.
+export const BOOKING_MODE_BADGE: Record<string, { label: string; glyph: string } | undefined> = {
+  flexible_arrival: { label: "Flexible Arrival", glyph: "~" },
+  walk_in_intent: { label: "Walk-In Intent", glyph: "⚑" },
+};

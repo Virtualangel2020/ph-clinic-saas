@@ -2,12 +2,10 @@ import Link from "next/link";
 import { requireClinicMember } from "@/lib/require-clinic-member";
 import { BackLink } from "@/components/back-link";
 
-const BOOKING_TYPE_LABEL: Record<string, string> = {
+const BOOKING_STYLE_LABEL: Record<string, string> = {
+  specific_times: "Specific Appointment Times",
+  flexible_arrival: "Flexible Arrival Window",
   walk_in: "Walk-In Only",
-  appointment: "Appointment Only",
-  both: "Walk-In + Appointment",
-  appointment_request: "Appointment Request",
-  flexible: "Flexible / Variable Schedule",
 };
 
 // Settings → Patient Access & Payments hub (spec §1-2). Six cards, not one
@@ -24,7 +22,7 @@ export default async function PatientAccessHubPage() {
     supabase
       .from("clinic_settings")
       .select(
-        "default_booking_type, accept_hmo, accept_yakap, default_messaging_enabled, cancellation_policy, patient_access_setup_completed, accept_online_payments"
+        "online_booking_enabled, booking_style, accept_hmo, accept_yakap, default_messaging_enabled, cancellation_policy, patient_access_setup_completed, accept_online_payments"
       )
       .eq("tenant_id", tenantId)
       .maybeSingle(),
@@ -45,7 +43,7 @@ export default async function PatientAccessHubPage() {
       href: "/dashboard/settings/patient-access/booking",
       title: "Booking, Availability & Instructions",
       desc: "How patients reach each provider, cutoffs, arrival reminders, and custom instructions.",
-      status: `${BOOKING_TYPE_LABEL[cs?.default_booking_type] ?? "Not set"} · ${providerOverrideCount ?? 0}/${activeProviderCount ?? 0} providers customized`,
+      status: `${cs?.online_booking_enabled === false ? "Online booking OFF" : BOOKING_STYLE_LABEL[cs?.booking_style] ?? "Not set"} · ${providerOverrideCount ?? 0}/${activeProviderCount ?? 0} providers customized`,
     },
     {
       href: "/dashboard/settings/patient-access/services",

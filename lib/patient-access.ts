@@ -7,8 +7,14 @@
 // inline — a NULL column on provider_patient_access_settings always means
 // "use the clinic_settings value," never a hardcoded fallback.
 
+export type BookingStyle = "specific_times" | "flexible_arrival" | "walk_in";
+
 export type ClinicDefaultsRow = {
   default_booking_type: string;
+  online_booking_enabled: boolean;
+  booking_style: BookingStyle;
+  flexible_arrival_interval_minutes: number | null;
+  flexible_arrival_max_patients_per_day: number | null;
   default_prioritize_scheduled: boolean;
   booking_cutoff_minutes: number;
   max_advance_booking_days: number;
@@ -33,6 +39,10 @@ export type ClinicDefaultsRow = {
 export type ProviderOverrideRow = {
   provider_id: string;
   booking_type: string | null;
+  online_booking_enabled: boolean | null;
+  booking_style: BookingStyle | null;
+  flexible_arrival_interval_minutes: number | null;
+  flexible_arrival_max_patients_per_day: number | null;
   prioritize_scheduled: boolean | null;
   booking_cutoff_minutes: number | null;
   max_advance_booking_days: number | null;
@@ -54,6 +64,10 @@ export type ProviderOverrideRow = {
 
 export type EffectivePatientAccessSettings = {
   bookingType: string;
+  onlineBookingEnabled: boolean;
+  bookingStyle: BookingStyle;
+  flexibleArrivalIntervalMinutes: number | null;
+  flexibleArrivalMaxPatientsPerDay: number | null;
   prioritizeScheduled: boolean;
   bookingCutoffMinutes: number;
   maxAdvanceBookingDays: number;
@@ -81,6 +95,10 @@ function pick<T>(override: T | null | undefined, fallback: T): T {
 export function resolveEffectiveSettings(clinic: ClinicDefaultsRow, override: ProviderOverrideRow): EffectivePatientAccessSettings {
   return {
     bookingType: pick(override?.booking_type, clinic.default_booking_type),
+    onlineBookingEnabled: pick(override?.online_booking_enabled, clinic.online_booking_enabled),
+    bookingStyle: pick(override?.booking_style, clinic.booking_style),
+    flexibleArrivalIntervalMinutes: pick(override?.flexible_arrival_interval_minutes, clinic.flexible_arrival_interval_minutes),
+    flexibleArrivalMaxPatientsPerDay: pick(override?.flexible_arrival_max_patients_per_day, clinic.flexible_arrival_max_patients_per_day),
     prioritizeScheduled: pick(override?.prioritize_scheduled, clinic.default_prioritize_scheduled),
     bookingCutoffMinutes: pick(override?.booking_cutoff_minutes, clinic.booking_cutoff_minutes),
     maxAdvanceBookingDays: pick(override?.max_advance_booking_days, clinic.max_advance_booking_days),
@@ -122,6 +140,57 @@ export const BOOKING_TYPE_LABEL: Record<string, string> = {
 
 // Whether this provider's booking type supports the real slot-picking
 // flow at all (vs. walk-in-only / flexible, which never show a calendar).
+// Kept for surfaces not yet migrated to booking_style (Find a Doctor
+// directory/profile pages) — see deriveLegacyBookingType below for how
+// booking_type keeps getting a sensible value going forward.
 export function supportsSlotBooking(bookingType: string): boolean {
   return bookingType === "appointment" || bookingType === "both" || bookingType === "appointment_request";
+}
+
+// ── Booking style (Angel's consolidated spec) ──────────────────────────────
+// Patient-facing wording for each of the three real booking styles. Used by
+// the portal booking wizard and provider settings preview.
+export const BOOKING_STYLE_LABEL: Record<BookingStyle, string> = {
+  specific_times: "Specific Appointment Times",
+  flexible_arrival: "Flexible Arrival Window",
+  walk_in: "Walk-In Only",
+};
+
+export const BOOKING_STYLE_DESCRIPTION: Record<BookingStyle, string> = {
+  specific_times: "Patients choose an available appointment time from your calendar.",
+  flexible_arrival: "Patients choose a day and indicate when they plan to arrive within your available clinic hours.",
+  walk_in: "Patients can't reserve a specific time — they see your available clinic/walk-in hours instead.",
+};
+
+export const BOOKING_STYLE_PATIENT_WORDING: Record<BookingStyle, string> = {
+  specific_times: "Choose an available appointment time.",
+  flexible_arrival: "This clinic uses flexible arrival times. You may arrive during the available clinic hours — your exact consultation time may vary.",
+  walk_in: "No appointment required — walk in during the clinic's available hours.",
+};
+
+// Telehealth precedence (spec Part 7 / 12): a telehealth visit always uses
+// the specific-times booking flow, regardless of the provider's overall
+// booking style — only an in-person visit follows the provider's chosen
+// style. `chosenDelivery` is only needed when the appointment type's
+// delivery_mode is "both" (patient must pick one first).
+export function effectiveBookingStyleForVisit(
+  settings: EffectivePatientAccessSettings,
+  deliveryMode: "in_person" | "telehealth" | "both",
+  chosenDelivery?: "in_person" | "telehealth"
+): BookingStyle {
+  const isTelehealth = deliveryMode === "telehealth" || (deliveryMode === "both" && chosenDelivery === "telehealth");
+  return isTelehealth ? "specific_times" : settings.bookingStyle;
+}
+
+// Derives a sensible legacy booking_type/default_booking_type value from
+// the new booking_style + online_booking_enabled model, so surfaces that
+// still read the legacy column (Find a Doctor directory list/profile
+// badges and filters — unchanged in this pass) keep behaving correctly
+// without needing their own migration. NULL in -> NULL out (an
+// unset provider override should stay unset, not synthesize a value).
+export function deriveLegacyBookingType(bookingStyle: BookingStyle | null, onlineBookingEnabled: boolean | null): string | null {
+  if (bookingStyle === null || bookingStyle === undefined) return null;
+  if (onlineBookingEnabled === false) return "flexible"; // legacy's only "patients can't self-book" value
+  if (bookingStyle === "walk_in") return "walk_in";
+  return "appointment"; // specific_times and flexible_arrival (online booking on) both read as "bookable" to legacy consumers
 }

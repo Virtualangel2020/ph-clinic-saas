@@ -4,6 +4,12 @@ import { PortalShell } from "@/components/portal-shell";
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
 }
+function fmtDateOnly(iso: string) {
+  return new Date(iso).toLocaleDateString("en-PH", { dateStyle: "medium" });
+}
+function fmtTimeOnly(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-PH", { timeStyle: "short" });
+}
 
 const STATUS_LABEL: Record<string, string> = {
   booked: "Confirmed",
@@ -14,7 +20,8 @@ const STATUS_LABEL: Record<string, string> = {
   no_show: "No show",
 };
 
-const SELECT_COLS = "id, start_at, status, notes, provider_id, telehealth_link_override, user_profiles(full_name, title), appointment_types(name, delivery_mode)";
+const SELECT_COLS =
+  "id, start_at, end_at, status, notes, provider_id, booking_mode, expected_arrival_at, telehealth_link_override, user_profiles(full_name, title), appointment_types(name, delivery_mode)";
 
 // My Appointments (spec §15) — the same `appointments` rows the clinic's
 // own Calendar and the chart's Appointments tab use, filtered to this one
@@ -49,10 +56,28 @@ export default async function PortalAppointmentsPage() {
     const link = isTelehealth ? resolvedLink(a) : null;
     const joinable = link && !["cancelled", "no_show"].includes(a.status);
 
+    // Wording varies by booking_mode (spec Parts 15/17) — a flexible-
+    // arrival or walk-in-intent row's start_at/end_at is that day's whole
+    // clinic-hours window, never a personal slot, so it's shown as a
+    // window/date rather than an exact time.
+    const bookingMode = a.booking_mode ?? "scheduled";
+    let headline: string;
+    let subline: string | null = null;
+    if (bookingMode === "flexible_arrival") {
+      headline = fmtDateOnly(a.start_at);
+      subline = `Flexible arrival: ${fmtTimeOnly(a.start_at)}–${fmtTimeOnly(a.end_at)}${a.expected_arrival_at ? ` · Planned arrival ~${fmtTimeOnly(a.expected_arrival_at)}` : ""} — not a guaranteed time`;
+    } else if (bookingMode === "walk_in_intent") {
+      headline = fmtDateOnly(a.start_at);
+      subline = `Walk-in — available ${fmtTimeOnly(a.start_at)}–${fmtTimeOnly(a.end_at)} — not a guaranteed time`;
+    } else {
+      headline = fmtDate(a.start_at);
+    }
+
     return (
       <div style={{ background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
         <div>
-          <strong style={{ fontSize: 13.5 }}>{fmtDate(a.start_at)}</strong>
+          <strong style={{ fontSize: 13.5 }}>{headline}</strong>
+          {subline && <div style={{ color: "#888", fontSize: 11.5, fontStyle: "italic", marginTop: 2 }}>{subline}</div>}
           <div style={{ color: "#666", fontSize: 12.5, marginTop: 3 }}>
             {a.appointment_types?.name ?? "Consultation"}
             {a.user_profiles ? ` · ${a.user_profiles.title ? a.user_profiles.title + " " : ""}${a.user_profiles.full_name}` : ""}

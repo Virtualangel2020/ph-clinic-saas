@@ -4,7 +4,7 @@ import { CoverageManager } from "./coverage-manager";
 import { CLINIC_PATIENT_ACCESS_COLUMNS, CLINIC_PATIENT_ACCESS_DEFAULTS, ClinicPatientAccessRow, ProviderOverrideRow } from "../shared";
 
 const PROVIDER_OVERRIDE_COLUMNS =
-  "provider_id, booking_type, prioritize_scheduled, booking_cutoff_minutes, max_advance_booking_days, arrival_reminder_enabled, arrival_reminder_minutes, custom_instructions, accept_hmo, accept_yakap, messaging_enabled, messaging_audience, messaging_availability_mode, messaging_before_days, messaging_after_days, messaging_outside_hours_behavior, messaging_disclaimer";
+  "provider_id, online_booking_enabled, booking_style, flexible_arrival_interval_minutes, flexible_arrival_max_patients_per_day, prioritize_scheduled, booking_cutoff_minutes, max_advance_booking_days, arrival_reminder_enabled, arrival_reminder_minutes, custom_instructions, accept_hmo, accept_yakap, messaging_enabled, messaging_audience, messaging_availability_mode, messaging_before_days, messaging_after_days, messaging_outside_hours_behavior, messaging_disclaimer";
 
 // HMO / YAKAP / Coverage (spec §22-28). Clinic admin curates which HMOs
 // the clinic accepts at all (clinic_accepted_hmos); a provider only needs

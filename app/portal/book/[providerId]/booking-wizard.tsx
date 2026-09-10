@@ -6,8 +6,15 @@ import { buildAvailability, type DateAvailabilityRow, type ScheduleRow, type Tim
 import { classifyDate, computeBookableSlots, cutsFor, type DateBookingStatus } from "@/app/dashboard/calendar/bookable-slots";
 import { addDays, formatDayLabel, formatMonthLabel, monthGridStart, startOfMonth, todayPh } from "@/app/dashboard/calendar/date-utils";
 import { minutesOfDayPh } from "@/app/dashboard/calendar/time-grid";
-import type { EffectivePatientAccessSettings } from "@/lib/patient-access";
-import { fetchProviderAvailabilityAction, bookAppointmentAction, submitPortalAppointmentRequestAction, recordPolicyAcknowledgementAction, checkExistingClinicLinkAction } from "../actions";
+import { effectiveBookingStyleForVisit, type EffectivePatientAccessSettings, type BookingStyle } from "@/lib/patient-access";
+import {
+  fetchProviderAvailabilityAction,
+  bookAppointmentAction,
+  bookFlexibleOrWalkInAction,
+  submitPortalAppointmentRequestAction,
+  recordPolicyAcknowledgementAction,
+  checkExistingClinicLinkAction,
+} from "../actions";
 
 type Service = {
   id: string;
@@ -20,12 +27,20 @@ type Service = {
   show_price_to_patient: boolean;
   allow_advance_payment: boolean;
   require_advance_payment: boolean;
+  delivery_mode: "in_person" | "telehealth" | "both";
 };
 type Hmo = { id: string; hmo_name: string; verification_requirement: string; patient_instructions: string | null };
 
 const NAVY = "var(--brand-primary)";
-const STEPS_SLOT = ["Choose Visit", "Choose Date", "Choose Time", "How Will You Pay?", "Review"];
 const STEPS_REQUEST = ["Choose Visit", "Preferred Time", "How Will You Pay?", "Review"];
+
+// Convert a PH-local date + minutes-of-day into a UTC ISO timestamp — same
+// math bookAppointmentAction's startAtUtc already used, pulled out so the
+// flexible-arrival/walk-in window calculation below can reuse it.
+function phMinutesToUtcIso(dateStr: string, minutesOfDay: number): string {
+  const [y, m, dd] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, dd, 0, 0, 0) - 8 * 60 * 60 * 1000 + minutesOfDay * 60 * 1000).toISOString();
+}
 
 function peso(n: number) {
   return `₱${Number(n).toLocaleString("en-PH")}`;
@@ -67,16 +82,48 @@ export function BookingWizard({
   financialActive: boolean;
 }) {
   const router = useRouter();
+  // Legacy request flow (bookingType is the raw, still-synced legacy
+  // column — see deriveLegacyBookingType) is left exactly as it was before
+  // this phase; it's a per-provider "requires clinic confirmation" flow
+  // that predates booking_style and isn't part of Angel's new 3-style
+  // model. Every other provider goes through the new dynamic flow below,
+  // which picks specific-times / flexible-arrival / walk-in per visit —
+  // including forcing specific-times for a telehealth visit regardless of
+  // the provider's overall style (spec Part 7).
   const isRequestFlow = effective.bookingType === "appointment_request";
-  const STEPS = isRequestFlow ? STEPS_REQUEST : STEPS_SLOT;
 
   const [step, setStep] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmedId, setConfirmedId] = useState<string | null>(null);
+  const [confirmedMode, setConfirmedMode] = useState<"scheduled" | "flexible_arrival" | "walk_in_intent" | "request">("scheduled");
 
   const [serviceId, setServiceId] = useState<string>(services[0]?.id ?? "");
   const service = services.find((s) => s.id === serviceId) ?? null;
+
+  // A visit type whose delivery_mode is "both" needs the patient to pick
+  // in-person vs. telehealth before we know which booking style applies —
+  // telehealth always forces specific-times (spec Part 7), in-person
+  // follows the provider's chosen style.
+  const [deliveryChoice, setDeliveryChoice] = useState<"in_person" | "telehealth" | null>(null);
+  const includeDeliveryChoice = !isRequestFlow && service?.delivery_mode === "both";
+  const visitStyle: BookingStyle = service ? effectiveBookingStyleForVisit(effective, service.delivery_mode, deliveryChoice ?? undefined) : effective.bookingStyle;
+
+  const STEPS = useMemo(() => {
+    if (isRequestFlow) return STEPS_REQUEST;
+    const s = ["Choose Visit"];
+    if (includeDeliveryChoice) s.push("In-Person or Telehealth?");
+    if (visitStyle === "specific_times") s.push("Choose Date", "Choose Time");
+    else if (visitStyle === "flexible_arrival") s.push("Choose Day");
+    else s.push("Plan Your Visit");
+    s.push("How Will You Pay?", "Review");
+    return s;
+  }, [isRequestFlow, includeDeliveryChoice, visitStyle]);
+
+  const deliveryStepIndex = includeDeliveryChoice ? 1 : -1;
+  const bodyStepStart = includeDeliveryChoice ? 2 : 1;
+  const dateStepIndex = bodyStepStart; // "Choose Date" (specific_times) / "Choose Day" (flexible_arrival) / "Plan Your Visit" (walk_in)
+  const timeStepIndex = visitStyle === "specific_times" ? bodyStepStart + 1 : -1;
 
   // Slot-booking state
   const [month, setMonth] = useState(todayPh().slice(0, 7) + "-01");
@@ -84,6 +131,8 @@ export function BookingWizard({
   const [loadingAvail, setLoadingAvail] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedStartMin, setSelectedStartMin] = useState<number | null>(null);
+  const [expectedArrivalMin, setExpectedArrivalMin] = useState<number | null>(null);
+  const [visitNotes, setVisitNotes] = useState("");
 
   // Request-flow state
   const [preferredDate, setPreferredDate] = useState("");
@@ -112,7 +161,7 @@ export function BookingWizard({
   }, [provider.id]);
 
   useEffect(() => {
-    if (step !== 1 || isRequestFlow) return;
+    if (step !== dateStepIndex || isRequestFlow) return;
     setLoadingAvail(true);
     const gridStart = monthGridStart(month);
     const rangeEnd = addDays(gridStart, 42);
@@ -120,19 +169,45 @@ export function BookingWizard({
       .then(setAvailability)
       .catch((e) => setError(e.message))
       .finally(() => setLoadingAvail(false));
-  }, [step, month, provider.id, isRequestFlow]);
+  }, [step, dateStepIndex, month, provider.id, isRequestFlow]);
 
-  const grid = useMemo(() => {
-    if (!availability || !service) return [];
+  // Switching which style applies (e.g. the patient picks Telehealth on
+  // the delivery-choice step, or changes visit type) invalidates whatever
+  // date/time was picked under the previous style — never carry a stale
+  // selection into a different flow's confirm() logic.
+  useEffect(() => {
+    setSelectedDate(null);
+    setSelectedStartMin(null);
+    setExpectedArrivalMin(null);
+  }, [visitStyle]);
+
+  // Shared per-day availability build, reused by the calendar grid, the
+  // slot list, and the flexible-arrival/walk-in window calculation below —
+  // one buildAvailability call per render instead of three.
+  const builtAvail = useMemo(() => {
+    if (!availability) return null;
     const gridStart = monthGridStart(month);
     const dates = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
-    const avail = buildAvailability(
-      [provider.id],
+    return {
       dates,
-      availability.schedules.map((s) => ({ id: "", provider_id: provider.id, ...s })) as ScheduleRow[],
-      availability.date_availability.map((d) => ({ id: "", provider_id: provider.id, ...d })) as DateAvailabilityRow[],
-      availability.time_blocks.map((b) => ({ id: "", provider_id: provider.id, reason: null, ...b })) as TimeBlockRow[]
-    );
+      avail: buildAvailability(
+        [provider.id],
+        dates,
+        availability.schedules.map((s) => ({ id: "", provider_id: provider.id, ...s })) as ScheduleRow[],
+        availability.date_availability.map((d) => ({ id: "", provider_id: provider.id, ...d })) as DateAvailabilityRow[],
+        availability.time_blocks.map((b) => ({ id: "", provider_id: provider.id, reason: null, ...b })) as TimeBlockRow[]
+      ),
+    };
+  }, [availability, month, provider.id]);
+
+  const flexibleCountByDate = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of availability?.flexible_arrival_daily_counts ?? []) m.set(c.date, c.count);
+    return m;
+  }, [availability]);
+
+  const grid = useMemo(() => {
+    if (!availability || !service || !builtAvail) return [];
     const busyByDate = new Map<string, { startMin: number; endMin: number }[]>();
     for (const b of availability.busy) {
       const phDate = new Date(new Date(b.start_at).getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -140,26 +215,47 @@ export function BookingWizard({
       busyByDate.get(phDate)!.push({ startMin: minutesOfDayPh(b.start_at), endMin: minutesOfDayPh(b.end_at) });
     }
     const currentMonth = month.slice(0, 7);
-    return dates.map((d) => {
-      const dayAvail = avail[provider.id]?.[d];
+    return builtAvail.dates.map((d) => {
+      const dayAvail = builtAvail.avail[provider.id]?.[d];
       const cuts = cutsFor(dayAvail, busyByDate.get(d) ?? []);
-      const status = classifyDate(dayAvail?.ranges ?? [], cuts, service.default_duration_minutes);
+      let status = classifyDate(dayAvail?.ranges ?? [], cuts, visitStyle === "specific_times" ? service.default_duration_minutes : 1);
+      // Flexible-arrival capacity is a day-level cap, not a slot-duration
+      // question — a day with open hours but at capacity still reads "red"
+      // (Fully Booked) even though classifyDate alone would call it green.
+      if (status === "green" && visitStyle === "flexible_arrival" && effective.flexibleArrivalMaxPatientsPerDay != null) {
+        const count = flexibleCountByDate.get(d) ?? 0;
+        if (count >= effective.flexibleArrivalMaxPatientsPerDay) status = "red";
+      }
       return { date: d, inMonth: d.slice(0, 7) === currentMonth, status };
     });
-  }, [availability, month, provider.id, service]);
+  }, [availability, builtAvail, month, provider.id, service, visitStyle, effective.flexibleArrivalMaxPatientsPerDay, flexibleCountByDate]);
+
+  // The day's published clinic-hours window (earliest patient-bookable
+  // start to latest patient-bookable end) — this is what flexible-arrival
+  // and walk-in-intent bookings actually reserve, per Angel's spec: the
+  // whole day's hours, not a personal slot. Not a security boundary (the
+  // RPC only trusts it for display math), same precedent as the existing
+  // cutoff/advance-day checks.
+  const selectedDayWindow = useMemo(() => {
+    if (!builtAvail || !selectedDate) return null;
+    const dayAvail = builtAvail.avail[provider.id]?.[selectedDate];
+    const openRanges = (dayAvail?.ranges ?? []).filter((r) => r.patientBookable);
+    if (openRanges.length === 0) return null;
+    const startMin = Math.min(...openRanges.map((r) => r.startMin));
+    const endMin = Math.max(...openRanges.map((r) => r.endMin));
+    return { startMin, endMin };
+  }, [builtAvail, provider.id, selectedDate]);
+
+  const arrivalTimeOptions = useMemo(() => {
+    if (!selectedDayWindow || !effective.flexibleArrivalIntervalMinutes) return [];
+    const opts: number[] = [];
+    for (let t = selectedDayWindow.startMin; t < selectedDayWindow.endMin; t += effective.flexibleArrivalIntervalMinutes) opts.push(t);
+    return opts;
+  }, [selectedDayWindow, effective.flexibleArrivalIntervalMinutes]);
 
   const slots = useMemo(() => {
-    if (!availability || !service || !selectedDate) return [];
-    const gridStart = monthGridStart(month);
-    const dates = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
-    const avail = buildAvailability(
-      [provider.id],
-      dates,
-      availability.schedules.map((s) => ({ id: "", provider_id: provider.id, ...s })) as ScheduleRow[],
-      availability.date_availability.map((d) => ({ id: "", provider_id: provider.id, ...d })) as DateAvailabilityRow[],
-      availability.time_blocks.map((b) => ({ id: "", provider_id: provider.id, reason: null, ...b })) as TimeBlockRow[]
-    );
-    const dayAvail = avail[provider.id]?.[selectedDate];
+    if (!availability || !service || !selectedDate || !builtAvail) return [];
+    const dayAvail = builtAvail.avail[provider.id]?.[selectedDate];
     const openRanges = (dayAvail?.ranges ?? []).filter((r) => r.patientBookable);
     const busy = (availability.busy || [])
       .filter((b) => new Date(new Date(b.start_at).getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10) === selectedDate)
@@ -217,11 +313,11 @@ export function BookingWizard({
           preferredTime,
           reason,
         });
+        setConfirmedMode("request");
         setConfirmedId(id);
-      } else {
+      } else if (visitStyle === "specific_times") {
         if (!selectedDate || selectedStartMin == null || !service) throw new Error("Please choose a date and time.");
-        const [y, m, dd] = selectedDate.split("-").map(Number);
-        const startAtUtc = new Date(Date.UTC(y, m - 1, dd, 0, 0, 0) - 8 * 60 * 60 * 1000 + selectedStartMin * 60 * 1000);
+        const startAtUtc = phMinutesToUtcIso(selectedDate, selectedStartMin);
         // Booking itself creates the clinic-side patient record and portal
         // link the first time this patient connects with this provider's
         // clinic (see self_book_ensure_clinic_patient) — so the real
@@ -230,13 +326,37 @@ export function BookingWizard({
         const { id, patientId } = await bookAppointmentAction({
           providerId: provider.id,
           appointmentTypeId: service.id,
-          startAt: startAtUtc.toISOString(),
+          startAt: startAtUtc,
           paymentMethod,
           hmoId: paymentMethod === "hmo" ? hmoId || null : null,
         });
         if (needsAcknowledgement) {
           await recordPolicyAcknowledgementAction({ patientId, appointmentId: id, policyVersion: effective.cancellationPolicyVersion, policySnapshot: policy });
         }
+        setConfirmedMode("scheduled");
+        setConfirmedId(id);
+      } else {
+        // flexible_arrival or walk_in — reserves the day's whole clinic-
+        // hours window, never a personal slot (spec Parts 5-6).
+        if (!selectedDate || !selectedDayWindow || !service) throw new Error("Please choose a date.");
+        const bookingMode = visitStyle === "flexible_arrival" ? "flexible_arrival" : "walk_in_intent";
+        const windowStart = phMinutesToUtcIso(selectedDate, selectedDayWindow.startMin);
+        const windowEnd = phMinutesToUtcIso(selectedDate, selectedDayWindow.endMin);
+        const { id, patientId } = await bookFlexibleOrWalkInAction({
+          providerId: provider.id,
+          appointmentTypeId: service.id,
+          bookingMode,
+          windowStart,
+          windowEnd,
+          expectedArrivalAt: expectedArrivalMin != null ? phMinutesToUtcIso(selectedDate, expectedArrivalMin) : null,
+          paymentMethod,
+          hmoId: paymentMethod === "hmo" ? hmoId || null : null,
+          notes: visitNotes || undefined,
+        });
+        if (needsAcknowledgement) {
+          await recordPolicyAcknowledgementAction({ patientId, appointmentId: id, policyVersion: effective.cancellationPolicyVersion, policySnapshot: policy });
+        }
+        setConfirmedMode(bookingMode);
         setConfirmedId(id);
       }
     } catch (e: any) {
@@ -247,15 +367,28 @@ export function BookingWizard({
   }
 
   if (confirmedId) {
+    const providerLabel = `${provider.title ? provider.title + " " : ""}${provider.fullName}`;
+    const dayLabel = selectedDate ? formatDayLabel(selectedDate) : "";
+    const confirmedTitle = confirmedMode === "request" ? "Request Sent" : confirmedMode === "walk_in_intent" ? "Visit Planned" : "Appointment Confirmed";
+    let confirmedMessage: string;
+    if (confirmedMode === "request") {
+      confirmedMessage = `Your preferred time has been sent to ${clinicName ?? "the clinic"} — they'll confirm with you directly.`;
+    } else if (confirmedMode === "scheduled") {
+      confirmedMessage = `You're booked with ${providerLabel} on ${dayLabel} at ${selectedStartMin != null ? minToLabel(selectedStartMin) : ""}.`;
+    } else if (confirmedMode === "flexible_arrival") {
+      confirmedMessage = `You're set with ${providerLabel} on ${dayLabel}${
+        selectedDayWindow ? ` between ${minToLabel(selectedDayWindow.startMin)} and ${minToLabel(selectedDayWindow.endMin)}` : ""
+      }${expectedArrivalMin != null ? ` — you shared that you plan to arrive around ${minToLabel(expectedArrivalMin)}` : ""}. This is a flexible arrival window, not a guaranteed consultation time.`;
+    } else {
+      confirmedMessage = `Your visit with ${providerLabel} on ${dayLabel} has been noted. Walk in anytime during the clinic's available hours${
+        selectedDayWindow ? ` (${minToLabel(selectedDayWindow.startMin)}–${minToLabel(selectedDayWindow.endMin)})` : ""
+      } — this isn't a guaranteed appointment time.`;
+    }
     return (
       <div style={cardStyle()}>
-        <h2 style={{ fontSize: 17, marginTop: 0, color: "#1a7f37" }}>{isRequestFlow ? "Request Sent" : "Appointment Confirmed"}</h2>
-        <p style={{ fontSize: 13.5, color: "#444" }}>
-          {isRequestFlow
-            ? `Your preferred time has been sent to ${clinicName ?? "the clinic"} — they'll confirm with you directly.`
-            : `You're booked with ${provider.title ? provider.title + " " : ""}${provider.fullName} on ${selectedDate ? formatDayLabel(selectedDate) : ""} at ${selectedStartMin != null ? minToLabel(selectedStartMin) : ""}.`}
-        </p>
-        {effective.arrivalReminderEnabled && !isRequestFlow && (
+        <h2 style={{ fontSize: 17, marginTop: 0, color: "#1a7f37" }}>{confirmedTitle}</h2>
+        <p style={{ fontSize: 13.5, color: "#444" }}>{confirmedMessage}</p>
+        {effective.arrivalReminderEnabled && confirmedMode === "scheduled" && (
           <p style={{ fontSize: 12.5, color: "#888" }}>Please arrive {effective.arrivalReminderMinutes} minutes early.</p>
         )}
         {effective.customInstructions && <p style={{ fontSize: 12.5, color: "#888" }}>{effective.customInstructions}</p>}
@@ -305,69 +438,106 @@ export function BookingWizard({
         </div>
       )}
 
-      {step === 1 && !isRequestFlow && (
+      {step === deliveryStepIndex && includeDeliveryChoice && (
         <div style={cardStyle()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <button onClick={() => setMonth(startOfMonth(addDays(startOfMonth(month), -1)))} style={navBtn}>
-              ‹
-            </button>
-            <div style={{ fontWeight: 700 }}>{formatMonthLabel(month)}</div>
-            <button onClick={() => setMonth(startOfMonth(addDays(startOfMonth(month), 32)))} style={navBtn}>
-              ›
-            </button>
-          </div>
-          {loadingAvail ? (
-            <p style={{ fontSize: 12.5, color: "#888" }}>Loading availability…</p>
-          ) : (
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, marginBottom: 4 }}>
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                  <div key={d} style={{ fontSize: 10.5, fontWeight: 700, color: "#888", textAlign: "center" }}>
-                    {d}
+          <div style={{ display: "grid", gap: 10 }}>
+            {(["in_person", "telehealth"] as const).map((d) => (
+              <label key={d} style={{ display: "flex", gap: 10, alignItems: "flex-start", border: `1px solid ${deliveryChoice === d ? NAVY : "#eee"}`, borderRadius: 10, padding: 12, cursor: "pointer" }}>
+                <input type="radio" checked={deliveryChoice === d} onChange={() => setDeliveryChoice(d)} style={{ marginTop: 3 }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, color: NAVY }}>{d === "in_person" ? "In-Person Visit" : "Telehealth (Video) Visit"}</div>
+                  <div style={{ fontSize: 12, color: "#888" }}>
+                    {d === "in_person" ? "Visit the clinic in person." : "A specific appointment time is required for telehealth visits."}
                   </div>
-                ))}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
-                {grid.map((cell) => {
-                  const colors: Record<DateBookingStatus, { bg: string; border: string; text: string }> = {
-                    green: { bg: "#eaf7ec", border: "#8fd19e", text: "#1a7f37" },
-                    red: { bg: "#fdecec", border: "#f3a6a6", text: "#a12a2a" },
-                    gray: { bg: "#f4f4f5", border: "#e2e2e5", text: "#999" },
-                  };
-                  const c = colors[cell.status];
-                  const clickable = cell.status === "green" && cell.date >= todayPh();
-                  return (
-                    <button
-                      key={cell.date}
-                      disabled={!clickable}
-                      onClick={() => {
-                        setSelectedDate(cell.date);
-                        setSelectedStartMin(null);
-                      }}
-                      style={{
-                        height: 42,
-                        borderRadius: 8,
-                        border: `1.5px solid ${selectedDate === cell.date ? NAVY : c.border}`,
-                        background: c.bg,
-                        color: c.text,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        opacity: cell.inMonth ? 1 : 0.3,
-                        cursor: clickable ? "pointer" : "default",
-                      }}
-                    >
-                      {Number(cell.date.slice(8, 10))}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+                </div>
+              </label>
+            ))}
+          </div>
+          <NavRow onBack={goBack} onNext={goNext} disabled={!deliveryChoice} />
+        </div>
+      )}
+
+      {step === dateStepIndex && !isRequestFlow && visitStyle === "specific_times" && (
+        <div style={cardStyle()}>
+          <MonthCalendar
+            month={month}
+            setMonth={setMonth}
+            loadingAvail={loadingAvail}
+            grid={grid}
+            selectedDate={selectedDate}
+            onSelectDate={(d) => {
+              setSelectedDate(d);
+              setSelectedStartMin(null);
+            }}
+          />
+          <NavRow onBack={goBack} onNext={goNext} disabled={!selectedDate} />
+        </div>
+      )}
+
+      {step === dateStepIndex && !isRequestFlow && visitStyle === "flexible_arrival" && (
+        <div style={cardStyle()}>
+          <MonthCalendar month={month} setMonth={setMonth} loadingAvail={loadingAvail} grid={grid} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          {selectedDate && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #eee" }}>
+              {effective.flexibleArrivalMaxPatientsPerDay != null && (
+                <p style={{ fontSize: 12, color: "#888", marginTop: 0 }}>
+                  {Math.max(0, effective.flexibleArrivalMaxPatientsPerDay - (flexibleCountByDate.get(selectedDate) ?? 0))} spot
+                  {Math.max(0, effective.flexibleArrivalMaxPatientsPerDay - (flexibleCountByDate.get(selectedDate) ?? 0)) === 1 ? "" : "s"} left this day.
+                </p>
+              )}
+              {arrivalTimeOptions.length > 0 ? (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>When do you plan to arrive? (optional)</label>
+                  <select
+                    value={expectedArrivalMin ?? ""}
+                    onChange={(e) => setExpectedArrivalMin(e.target.value === "" ? null : Number(e.target.value))}
+                    style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%" }}
+                  >
+                    <option value="">No preference</option>
+                    {arrivalTimeOptions.map((t) => (
+                      <option key={t} value={t}>
+                        {minToLabel(t)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: "#888", margin: 0 }}>
+                  Clinic hours: {selectedDayWindow ? `${minToLabel(selectedDayWindow.startMin)}–${minToLabel(selectedDayWindow.endMin)}` : ""}
+                </p>
+              )}
+              <p style={{ fontSize: 11.5, color: "#999", marginTop: 8, fontStyle: "italic" }}>
+                This reserves a flexible arrival window, not a guaranteed consultation time — your actual visit time may vary.
+              </p>
+            </div>
           )}
           <NavRow onBack={goBack} onNext={goNext} disabled={!selectedDate} />
         </div>
       )}
 
-      {step === 2 && !isRequestFlow && (
+      {step === dateStepIndex && !isRequestFlow && visitStyle === "walk_in" && (
+        <div style={cardStyle()}>
+          <MonthCalendar month={month} setMonth={setMonth} loadingAvail={loadingAvail} grid={grid} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          {selectedDate && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #eee" }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>Anything the clinic should know? (optional)</label>
+              <textarea
+                value={visitNotes}
+                onChange={(e) => setVisitNotes(e.target.value)}
+                rows={2}
+                style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, width: "100%", fontFamily: "inherit" }}
+              />
+              <p style={{ fontSize: 11.5, color: "#999", marginTop: 8, fontStyle: "italic" }}>
+                This lets {clinicName ?? "the clinic"} know you&apos;re planning to visit — it&apos;s not a guaranteed appointment time. Walk in during the
+                clinic&apos;s available hours{selectedDayWindow ? ` (${minToLabel(selectedDayWindow.startMin)}–${minToLabel(selectedDayWindow.endMin)})` : ""}.
+              </p>
+            </div>
+          )}
+          <NavRow onBack={goBack} onNext={goNext} disabled={!selectedDate} />
+        </div>
+      )}
+
+      {step === timeStepIndex && !isRequestFlow && visitStyle === "specific_times" && (
         <div style={cardStyle()}>
           <p style={{ fontSize: 13, fontWeight: 600, marginTop: 0 }}>{selectedDate ? formatDayLabel(selectedDate) : ""}</p>
           {slots.length === 0 ? (
@@ -466,18 +636,28 @@ export function BookingWizard({
           <div style={{ display: "grid", gap: 6, fontSize: 13, marginBottom: 14 }}>
             <Row label="Provider" value={`${provider.title ? provider.title + " " : ""}${provider.fullName}`} />
             <Row label="Visit" value={service?.name ?? ""} />
-            {!isRequestFlow && <Row label="Date" value={selectedDate ? formatDayLabel(selectedDate) : ""} />}
-            {!isRequestFlow && <Row label="Time" value={selectedStartMin != null ? minToLabel(selectedStartMin) : ""} />}
+            {includeDeliveryChoice && <Row label="Delivery" value={deliveryChoice === "telehealth" ? "Telehealth" : "In-Person"} />}
+            {!isRequestFlow && visitStyle === "specific_times" && <Row label="Date" value={selectedDate ? formatDayLabel(selectedDate) : ""} />}
+            {!isRequestFlow && visitStyle === "specific_times" && <Row label="Time" value={selectedStartMin != null ? minToLabel(selectedStartMin) : ""} />}
+            {!isRequestFlow && visitStyle === "flexible_arrival" && <Row label="Day" value={selectedDate ? formatDayLabel(selectedDate) : ""} />}
+            {!isRequestFlow && visitStyle === "flexible_arrival" && (
+              <Row label="Arrival Window" value={selectedDayWindow ? `${minToLabel(selectedDayWindow.startMin)}–${minToLabel(selectedDayWindow.endMin)}` : ""} />
+            )}
+            {!isRequestFlow && visitStyle === "flexible_arrival" && expectedArrivalMin != null && <Row label="Planned Arrival" value={minToLabel(expectedArrivalMin)} />}
+            {!isRequestFlow && visitStyle === "walk_in" && <Row label="Day" value={selectedDate ? formatDayLabel(selectedDate) : ""} />}
+            {!isRequestFlow && visitStyle === "walk_in" && <Row label="Type" value="Walk-in — no reserved time" />}
             {isRequestFlow && <Row label="Preferred" value={`${preferredDate || "Any date"} · ${preferredTime || "Any time"}`} />}
             {service && service.show_price_to_patient && <Row label="Price" value={priceLabel(service)} />}
             <Row label="Payment Method" value={paymentOptions.find((o) => o.value === paymentMethod)?.label ?? paymentMethod} />
             {paymentMethod === "hmo" && hmoId && <Row label="HMO" value={hmos.find((h) => h.id === hmoId)?.hmo_name ?? ""} />}
           </div>
 
-          {(effective.customInstructions || effective.arrivalReminderEnabled) && (
+          {(effective.customInstructions || (effective.arrivalReminderEnabled && visitStyle === "specific_times")) && (
             <div style={{ background: "#f4f4f5", borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#888", marginBottom: 4 }}>Important Information</div>
-              {effective.arrivalReminderEnabled && <p style={{ fontSize: 12, margin: "0 0 4px", color: "#444" }}>Please arrive {effective.arrivalReminderMinutes} minutes early.</p>}
+              {effective.arrivalReminderEnabled && visitStyle === "specific_times" && (
+                <p style={{ fontSize: 12, margin: "0 0 4px", color: "#444" }}>Please arrive {effective.arrivalReminderMinutes} minutes early.</p>
+              )}
               {effective.customInstructions && <p style={{ fontSize: 12, margin: 0, color: "#444" }}>{effective.customInstructions}</p>}
             </div>
           )}
@@ -553,3 +733,80 @@ function NavRow({ onBack, onNext, disabled, nextLabel }: { onBack?: () => void; 
 }
 
 const navBtn: React.CSSProperties = { padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "white", cursor: "pointer", fontSize: 13 };
+
+// Shared month grid — used by the specific-times, flexible-arrival, and
+// walk-in date steps alike (only what happens after a date is picked
+// differs between the three).
+function MonthCalendar({
+  month,
+  setMonth,
+  loadingAvail,
+  grid,
+  selectedDate,
+  onSelectDate,
+}: {
+  month: string;
+  setMonth: (m: string) => void;
+  loadingAvail: boolean;
+  grid: { date: string; inMonth: boolean; status: DateBookingStatus }[];
+  selectedDate: string | null;
+  onSelectDate: (date: string) => void;
+}) {
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <button onClick={() => setMonth(startOfMonth(addDays(startOfMonth(month), -1)))} style={navBtn}>
+          ‹
+        </button>
+        <div style={{ fontWeight: 700 }}>{formatMonthLabel(month)}</div>
+        <button onClick={() => setMonth(startOfMonth(addDays(startOfMonth(month), 32)))} style={navBtn}>
+          ›
+        </button>
+      </div>
+      {loadingAvail ? (
+        <p style={{ fontSize: 12.5, color: "#888" }}>Loading availability…</p>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, marginBottom: 4 }}>
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+              <div key={d} style={{ fontSize: 10.5, fontWeight: 700, color: "#888", textAlign: "center" }}>
+                {d}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
+            {grid.map((cell) => {
+              const colors: Record<DateBookingStatus, { bg: string; border: string; text: string }> = {
+                green: { bg: "#eaf7ec", border: "#8fd19e", text: "#1a7f37" },
+                red: { bg: "#fdecec", border: "#f3a6a6", text: "#a12a2a" },
+                gray: { bg: "#f4f4f5", border: "#e2e2e5", text: "#999" },
+              };
+              const c = colors[cell.status];
+              const clickable = cell.status === "green" && cell.date >= todayPh();
+              return (
+                <button
+                  key={cell.date}
+                  disabled={!clickable}
+                  onClick={() => onSelectDate(cell.date)}
+                  style={{
+                    height: 42,
+                    borderRadius: 8,
+                    border: `1.5px solid ${selectedDate === cell.date ? NAVY : c.border}`,
+                    background: c.bg,
+                    color: c.text,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    opacity: cell.inMonth ? 1 : 0.3,
+                    cursor: clickable ? "pointer" : "default",
+                  }}
+                >
+                  {Number(cell.date.slice(8, 10))}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </>
+  );
+}

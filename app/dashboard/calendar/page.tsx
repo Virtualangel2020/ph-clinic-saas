@@ -52,7 +52,9 @@ export default async function CalendarPage({
       .order("first_name"),
     supabase
       .from("appointments")
-      .select("id, patient_id, provider_id, appointment_type_id, start_at, end_at, status, notes, patients(first_name,last_name,mobile_phone), user_profiles(full_name), appointment_types(name,color)")
+      .select(
+        "id, patient_id, provider_id, appointment_type_id, start_at, end_at, status, notes, booking_mode, expected_arrival_at, patients(first_name,last_name,mobile_phone), user_profiles(full_name), appointment_types(name,color)"
+      )
       .eq("tenant_id", profile.tenant_id)
       .gte("start_at", phDayStart(rangeStart))
       .lt("start_at", phDayStart(rangeEndExclusive))

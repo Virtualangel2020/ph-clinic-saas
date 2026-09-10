@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
-import { resolveEffectiveSettings, supportsSlotBooking } from "@/lib/patient-access";
+import { resolveEffectiveSettings } from "@/lib/patient-access";
 import { BookingWizard } from "./booking-wizard";
 
 // Real self-service booking (spec §49-54) — the actual multi-step wizard,
@@ -32,7 +32,7 @@ export default async function PortalBookPage({ params }: { params: Promise<{ pro
   const d = data as any;
   const effective = resolveEffectiveSettings(d.clinic, d.override);
 
-  if (!supportsSlotBooking(effective.bookingType)) {
+  if (!effective.onlineBookingEnabled) {
     return (
       <PortalShell>
         <BackLink href="/portal" label="Portal Home" />
@@ -41,7 +41,7 @@ export default async function PortalBookPage({ params }: { params: Promise<{ pro
           {d.provider.full_name}
         </h1>
         <p style={{ fontSize: 13.5, color: "#666" }}>
-          {effective.bookingType === "walk_in"
+          {effective.bookingStyle === "walk_in"
             ? "This provider accepts walk-ins — no appointment needed."
             : "This provider doesn't take online bookings — please contact the clinic directly."}
         </p>

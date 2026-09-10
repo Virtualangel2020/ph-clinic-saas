@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireClinicAdmin } from "@/lib/require-clinic-admin";
+import { deriveLegacyBookingType, type BookingStyle } from "@/lib/patient-access";
 
 // Every action here just forwards to a SECURITY DEFINER RPC (see migration
 // patient_access_and_payments_rpcs) — the RPC itself re-checks
@@ -24,7 +25,10 @@ function revalidateAll() {
 }
 
 export async function setClinicPatientAccessDefaultsAction(input: {
-  defaultBookingType: string;
+  onlineBookingEnabled: boolean;
+  bookingStyle: BookingStyle;
+  flexibleArrivalIntervalMinutes: number | null;
+  flexibleArrivalMaxPatientsPerDay: number | null;
   defaultPrioritizeScheduled: boolean;
   bookingCutoffMinutes: number;
   maxAdvanceBookingDays: number;
@@ -44,7 +48,14 @@ export async function setClinicPatientAccessDefaultsAction(input: {
 }) {
   const { supabase } = await requireClinicAdmin();
   const { error } = await supabase.rpc("set_clinic_patient_access_defaults", {
-    p_default_booking_type: input.defaultBookingType,
+    // Legacy column kept in sync for surfaces not yet migrated to
+    // booking_style (Find a Doctor directory/profile pages) — see
+    // deriveLegacyBookingType in lib/patient-access.ts.
+    p_default_booking_type: deriveLegacyBookingType(input.bookingStyle, input.onlineBookingEnabled),
+    p_online_booking_enabled: input.onlineBookingEnabled,
+    p_booking_style: input.bookingStyle,
+    p_flexible_arrival_interval_minutes: input.flexibleArrivalIntervalMinutes,
+    p_flexible_arrival_max_patients_per_day: input.flexibleArrivalMaxPatientsPerDay,
     p_default_prioritize_scheduled: input.defaultPrioritizeScheduled,
     p_booking_cutoff_minutes: input.bookingCutoffMinutes,
     p_max_advance_booking_days: input.maxAdvanceBookingDays,
@@ -68,7 +79,10 @@ export async function setClinicPatientAccessDefaultsAction(input: {
 
 export type ProviderOverrideInput = {
   providerId: string;
-  bookingType: string | null;
+  onlineBookingEnabled: boolean | null;
+  bookingStyle: BookingStyle | null;
+  flexibleArrivalIntervalMinutes: number | null;
+  flexibleArrivalMaxPatientsPerDay: number | null;
   prioritizeScheduled: boolean | null;
   bookingCutoffMinutes: number | null;
   maxAdvanceBookingDays: number | null;
@@ -92,7 +106,11 @@ export async function setProviderPatientAccessSettingsAction(input: ProviderOver
   const { supabase } = await requireClinicAdmin();
   const { error } = await supabase.rpc("set_provider_patient_access_settings", {
     p_provider_id: input.providerId,
-    p_booking_type: input.bookingType,
+    p_booking_type: deriveLegacyBookingType(input.bookingStyle, input.onlineBookingEnabled),
+    p_online_booking_enabled: input.onlineBookingEnabled,
+    p_booking_style: input.bookingStyle,
+    p_flexible_arrival_interval_minutes: input.flexibleArrivalIntervalMinutes,
+    p_flexible_arrival_max_patients_per_day: input.flexibleArrivalMaxPatientsPerDay,
     p_prioritize_scheduled: input.prioritizeScheduled,
     p_booking_cutoff_minutes: input.bookingCutoffMinutes,
     p_max_advance_booking_days: input.maxAdvanceBookingDays,
@@ -116,7 +134,10 @@ export async function setProviderPatientAccessSettingsAction(input: ProviderOver
 export async function revertProviderToClinicDefaultsAction(providerId: string) {
   return setProviderPatientAccessSettingsAction({
     providerId,
-    bookingType: null,
+    onlineBookingEnabled: null,
+    bookingStyle: null,
+    flexibleArrivalIntervalMinutes: null,
+    flexibleArrivalMaxPatientsPerDay: null,
     prioritizeScheduled: null,
     bookingCutoffMinutes: null,
     maxAdvanceBookingDays: null,

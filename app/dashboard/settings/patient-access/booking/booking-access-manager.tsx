@@ -4,13 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setClinicPatientAccessDefaultsAction, setProviderPatientAccessSettingsAction, revertProviderToClinicDefaultsAction } from "../actions";
 import { ClinicPatientAccessRow, ProviderOverrideRow, emptyOverride, isOverrideCustomized, toDefaultsActionInput, toOverrideActionInput } from "../shared";
+import { BOOKING_STYLE_LABEL, BOOKING_STYLE_DESCRIPTION, BOOKING_STYLE_PATIENT_WORDING, type BookingStyle } from "@/lib/patient-access";
 
-const BOOKING_TYPES = [
-  { value: "walk_in", label: "Walk-In Only", patientWording: "Walk-ins welcome — no appointment needed." },
-  { value: "appointment", label: "Appointment Only", patientWording: "By appointment only — book a time online." },
-  { value: "both", label: "Walk-In + Appointment", patientWording: "Walk-ins welcome, or book ahead to reserve a time." },
-  { value: "appointment_request", label: "Appointment Request", patientWording: "Request a preferred time — the clinic will confirm." },
-  { value: "flexible", label: "Flexible / Variable Schedule", patientWording: "General hours shown — contact the clinic to check availability." },
+const BOOKING_STYLES: BookingStyle[] = ["specific_times", "flexible_arrival", "walk_in"];
+
+const INTERVAL_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null, label: "Patient does not choose a time — show clinic hours only" },
+  { value: 15, label: "Every 15 minutes" },
+  { value: 30, label: "Every 30 minutes" },
+  { value: 60, label: "Every 1 hour" },
 ];
 
 const CUTOFF_OPTIONS = [
@@ -36,8 +38,10 @@ const ADVANCE_OPTIONS = [
 const ARRIVAL_OPTIONS = [5, 10, 15, 20, 30];
 
 type BookingFieldValue = {
-  bookingType: string;
-  prioritizeScheduled: boolean;
+  onlineBookingEnabled: boolean;
+  bookingStyle: BookingStyle;
+  flexibleIntervalMinutes: number | null;
+  flexibleMaxPatients: number | null;
   cutoffMinutes: number;
   advanceDays: number;
   arrivalEnabled: boolean;
@@ -56,29 +60,86 @@ function selectStyle(): React.CSSProperties {
 }
 
 function BookingFields({ value, onChange, disabled }: { value: BookingFieldValue; onChange: (v: BookingFieldValue) => void; disabled?: boolean }) {
-  const selected = BOOKING_TYPES.find((b) => b.value === value.bookingType);
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div>
-        <label style={labelStyle()}>How Patients Can Reach This Provider</label>
-        <select disabled={disabled} value={value.bookingType} style={selectStyle()} onChange={(e) => onChange({ ...value, bookingType: e.target.value })}>
-          {BOOKING_TYPES.map((b) => (
-            <option key={b.value} value={b.value}>
-              {b.label}
-            </option>
-          ))}
-        </select>
-        {selected && <div style={{ fontSize: 11.5, color: "#888", marginTop: 4, fontStyle: "italic" }}>Patients see: &quot;{selected.patientWording}&quot;</div>}
-      </div>
-
-      {value.bookingType === "both" && (
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-heading)" }}>
-          <input type="checkbox" disabled={disabled} checked={value.prioritizeScheduled} onChange={(e) => onChange({ ...value, prioritizeScheduled: e.target.checked })} />
-          Prioritize Scheduled Patients over walk-ins
-        </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "var(--text-heading)" }}>
+        <input
+          type="checkbox"
+          disabled={disabled}
+          checked={value.onlineBookingEnabled}
+          onChange={(e) => onChange({ ...value, onlineBookingEnabled: e.target.checked })}
+        />
+        Allow patients to book online
+      </label>
+      {!value.onlineBookingEnabled && (
+        <div style={{ fontSize: 11.5, color: "#888", fontStyle: "italic" }}>
+          Patients can still find and view this provider — they&apos;ll see &quot;Please contact the clinic to schedule an appointment&quot; instead of a booking button.
+        </div>
       )}
 
-      {(value.bookingType === "appointment" || value.bookingType === "both" || value.bookingType === "appointment_request") && (
+      {value.onlineBookingEnabled && (
+        <div>
+          <label style={labelStyle()}>How Should Patients Book With You?</label>
+          <div style={{ display: "grid", gap: 8 }}>
+            {BOOKING_STYLES.map((style) => (
+              <label
+                key={style}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  border: `1px solid ${value.bookingStyle === style ? "var(--brand-primary)" : "var(--card-border)"}`,
+                  borderRadius: 8,
+                  padding: 10,
+                  cursor: disabled ? "default" : "pointer",
+                }}
+              >
+                <input type="radio" disabled={disabled} checked={value.bookingStyle === style} onChange={() => onChange({ ...value, bookingStyle: style })} style={{ marginTop: 2 }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-heading)" }}>{BOOKING_STYLE_LABEL[style]}</div>
+                  <div style={{ fontSize: 12, color: "#888" }}>{BOOKING_STYLE_DESCRIPTION[style]}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: "#888", marginTop: 6, fontStyle: "italic" }}>Patients see: &quot;{BOOKING_STYLE_PATIENT_WORDING[value.bookingStyle]}&quot;</div>
+        </div>
+      )}
+
+      {value.onlineBookingEnabled && value.bookingStyle === "flexible_arrival" && (
+        <div style={{ display: "grid", gap: 12, background: "var(--card-bg)", border: "1px dashed var(--card-border)", borderRadius: 8, padding: 12 }}>
+          <div>
+            <label style={labelStyle()}>Arrival Intervals</label>
+            <select
+              disabled={disabled}
+              value={value.flexibleIntervalMinutes ?? ""}
+              style={selectStyle()}
+              onChange={(e) => onChange({ ...value, flexibleIntervalMinutes: e.target.value === "" ? null : Number(e.target.value) })}
+            >
+              {INTERVAL_OPTIONS.map((o) => (
+                <option key={o.label} value={o.value ?? ""}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle()}>Maximum Expected Patients Per Day (optional)</label>
+            <input
+              type="number"
+              min={1}
+              disabled={disabled}
+              value={value.flexibleMaxPatients ?? ""}
+              placeholder="Unlimited"
+              style={{ ...selectStyle(), maxWidth: 160 }}
+              onChange={(e) => onChange({ ...value, flexibleMaxPatients: e.target.value === "" ? null : Math.max(1, Number(e.target.value)) })}
+            />
+            <div style={{ fontSize: 11.5, color: "#888", marginTop: 4 }}>Once reached, patients see &quot;Fully Booked&quot; for that day.</div>
+          </div>
+        </div>
+      )}
+
+      {value.onlineBookingEnabled && value.bookingStyle !== "walk_in" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
           <div>
             <label style={labelStyle()}>Booking Cutoff (minimum notice)</label>
@@ -141,8 +202,10 @@ export function BookingAccessManager({ clinicDefaults, providers, overrides }: {
   const [saved, setSaved] = useState(false);
 
   const [defaults, setDefaults] = useState<BookingFieldValue>({
-    bookingType: clinicDefaults.default_booking_type,
-    prioritizeScheduled: clinicDefaults.default_prioritize_scheduled,
+    onlineBookingEnabled: clinicDefaults.online_booking_enabled,
+    bookingStyle: clinicDefaults.booking_style,
+    flexibleIntervalMinutes: clinicDefaults.flexible_arrival_interval_minutes,
+    flexibleMaxPatients: clinicDefaults.flexible_arrival_max_patients_per_day,
     cutoffMinutes: clinicDefaults.booking_cutoff_minutes,
     advanceDays: clinicDefaults.max_advance_booking_days,
     arrivalEnabled: clinicDefaults.default_arrival_reminder_enabled,
@@ -157,8 +220,10 @@ export function BookingAccessManager({ clinicDefaults, providers, overrides }: {
       try {
         await setClinicPatientAccessDefaultsAction({
           ...toDefaultsActionInput(clinicDefaults),
-          defaultBookingType: defaults.bookingType,
-          defaultPrioritizeScheduled: defaults.prioritizeScheduled,
+          onlineBookingEnabled: defaults.onlineBookingEnabled,
+          bookingStyle: defaults.bookingStyle,
+          flexibleArrivalIntervalMinutes: defaults.bookingStyle === "flexible_arrival" ? defaults.flexibleIntervalMinutes : null,
+          flexibleArrivalMaxPatientsPerDay: defaults.bookingStyle === "flexible_arrival" ? defaults.flexibleMaxPatients : null,
           bookingCutoffMinutes: defaults.cutoffMinutes,
           maxAdvanceBookingDays: defaults.advanceDays,
           defaultArrivalReminderEnabled: defaults.arrivalEnabled,
@@ -221,8 +286,10 @@ function ProviderRow({ provider, override }: { provider: { id: string; full_name
   const base = override ?? emptyOverride(provider.id);
 
   const [value, setValue] = useState<BookingFieldValue>({
-    bookingType: override?.booking_type ?? "both",
-    prioritizeScheduled: override?.prioritize_scheduled ?? false,
+    onlineBookingEnabled: override?.online_booking_enabled ?? true,
+    bookingStyle: override?.booking_style ?? "specific_times",
+    flexibleIntervalMinutes: override?.flexible_arrival_interval_minutes ?? null,
+    flexibleMaxPatients: override?.flexible_arrival_max_patients_per_day ?? null,
     cutoffMinutes: override?.booking_cutoff_minutes ?? 0,
     advanceDays: override?.max_advance_booking_days ?? 30,
     arrivalEnabled: override?.arrival_reminder_enabled ?? false,
@@ -236,8 +303,10 @@ function ProviderRow({ provider, override }: { provider: { id: string; full_name
       try {
         await setProviderPatientAccessSettingsAction({
           ...toOverrideActionInput(base),
-          bookingType: value.bookingType,
-          prioritizeScheduled: value.prioritizeScheduled,
+          onlineBookingEnabled: value.onlineBookingEnabled,
+          bookingStyle: value.bookingStyle,
+          flexibleArrivalIntervalMinutes: value.bookingStyle === "flexible_arrival" ? value.flexibleIntervalMinutes : null,
+          flexibleArrivalMaxPatientsPerDay: value.bookingStyle === "flexible_arrival" ? value.flexibleMaxPatients : null,
           bookingCutoffMinutes: value.cutoffMinutes,
           maxAdvanceBookingDays: value.advanceDays,
           arrivalReminderEnabled: value.arrivalEnabled,

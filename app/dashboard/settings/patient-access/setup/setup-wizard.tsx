@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { setClinicPatientAccessDefaultsAction, setPatientAccessSetupCompletedAction } from "../actions";
 import { ClinicPatientAccessRow, toDefaultsActionInput } from "../shared";
+import { BOOKING_STYLE_LABEL, BOOKING_STYLE_DESCRIPTION, BOOKING_STYLE_PATIENT_WORDING, type BookingStyle } from "@/lib/patient-access";
 
 const STEPS = [
   "How do you accept patients?",
@@ -18,12 +19,13 @@ const STEPS = [
   "Review & Activate",
 ];
 
-const BOOKING_TYPES = [
-  { value: "walk_in", label: "Walk-ins only", desc: "Patients just show up — no booking needed." },
-  { value: "appointment", label: "Appointments only", desc: "Patients must book a time in advance." },
-  { value: "both", label: "Both walk-ins and appointments", desc: "Patients can either walk in or book ahead." },
-  { value: "appointment_request", label: "Appointment requests", desc: "Patients suggest a time; your clinic confirms it." },
-  { value: "flexible", label: "Flexible / variable schedule", desc: "General hours only — no online self-booking yet." },
+const BOOKING_STYLES: BookingStyle[] = ["specific_times", "flexible_arrival", "walk_in"];
+
+const INTERVAL_OPTIONS: { value: number | null; label: string }[] = [
+  { value: null, label: "Patient does not choose a time — show clinic hours only" },
+  { value: 15, label: "Every 15 minutes" },
+  { value: 30, label: "Every 30 minutes" },
+  { value: 60, label: "Every 1 hour" },
 ];
 
 function cardStyle(): React.CSSProperties {
@@ -80,8 +82,10 @@ export function SetupWizard({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [bookingType, setBookingType] = useState(clinicDefaults.default_booking_type);
-  const [prioritizeScheduled, setPrioritizeScheduled] = useState(clinicDefaults.default_prioritize_scheduled);
+  const [onlineBookingEnabled, setOnlineBookingEnabled] = useState(clinicDefaults.online_booking_enabled);
+  const [bookingStyle, setBookingStyle] = useState<BookingStyle>(clinicDefaults.booking_style);
+  const [flexibleIntervalMinutes, setFlexibleIntervalMinutes] = useState(clinicDefaults.flexible_arrival_interval_minutes);
+  const [flexibleMaxPatients, setFlexibleMaxPatients] = useState(clinicDefaults.flexible_arrival_max_patients_per_day);
   const [cutoffMinutes, setCutoffMinutes] = useState(clinicDefaults.booking_cutoff_minutes);
   const [advanceDays, setAdvanceDays] = useState(clinicDefaults.max_advance_booking_days);
   const [acceptHmo, setAcceptHmo] = useState(clinicDefaults.accept_hmo);
@@ -135,26 +139,83 @@ export function SetupWizard({
 
       {step === 0 && (
         <div style={cardStyle()}>
-          <div style={{ display: "grid", gap: 10 }}>
-            {BOOKING_TYPES.map((b) => (
-              <label key={b.value} style={{ display: "flex", gap: 10, alignItems: "flex-start", border: `1px solid ${bookingType === b.value ? "var(--text-heading)" : "var(--card-border)"}`, borderRadius: 10, padding: 12, cursor: "pointer" }}>
-                <input type="radio" checked={bookingType === b.value} onChange={() => setBookingType(b.value)} style={{ marginTop: 3 }} />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>{b.label}</div>
-                  <div style={{ fontSize: 12, color: "#888" }}>{b.desc}</div>
-                </div>
-              </label>
-            ))}
-          </div>
-          <NavButtons step={step} setStep={setStep} saving={pending} onSave={() => saveAndAdvance({ default_booking_type: bookingType })} />
+          <Toggle checked={onlineBookingEnabled} onChange={setOnlineBookingEnabled} label="Allow patients to book online" />
+          {!onlineBookingEnabled && (
+            <p style={{ fontSize: 12, color: "#888", fontStyle: "italic", marginTop: 10 }}>
+              Patients can still find and view your providers — they&apos;ll see &quot;Please contact the clinic to schedule an appointment&quot; instead
+              of a booking button.
+            </p>
+          )}
+          {onlineBookingEnabled && (
+            <div style={{ marginTop: 14 }}>
+              <label style={labelStyle()}>How Should Patients Book?</label>
+              <div style={{ display: "grid", gap: 10 }}>
+                {BOOKING_STYLES.map((s) => (
+                  <label
+                    key={s}
+                    style={{ display: "flex", gap: 10, alignItems: "flex-start", border: `1px solid ${bookingStyle === s ? "var(--text-heading)" : "var(--card-border)"}`, borderRadius: 10, padding: 12, cursor: "pointer" }}
+                  >
+                    <input type="radio" checked={bookingStyle === s} onChange={() => setBookingStyle(s)} style={{ marginTop: 3 }} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading)" }}>{BOOKING_STYLE_LABEL[s]}</div>
+                      <div style={{ fontSize: 12, color: "#888" }}>{BOOKING_STYLE_DESCRIPTION[s]}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: "#888", marginTop: 6, fontStyle: "italic" }}>Patients see: &quot;{BOOKING_STYLE_PATIENT_WORDING[bookingStyle]}&quot;</div>
+            </div>
+          )}
+          <NavButtons
+            step={step}
+            setStep={setStep}
+            saving={pending}
+            onSave={() =>
+              saveAndAdvance({
+                online_booking_enabled: onlineBookingEnabled,
+                booking_style: bookingStyle,
+                flexible_arrival_interval_minutes: bookingStyle === "flexible_arrival" ? flexibleIntervalMinutes : null,
+                flexible_arrival_max_patients_per_day: bookingStyle === "flexible_arrival" ? flexibleMaxPatients : null,
+              })
+            }
+          />
         </div>
       )}
 
       {step === 1 && (
         <div style={cardStyle()}>
-          {bookingType === "both" && <Toggle checked={prioritizeScheduled} onChange={setPrioritizeScheduled} label="Prioritize patients who booked ahead over walk-ins" />}
-          {(bookingType === "appointment" || bookingType === "both" || bookingType === "appointment_request") && (
-            <div style={{ display: "grid", gap: 14, marginTop: prioritizeScheduled !== undefined ? 12 : 0 }}>
+          {onlineBookingEnabled && bookingStyle === "flexible_arrival" && (
+            <div style={{ display: "grid", gap: 14, marginBottom: 16, background: "var(--card-bg)", border: "1px dashed var(--card-border)", borderRadius: 8, padding: 12 }}>
+              <div>
+                <label style={labelStyle()}>Arrival Intervals</label>
+                <select
+                  value={flexibleIntervalMinutes ?? ""}
+                  style={inputStyle()}
+                  onChange={(e) => setFlexibleIntervalMinutes(e.target.value === "" ? null : Number(e.target.value))}
+                >
+                  {INTERVAL_OPTIONS.map((o) => (
+                    <option key={o.label} value={o.value ?? ""}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle()}>Maximum Expected Patients Per Day (optional)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={flexibleMaxPatients ?? ""}
+                  placeholder="Unlimited"
+                  style={{ ...inputStyle(), maxWidth: 160 }}
+                  onChange={(e) => setFlexibleMaxPatients(e.target.value === "" ? null : Math.max(1, Number(e.target.value)))}
+                />
+                <div style={{ fontSize: 11.5, color: "#888", marginTop: 4 }}>Once reached, patients see &quot;Fully Booked&quot; for that day.</div>
+              </div>
+            </div>
+          )}
+          {onlineBookingEnabled && bookingStyle !== "walk_in" && (
+            <div style={{ display: "grid", gap: 14 }}>
               <div>
                 <label style={labelStyle()}>How much notice do patients need to give?</label>
                 <select value={cutoffMinutes} onChange={(e) => setCutoffMinutes(Number(e.target.value))} style={inputStyle()}>
@@ -177,12 +238,16 @@ export function SetupWizard({
               </div>
             </div>
           )}
-          {bookingType === "walk_in" && <p style={{ fontSize: 12.5, color: "#888" }}>Walk-in-only providers don&apos;t need booking rules — nothing to configure here.</p>}
+          {(!onlineBookingEnabled || bookingStyle === "walk_in") && (
+            <p style={{ fontSize: 12.5, color: "#888" }}>
+              {!onlineBookingEnabled ? "Online booking is off — nothing to configure here." : "Walk-in-only providers don't need booking rules — nothing to configure here."}
+            </p>
+          )}
           <NavButtons
             step={step}
             setStep={setStep}
             saving={pending}
-            onSave={() => saveAndAdvance({ default_prioritize_scheduled: prioritizeScheduled, booking_cutoff_minutes: cutoffMinutes, max_advance_booking_days: advanceDays })}
+            onSave={() => saveAndAdvance({ booking_cutoff_minutes: cutoffMinutes, max_advance_booking_days: advanceDays })}
           />
         </div>
       )}
@@ -319,7 +384,7 @@ export function SetupWizard({
         <div style={cardStyle()}>
           <div style={{ display: "grid", gap: 8, fontSize: 13, marginBottom: 16 }}>
             <div>
-              <strong>Booking:</strong> {BOOKING_TYPES.find((b) => b.value === bookingType)?.label}
+              <strong>Booking:</strong> {onlineBookingEnabled ? BOOKING_STYLE_LABEL[bookingStyle] : "Online booking off — contact clinic to schedule"}
             </div>
             <div>
               <strong>Services:</strong> {serviceCount} active

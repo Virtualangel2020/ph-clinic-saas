@@ -36,6 +36,7 @@ export async function fetchProviderAvailabilityAction(providerId: string, startD
     date_availability: { avail_date: string; start_time: string; end_time: string; patient_bookable: boolean }[];
     time_blocks: { block_date: string; start_time: string; end_time: string }[];
     busy: { start_at: string; end_at: string }[];
+    flexible_arrival_daily_counts: { date: string; count: number }[];
   } | null;
 }
 
@@ -76,6 +77,45 @@ export async function bookAppointmentAction(input: {
     p_payment_method: input.paymentMethod,
     p_hmo_id: input.hmoId,
     p_notes: input.notes || null,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/portal/appointments");
+  return { id: data as string, patientId: patientId as string };
+}
+
+// Booking counterpart to bookAppointmentAction for the two new booking
+// styles (spec Parts 5-6) — same self_book_ensure_clinic_patient
+// first-contact step, then portal_book_flexible_or_walkin instead of
+// portal_book_appointment. windowStart/windowEnd are that day's published
+// clinic-hours (computed client-side from the same availability data the
+// calendar already fetched — see the RPC's own comment on why this isn't
+// a security boundary).
+export async function bookFlexibleOrWalkInAction(input: {
+  providerId: string;
+  appointmentTypeId: string;
+  bookingMode: "flexible_arrival" | "walk_in_intent";
+  windowStart: string;
+  windowEnd: string;
+  expectedArrivalAt?: string | null;
+  paymentMethod: string;
+  hmoId: string | null;
+  notes?: string;
+}): Promise<{ id: string; patientId: string }> {
+  const { supabase } = await requireSignedIn();
+
+  const { data: patientId, error: ensureError } = await supabase.rpc("self_book_ensure_clinic_patient", { p_provider_id: input.providerId });
+  if (ensureError) throw new Error(ensureError.message);
+
+  const { data, error } = await supabase.rpc("portal_book_flexible_or_walkin", {
+    p_provider_id: input.providerId,
+    p_appointment_type_id: input.appointmentTypeId,
+    p_booking_mode: input.bookingMode,
+    p_window_start: input.windowStart,
+    p_window_end: input.windowEnd,
+    p_expected_arrival_at: input.bookingMode === "flexible_arrival" ? input.expectedArrivalAt || null : null,
+    p_notes: input.notes || null,
+    p_payment_method: input.paymentMethod,
+    p_hmo_id: input.hmoId,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/portal/appointments");
