@@ -268,9 +268,10 @@ export async function completeMyFormAction(formId: string, responses: Record<str
 // webhook ever marks anything Paid.
 export async function startMyChargeOnlinePaymentAction(chargeId: string): Promise<string> {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
+  if (!account) throw new Error("You're not connected with a clinic yet, so there's nothing to pay.");
+  const patientId = account.patient_id;
   const { createPatientChargeCheckoutSession } = await import("@/lib/patient-paymongo");
-  const tenantId = (account as any).tenant_id;
+  const tenantId = account.tenant_id;
 
   const { data: clinicSettings } = await supabase.from("clinic_settings").select("accept_online_payments").eq("tenant_id", tenantId).maybeSingle();
   if (!clinicSettings?.accept_online_payments) {

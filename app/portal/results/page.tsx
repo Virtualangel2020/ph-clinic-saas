@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 
 // My Results (spec §15) — read-only view of this patient's own lab_orders
 // / lab_results, the same rows the chart's Orders & Results tab and the
@@ -8,7 +9,17 @@ import { PortalShell } from "@/components/portal-shell";
 // Results workflow's New/Reviewed/Released statuses.
 export default async function PortalResultsPage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
+
+  if (!account) {
+    return (
+      <PortalShell>
+        <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Results</h1>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Lab and diagnostic results your clinic has released to you.</p>
+        <PortalNoClinicState what="results" />
+      </PortalShell>
+    );
+  }
+  const patientId = account.patient_id;
 
   const { data: orders } = await supabase
     .from("lab_orders")

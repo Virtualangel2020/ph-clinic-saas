@@ -24,17 +24,135 @@ function fmtDate(iso: string) {
 // via the existing portal-self-read RLS policies (is_portal_patient()).
 export default async function PortalHomePage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
-  const tenantId = (account as any).tenant_id;
   const cutoffIso = new Date(Date.now() - RECENCY_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const todayStr = new Date().toISOString().slice(0, 10);
+
+  // Identity-level data — resolved from the platform mycaredesk_accounts
+  // identity, so it's available whether or not this patient has connected
+  // with a clinic yet (bug fix: a brand-new self-registered patient used
+  // to get bounced out of the whole portal because everything below this
+  // point required a clinic relationship that doesn't exist yet — see
+  // requirePatientPortal). Access requests in particular matter MORE for
+  // a 0-clinic patient: that's literally how a clinic connects with them.
+  const [{ data: mycaredeskAccount }, { data: accessRequestsRaw }] = await Promise.all([
+    supabase.rpc("get_my_mycaredesk_account"),
+    supabase.rpc("patient_list_my_access_requests"),
+  ]);
+
+  let healthProfileNudge: { title: string; subtitle: string } | null = null;
+  if (!mycaredeskAccount) {
+    healthProfileNudge = { title: "Set up your Health Profile", subtitle: "One quick step — share allergies, medications, and conditions with your doctors." };
+  } else {
+    const { data: profileRow } = await supabase.from("mycaredesk_health_profiles").select("mycaredesk_account_id").eq("mycaredesk_account_id", (mycaredeskAccount as any).id).maybeSingle();
+    if (!profileRow) {
+      healthProfileNudge = { title: "Complete your Health Profile", subtitle: "Share allergies, medications, and conditions with your doctors — nothing is required." };
+    }
+  }
+
+  // No clinic relationship yet — a brand-new self-registered patient.
+  // Every clinic-scoped section below (Coming Up, New For You, Recent
+  // Care, Financial) has nothing to query, so skip straight to a short,
+  // onboarding-flavored dashboard. The normal portal nav (PortalShell)
+  // stays fully visible and functional the whole time — Appointments,
+  // Billing, Messages etc. each show their own graceful empty state if
+  // visited, they're never hidden or redirected away from.
+  if (!account) {
+    const attentionItems: { key: string; title: string; subtitle: string; action: React.ReactNode }[] = [];
+    const pendingAccessRequest = ((accessRequestsRaw as any[]) ?? []).find((r) => r.status === "pending");
+    if (pendingAccessRequest) {
+      attentionItems.push({
+        key: "access-request",
+        title: "Clinic Requesting Access",
+        subtitle: `${pendingAccessRequest.clinic_name} wants to link your MyCareDesk account to a patient record.`,
+        action: (
+          <Link href="/portal/health-profile" style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-heading, var(--brand-primary))", textDecoration: "none", flexShrink: 0 }}>
+            Review →
+          </Link>
+        ),
+      });
+    }
+
+    return (
+      <PortalShell patientName={(mycaredeskAccount as any)?.first_name}>
+        <h1 style={{ fontSize: 21, marginBottom: 4 }}>Welcome to MyCareDesk{(mycaredeskAccount as any)?.first_name ? `, ${(mycaredeskAccount as any).first_name}` : ""}!</h1>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account is ready. Fill in your Health Profile whenever you have a few minutes, or jump straight to finding a doctor.</p>
+
+        <div style={{ display: "grid", gap: 14 }}>
+          {attentionItems.length > 0 && (
+            <section style={{ background: "white", border: "1px solid #eee", borderRadius: 12, overflow: "hidden" }}>
+              <h2 style={{ fontSize: 12, fontWeight: 700, color: "#7a5c12", textTransform: "uppercase", letterSpacing: 0.4, margin: 0, padding: "14px 18px 10px", background: "#fffaf0" }}>
+                Needs Attention
+              </h2>
+              <div>
+                {attentionItems.map((item, i) => (
+                  <div
+                    key={item.key}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, padding: "12px 18px", borderTop: i === 0 ? "1px solid #f5ead0" : "1px solid #f0f0f0" }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{item.title}</div>
+                      <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{item.subtitle}</div>
+                    </div>
+                    {item.action}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: 18 }}>
+            <h2 style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 0, marginBottom: 10 }}>Get Started</h2>
+            <p style={{ color: "#999", fontSize: 12.5, margin: "0 0 14px" }}>
+              You're not connected with a clinic yet. Booking your first appointment — or a clinic approving your access
+              request — connects your account automatically.
+            </p>
+            <div style={{ display: "grid", gap: 10 }}>
+              {healthProfileNudge && (
+                <Link
+                  href="/portal/health-profile"
+                  style={{ display: "block", background: "var(--brand-primary)", color: "white", borderRadius: 10, padding: "12px 16px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+                >
+                  {healthProfileNudge.title} →
+                </Link>
+              )}
+              <Link
+                href="/find-a-doctor"
+                style={{ display: "block", background: "white", border: "1px solid #ddd", color: "var(--brand-primary)", borderRadius: 10, padding: "12px 16px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
+              >
+                Find a Doctor →
+              </Link>
+            </div>
+          </section>
+        </div>
+
+        <div style={{ marginTop: 14, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+          {[
+            { href: "/portal/care", label: "My Care" },
+            { href: "/portal/messages", label: "Messages" },
+            { href: "/portal/appointments", label: "Appointments" },
+            { href: "/portal/profile", label: "Profile" },
+          ].map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              style={{ display: "block", background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", fontSize: 12.5, fontWeight: 600, color: "#333", textDecoration: "none" }}
+            >
+              {l.label} →
+            </Link>
+          ))}
+        </div>
+      </PortalShell>
+    );
+  }
+
+  const patientId = account.patient_id;
+  const tenantId = account.tenant_id;
 
   const [
     { data: patient },
     { data: nextAppt },
     { data: assignedForms },
     { data: followUpsRaw },
-    { data: accessRequestsRaw },
     { data: statusEvents },
     { data: resultsRaw },
     { data: prescriptionsRaw },
@@ -55,7 +173,6 @@ export default async function PortalHomePage() {
       .maybeSingle(),
     supabase.from("patient_forms").select("id, template_name").eq("patient_id", patientId).eq("status", "assigned"),
     supabase.rpc("patient_list_my_follow_ups"),
-    supabase.rpc("patient_list_my_access_requests"),
     supabase
       .from("appointment_status_events")
       .select("id, old_status, new_status, old_start_at, new_start_at, changed_at")
@@ -90,20 +207,11 @@ export default async function PortalHomePage() {
   const unreadThreads = ((threadsRaw as any[]) ?? []).filter((t) => t.unread_count > 0);
   const unreadTotal = unreadThreads.reduce((sum, t) => sum + t.unread_count, 0);
 
-  // Health Profile nudge (spec Part 4: optional and progressively
-  // completable — "nothing here is required") — a one-time nudge to
-  // start it, never a recurring "incomplete" warning once they've saved
-  // anything at all, so it can't turn into the kind of stale nag Angel's
-  // design principle rules out.
-  let healthProfileNudge: { title: string; subtitle: string } | null = null;
-  if (!patient?.mycaredesk_account_id) {
-    healthProfileNudge = { title: "Set up your Health Profile", subtitle: "One quick step — share allergies, medications, and conditions with your doctors." };
-  } else {
-    const { data: profileRow } = await supabase.from("mycaredesk_health_profiles").select("mycaredesk_account_id").eq("mycaredesk_account_id", patient.mycaredesk_account_id).maybeSingle();
-    if (!profileRow) {
-      healthProfileNudge = { title: "Complete your Health Profile", subtitle: "Share allergies, medications, and conditions with your doctors — nothing is required." };
-    }
-  }
+  // healthProfileNudge was already resolved above (identity-level, shared
+  // with the 0-clinic branch) from the platform mycaredesk_accounts
+  // identity rather than this clinic's patients.mycaredesk_account_id
+  // link — more correct anyway, since it now works the same way
+  // regardless of clinic relationship.
 
   type AttentionItem = { key: string; title: string; subtitle: string; action?: React.ReactNode };
   const attentionItems: AttentionItem[] = [];

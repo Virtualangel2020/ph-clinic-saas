@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { PortalDocumentsList } from "./records-list";
 
 // My Records (spec §15) — read-only view of this patient's own
@@ -9,7 +10,17 @@ import { PortalDocumentsList } from "./records-list";
 // here — that stays a staff-only action (spec §10-12).
 export default async function PortalRecordsPage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
+
+  if (!account) {
+    return (
+      <PortalShell>
+        <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Records</h1>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Documents your clinic has filed to your record.</p>
+        <PortalNoClinicState what="records" />
+      </PortalShell>
+    );
+  }
+  const patientId = account.patient_id;
 
   const { data: documents } = await supabase
     .from("patient_documents")

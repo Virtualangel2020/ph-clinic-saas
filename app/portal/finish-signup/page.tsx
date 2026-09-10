@@ -22,7 +22,7 @@ export default async function FinishSignupPage() {
   // Idempotent: revisiting this link (or a slow double-click) shouldn't
   // try to create a second account for the same login.
   const { data: existing } = await supabase.rpc("get_my_mycaredesk_account");
-  if (existing) redirect("/portal/welcome");
+  if (existing) redirect("/portal");
 
   const meta = user.user_metadata ?? {};
   if (meta.account_kind === "mycaredesk_patient" && meta.first_name && meta.last_name && meta.date_of_birth && meta.sex) {
@@ -39,5 +39,7 @@ export default async function FinishSignupPage() {
     await supabase.rpc("link_my_existing_patients_to_mycaredesk_account");
   }
 
-  redirect("/portal/welcome");
+  // /portal (the dashboard) handles the "no clinic relationship yet" case
+  // gracefully on its own now — no need for a separate Welcome dead end.
+  redirect("/portal");
 }

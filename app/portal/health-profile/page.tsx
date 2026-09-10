@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { BrandHeader } from "@/components/brand-header";
+import { PortalShell } from "@/components/portal-shell";
 import { HealthProfileForm } from "./health-profile-form";
 import { AccountSetupPanel } from "./account-setup-panel";
 import { AccessRequestsPanel } from "./access-requests-panel";
@@ -14,6 +13,13 @@ import { FamilyPanel } from "./family-panel";
 // Portal user discovering it organically, who may not have a platform
 // account yet. AccountSetupPanel handles case (2) inline rather than
 // bouncing them somewhere else.
+//
+// Bug fix: this page used to render as a bare, nav-less <main> — outside
+// PortalShell entirely — which is exactly why it read as "disconnected"
+// from the rest of the portal. It's now wrapped in the same PortalShell
+// every other /portal/* page uses (in BOTH branches below, including the
+// one-time account-setup step), so the normal nav is visible the whole
+// time and this never feels like a separate, orphaned flow.
 //
 // ?for=<accountId> switches which family member's profile is shown (see
 // FamilyPanel / mycaredesk_family_dependent_accounts migration) — defaults
@@ -41,16 +47,13 @@ export default async function HealthProfilePage({ searchParams }: { searchParams
       .maybeSingle();
 
     return (
-      <main style={{ maxWidth: 440, margin: "50px auto", padding: 24 }}>
-        <div style={{ marginBottom: 20 }}>
-          <BrandHeader />
-        </div>
+      <PortalShell>
         <h1 style={{ fontSize: 20 }}>Set up your MyCareDesk account</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>
           One quick step before you can fill in a Health Profile — this creates your permanent MyCareDesk account, separate from any one clinic.
         </p>
         <AccountSetupPanel prefill={(existingPatient as any)?.patients ?? null} email={user.email ?? ""} />
-      </main>
+      </PortalShell>
     );
   }
 
@@ -68,13 +71,12 @@ export default async function HealthProfilePage({ searchParams }: { searchParams
   const { data: accessRequests } = await supabase.rpc("patient_list_my_access_requests");
 
   return (
-    <main style={{ maxWidth: 560, margin: "40px auto", padding: 24 }}>
-      <div style={{ marginBottom: 20 }}>
-        <BrandHeader />
-      </div>
-      <Link href="/portal/welcome" style={{ display: "inline-block", fontSize: 13, color: "#888", textDecoration: "none", marginBottom: 12 }}>
-        ← Back
-      </Link>
+    <PortalShell patientName={account.first_name}>
+      {activeAccountId !== account.id && (
+        <div style={{ background: "#eef6fb", border: "1px solid #b9d9ec", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12.5, color: "#2a5674", fontWeight: 600 }}>
+          Viewing {activeAccount?.first_name} {activeAccount?.last_name}'s Health Profile — not your own.
+        </div>
+      )}
       <h1 style={{ fontSize: 22, marginBottom: 4 }}>Health Profile</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
         Fill in as much as you know — nothing here is required. Once you're seen by a MyCareDesk provider, they'll be able to see this so you don't have to repeat it at check-in.
@@ -82,6 +84,6 @@ export default async function HealthProfilePage({ searchParams }: { searchParams
       <FamilyPanel owner={account} family={familyList} activeAccountId={activeAccountId} />
       <AccessRequestsPanel requests={(accessRequests as any) ?? []} />
       <HealthProfileForm key={activeAccountId} initial={profile as any} forAccountId={activeAccountId === account.id ? null : activeAccountId} forName={activeAccountId === account.id ? null : `${activeAccount?.first_name ?? ""} ${activeAccount?.last_name ?? ""}`.trim()} />
-    </main>
+    </PortalShell>
   );
 }

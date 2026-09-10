@@ -101,7 +101,10 @@ export default function PatientSignupPage() {
         setErrorMsg(accountError.message);
         return;
       }
-      router.push("/portal/welcome");
+      // /portal (the dashboard) shows a graceful onboarding version of
+      // itself for a brand-new patient with no clinic relationship yet —
+      // no separate Welcome page needed.
+      router.push("/portal");
       router.refresh();
       return;
     }

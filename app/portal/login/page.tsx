@@ -35,7 +35,7 @@ function LoginForm() {
 
     const supabase = createClient();
     const isEmail = identifier.includes("@");
-    const { data, error } = await supabase.auth.signInWithPassword(
+    const { error } = await supabase.auth.signInWithPassword(
       isEmail ? { email: identifier.trim(), password } : { phone: normalizePhMobile(identifier), password }
     );
 
@@ -45,30 +45,14 @@ function LoginForm() {
       return;
     }
 
-    if (explicitNext) {
-      router.push(explicitNext);
-      router.refresh();
-      return;
-    }
-
-    // No specific destination was requested, so figure out where this
-    // patient actually belongs before defaulting to /portal. A
-    // clinic-invited/activated patient has an ACTIVE patient_portal_accounts
-    // row and lands on /portal (their per-clinic tabs). A self-registered
-    // patient with no clinic relationship yet has none of those — only a
-    // platform mycaredesk_accounts row — and /portal would just bounce them
-    // straight back to this login page, since requirePatientPortal requires
-    // that clinic-side row. Route each to somewhere that actually has
-    // something to show them.
-    const { data: clinicAccount } = await supabase
-      .from("patient_portal_accounts")
-      .select("id")
-      .eq("auth_user_id", data.user!.id)
-      .eq("status", "active")
-      .maybeSingle();
-
+    // /portal (the dashboard) now handles both cases on its own — a
+    // clinic-connected patient sees their real dashboard, and a brand-new
+    // self-registered patient (platform mycaredesk_accounts identity only,
+    // no clinic relationship yet) sees a graceful onboarding version of the
+    // SAME page, with the normal portal nav still fully visible. There's no
+    // need to pre-branch here anymore (see requirePatientPortal).
     setLoading(false);
-    router.push(clinicAccount ? "/portal" : "/portal/welcome");
+    router.push(explicitNext || "/portal");
     router.refresh();
   }
 

@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { appointmentWording } from "@/lib/patients/appointment-wording";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,7 +27,16 @@ const SELECT_COLS =
 // RLS, which reuses the existing is_portal_patient() helper.
 export default async function PortalAppointmentsPage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
+
+  if (!account) {
+    return (
+      <PortalShell>
+        <h1 style={{ fontSize: 20, marginBottom: 16 }}>My Appointments</h1>
+        <PortalNoClinicState what="appointments" />
+      </PortalShell>
+    );
+  }
+  const patientId = account.patient_id;
   const nowIso = new Date().toISOString();
 
   const [{ data: upcoming }, { data: past }, { data: links }] = await Promise.all([

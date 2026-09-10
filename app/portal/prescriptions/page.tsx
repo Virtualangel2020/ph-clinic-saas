@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 
 // My Prescriptions (spec §15) — read-only view of this patient's own
 // prescriptions, the same rows the chart's Prescriptions tab and the
@@ -9,7 +10,17 @@ import { PortalShell } from "@/components/portal-shell";
 // been prescribed.
 export default async function PortalPrescriptionsPage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
+
+  if (!account) {
+    return (
+      <PortalShell>
+        <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Prescriptions</h1>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Prescriptions issued by your MyCareDesk provider.</p>
+        <PortalNoClinicState what="prescriptions" />
+      </PortalShell>
+    );
+  }
+  const patientId = account.patient_id;
 
   const { data: prescriptions } = await supabase
     .from("prescriptions")

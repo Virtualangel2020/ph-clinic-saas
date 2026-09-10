@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { paymongoMode } from "@/lib/patient-paymongo";
 import { getPortalBalanceSummary, pesoLabel } from "@/lib/patients/portal-balance";
 import { PayNowButton } from "./pay-now-button";
@@ -26,8 +27,18 @@ const peso = pesoLabel;
 // numbers.
 export default async function PortalBillingPage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
-  const tenantId = (account as any).tenant_id;
+
+  if (!account) {
+    return (
+      <PortalShell>
+        <h1 style={{ fontSize: 20, marginBottom: 4 }}>My Billing</h1>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Charges and payments from your clinic.</p>
+        <PortalNoClinicState what="billing history" />
+      </PortalShell>
+    );
+  }
+  const patientId = account.patient_id;
+  const tenantId = account.tenant_id;
 
   const [{ totalCharged, totalPaid, balance, charges, payments }, { data: clinicSettings }] = await Promise.all([
     getPortalBalanceSummary(supabase, patientId),

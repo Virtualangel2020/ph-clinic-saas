@@ -1,5 +1,6 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
+import { PortalNoClinicState } from "@/components/portal-no-clinic-state";
 import { SharingRequestCard } from "./sharing-request-card";
 
 // Records & Authorizations (spec §15, §44) — shows which MyCareDesk
@@ -13,7 +14,17 @@ import { SharingRequestCard } from "./sharing-request-card";
 // the case where they've explicitly asked for your sign-off first.
 export default async function PortalAuthorizationsPage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
+
+  if (!account) {
+    return (
+      <PortalShell>
+        <h1 style={{ fontSize: 20, marginBottom: 4 }}>Records & Authorizations</h1>
+        <p style={{ color: "#666", fontSize: 13, marginBottom: 16 }}>Which provider your clinic has authorized to view your shared medical record.</p>
+        <PortalNoClinicState what="authorizations" />
+      </PortalShell>
+    );
+  }
+  const patientId = account.patient_id;
 
   // patient_sharing_preferences has THREE FKs to user_profiles
   // (authorized_by, revoked_by, provider_user_id) — a bare

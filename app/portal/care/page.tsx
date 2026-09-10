@@ -23,16 +23,19 @@ function fmtDate(iso: string) {
 
 export default async function PatientCarePage() {
   const { supabase, account } = await requirePatientPortal();
-  const patientId = (account as any).patient_id;
 
   // Last Visit summary (Task #139, spec Part 33/Design #6) — same
   // patient-safe fields and single source of truth as the dashboard's
   // Recent Care card (lib/patients/last-visit), so the two can never show
-  // different answers to "when did I last see my doctor."
-  const lastVisit = await getLastCompletedEncounter(supabase, patientId);
+  // different answers to "when did I last see my doctor." Skipped
+  // entirely for a patient with no clinic relationship yet — there's
+  // nothing to look up. Every link below (Health Profile especially)
+  // still works without one; the clinic-scoped ones show their own
+  // graceful "not connected yet" state if visited.
+  const lastVisit = account ? await getLastCompletedEncounter(supabase, account.patient_id) : null;
 
   return (
-    <PortalShell patientName={(account as any)?.patients?.first_name}>
+    <PortalShell patientName={account?.patients?.first_name}>
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>My Care</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Everything about your care, in one place.</p>
 
