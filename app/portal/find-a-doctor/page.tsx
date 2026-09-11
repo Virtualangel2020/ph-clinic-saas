@@ -18,24 +18,40 @@ import { MaintenanceNotice } from "@/components/maintenance-notice";
 // pointed straight at the real in-portal booking flow (bookHref) instead
 // of the public "no account needed" request form a signed-in patient
 // never needs.
+// Temporary structured checkpoints for the Find a Doctor crash
+// investigation (Digest 800866611) — TEMPORARY, remove once a real
+// production click-through is confirmed clean. No medical data, tokens,
+// or PII beyond a bare user id ever goes into these; safe to leave in
+// Vercel's Runtime Logs.
+function logCheckpoint(step: string, detail?: Record<string, unknown>) {
+  console.log(`[FIND_DOCTOR] ${step}`, detail ?? "");
+}
+
 export default async function PortalFindADoctorPage() {
+  logCheckpoint("FIND_DOCTOR_START");
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/portal/login?next=/portal/find-a-doctor");
+  if (!user) {
+    logCheckpoint("AUTH_MISSING_REDIRECT");
+    redirect("/portal/login?next=/portal/find-a-doctor");
+  }
+  logCheckpoint("AUTH_RESOLVED", { userId: user.id });
 
   // Maintenance mode must behave the same here as everywhere else in the
   // portal — a patient hitting Find a Doctor mid-update should see the
   // same branded notice, never a directory that half-loads or errors.
   const maintenance = await getMaintenanceStatus(supabase);
   if (maintenance.isEnabled) return <MaintenanceNotice message={maintenance.message} />;
+  logCheckpoint("MAINTENANCE_CHECK_OK");
 
   let providersWithPhotos: any[] = [];
   let externalWithPhotos: any[] = [];
   let loadError = false;
 
   try {
+    logCheckpoint("DIRECTORY_QUERY_START");
     const [{ data: providers, error: providersError }, { data: externalProviders, error: externalError }] = await Promise.all([
       supabase.rpc("public_list_directory_providers"),
       supabase
@@ -46,6 +62,10 @@ export default async function PortalFindADoctorPage() {
     ]);
     if (providersError) throw providersError;
     if (externalError) throw externalError;
+    logCheckpoint(providers?.length || externalProviders?.length ? "DIRECTORY_QUERY_SUCCESS" : "DIRECTORY_QUERY_EMPTY", {
+      providerCount: providers?.length ?? 0,
+      externalCount: externalProviders?.length ?? 0,
+    });
 
     externalWithPhotos = (externalProviders ?? []).map((p: any) => ({
       ...p,
@@ -56,13 +76,16 @@ export default async function PortalFindADoctorPage() {
       ...p,
       photo_url: p.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(p.public_photo_path).data.publicUrl : null,
     }));
+    logCheckpoint("TRANSFORM_SUCCESS");
   } catch (err) {
     // Never surface the raw exception to a patient — log it server-side
     // (visible in Vercel logs / stdout) and fall back to a friendly,
     // still-in-portal error state instead of Next's generic crash page.
     console.error("[find-a-doctor] failed to load directory:", err);
+    logCheckpoint("DIRECTORY_QUERY_FAILED", { errorMessage: err instanceof Error ? err.message : String(err) });
     loadError = true;
   }
+  logCheckpoint("RENDER_READY", { loadError });
 
   return (
     <PortalShell>

@@ -38,13 +38,23 @@ function timeLabel(t: string): string {
 // instead of the public SiteNav/SiteFooter, and with Book/Message actions
 // that go straight to the real portal flows — no /portal/login redirect
 // hop, since being here already proves the patient is signed in.
+// Temporary structured checkpoints for the Find a Doctor crash
+// investigation (Digest 800866611) — TEMPORARY, remove once a real
+// production click-through is confirmed clean. No medical data, tokens,
+// or PII beyond bare ids ever goes into these.
+function logCheckpoint(step: string, detail?: Record<string, unknown>) {
+  console.log(`[FIND_DOCTOR_PROFILE] ${step}`, detail ?? "");
+}
+
 export default async function PortalProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  logCheckpoint("PROFILE_START", { providerId: id });
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect(`/portal/login?next=/portal/find-a-doctor/${id}`);
+  logCheckpoint("AUTH_RESOLVED", { userId: user.id });
 
   const maintenance = await getMaintenanceStatus(supabase);
   if (maintenance.isEnabled) return <MaintenanceNotice message={maintenance.message} />;
@@ -78,9 +88,14 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
   let d: any;
 
   try {
+    logCheckpoint("PROVIDER_QUERY_START");
     const { data, error } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
     if (error) throw error;
-    if (!data) notFound();
+    if (!data) {
+      logCheckpoint("PROVIDER_NOT_FOUND");
+      notFound();
+    }
+    logCheckpoint("PROVIDER_QUERY_SUCCESS");
     d = data;
 
     photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
@@ -112,12 +127,14 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
       if (!hoursByDay.has(h.day_of_week)) hoursByDay.set(h.day_of_week, []);
       hoursByDay.get(h.day_of_week)!.push(h);
     }
+    logCheckpoint("TRANSFORM_SUCCESS");
   } catch (err) {
     // notFound() works by throwing a special Next.js redirect-style error —
     // let that pass through untouched; only a REAL failure (RPC error,
     // network hiccup, malformed payload) should fall to the friendly state.
     if ((err as any)?.digest === "NEXT_NOT_FOUND") throw err;
     console.error(`[find-a-doctor/${id}] failed to load provider profile:`, err);
+    logCheckpoint("PROVIDER_LOAD_FAILED", { errorMessage: err instanceof Error ? err.message : String(err) });
     return (
       <PortalShell>
         <BackLink href="/portal/find-a-doctor" label="Find a Doctor" />
@@ -125,6 +142,7 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
       </PortalShell>
     );
   }
+  logCheckpoint("RENDER_READY");
 
   return (
     <PortalShell>
