@@ -28,6 +28,47 @@ export type MyCaredeskFamilyMember = {
   has_own_login: boolean;
   status: string;
   created_at: string;
+  mobile_phone: string | null;
+  email: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  province: string | null;
+  postal_code: string | null;
+  civil_status: string | null;
+  occupation: string | null;
+  employer_name: string | null;
+  employer_position: string | null;
+  employer_contact: string | null;
+  employer_address: string | null;
+};
+
+// Shared shape for the personal-info self-edit feature (Angel: "allow us to
+// edit personal information like full name, date of birth, address, also
+// add work, company ... Health information is different as well") — the
+// PATIENT-OWNED MyCareDesk account fields, deliberately separate from both
+// the clinic's own `patients` record (still "contact your clinic to
+// update") and mycaredesk_health_profiles (medical info). One shape used by
+// PersonalInfoEditor everywhere it's rendered, so self and every dependent
+// go through the exact same component/RPC.
+export type PersonalInfoValues = {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  sex: string;
+  mobilePhone: string | null;
+  email: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+  civilStatus: string | null;
+  occupation: string | null;
+  employerName: string | null;
+  employerPosition: string | null;
+  employerContact: string | null;
+  employerAddress: string | null;
 };
 
 // A profile the currently signed-in login can pick in the chooser — the
@@ -45,6 +86,7 @@ export type SelectableProfile = {
   isSelf: boolean;
   relationship: string | null; // null for isSelf
   relationshipOtherDescription: string | null;
+  personalInfo: PersonalInfoValues;
 };
 
 export const ACTIVE_PROFILE_COOKIE = "mcd_active_profile";
@@ -79,14 +121,34 @@ export const resolveMyCaredeskProfileSelection = cache(async function resolveMyC
 
   const rawSelectable: Omit<SelectableProfile, "photoUrl">[] = [];
   if (myAccount) {
+    const a = myAccount as any;
     rawSelectable.push({
-      accountId: (myAccount as any).id,
-      firstName: (myAccount as any).first_name,
-      lastName: (myAccount as any).last_name,
-      photoPath: (myAccount as any).photo_path ?? null,
+      accountId: a.id,
+      firstName: a.first_name,
+      lastName: a.last_name,
+      photoPath: a.photo_path ?? null,
       isSelf: true,
       relationship: null,
       relationshipOtherDescription: null,
+      personalInfo: {
+        firstName: a.first_name,
+        lastName: a.last_name,
+        dateOfBirth: a.date_of_birth,
+        sex: a.sex,
+        mobilePhone: a.mobile_phone ?? null,
+        email: a.email ?? null,
+        addressLine1: a.address_line1 ?? null,
+        addressLine2: a.address_line2 ?? null,
+        city: a.city ?? null,
+        province: a.province ?? null,
+        postalCode: a.postal_code ?? null,
+        civilStatus: a.civil_status ?? null,
+        occupation: a.occupation ?? null,
+        employerName: a.employer_name ?? null,
+        employerPosition: a.employer_position ?? null,
+        employerContact: a.employer_contact ?? null,
+        employerAddress: a.employer_address ?? null,
+      },
     });
   }
   for (const m of familyList) {
@@ -98,6 +160,25 @@ export const resolveMyCaredeskProfileSelection = cache(async function resolveMyC
       isSelf: false,
       relationship: m.relationship,
       relationshipOtherDescription: m.relationship_other_description ?? null,
+      personalInfo: {
+        firstName: m.first_name,
+        lastName: m.last_name,
+        dateOfBirth: m.date_of_birth,
+        sex: m.sex,
+        mobilePhone: m.mobile_phone ?? null,
+        email: m.email ?? null,
+        addressLine1: m.address_line1 ?? null,
+        addressLine2: m.address_line2 ?? null,
+        city: m.city ?? null,
+        province: m.province ?? null,
+        postalCode: m.postal_code ?? null,
+        civilStatus: m.civil_status ?? null,
+        occupation: m.occupation ?? null,
+        employerName: m.employer_name ?? null,
+        employerPosition: m.employer_position ?? null,
+        employerContact: m.employer_contact ?? null,
+        employerAddress: m.employer_address ?? null,
+      },
     });
   }
 

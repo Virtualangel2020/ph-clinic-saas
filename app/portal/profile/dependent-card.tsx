@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { PhotoUpload } from "./photo-upload";
+import { PersonalInfoEditor } from "@/components/personal-info-editor";
+import type { PersonalInfoValues } from "@/lib/require-patient-portal";
 
 // Compact dependent card for the Profile page's "Family / Dependents"
 // section — per Angel's ask ("allow us to upload a profile picture on
@@ -19,14 +21,17 @@ export function DependentCard({
   lastName,
   dateOfBirth,
   photoUrl,
+  personalInfo,
 }: {
   accountId: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string | null;
   photoUrl: string | null;
+  personalInfo: PersonalInfoValues;
 }) {
   const [editingPhoto, setEditingPhoto] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
   const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
   return (
@@ -63,18 +68,33 @@ export function DependentCard({
             {dateOfBirth ? `Born ${new Date(dateOfBirth).toLocaleDateString()}` : "Dependent"} · View / Manage Health Profile →
           </div>
         </a>
-        <button
-          type="button"
-          onClick={() => setEditingPhoto((v) => !v)}
-          style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", background: "none", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap", flexShrink: 0 }}
-        >
-          {editingPhoto ? "Close" : "Change photo"}
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setEditingPhoto((v) => !v)}
+            style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", background: "none", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}
+          >
+            {editingPhoto ? "Close" : "Change photo"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditingInfo((v) => !v)}
+            style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", background: "none", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}
+          >
+            {editingInfo ? "Close" : "Edit Info"}
+          </button>
+        </div>
       </div>
 
       {editingPhoto && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
           <PhotoUpload photoUrl={photoUrl} initials={initials} forAccountId={accountId} caption={`PNG, JPG, or WEBP, up to 3MB. Only ${firstName}'s managers and connected clinics can see this.`} />
+        </div>
+      )}
+
+      {editingInfo && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+          <PersonalInfoEditor accountId={accountId} info={personalInfo} />
         </div>
       )}
     </div>

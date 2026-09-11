@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setActiveProfileAction } from "@/app/portal/actions";
 import { AddFamilyMemberForm } from "@/components/add-family-member-form";
 import { RelationshipEditor } from "@/components/relationship-editor";
+import { PersonalInfoEditor } from "@/components/personal-info-editor";
 import { PhotoUpload } from "@/app/portal/profile/photo-upload";
 import type { SelectableProfile } from "@/lib/require-patient-portal";
 
@@ -46,6 +47,7 @@ export function FamilyList({
 }) {
   const router = useRouter();
   const [editingPhotoFor, setEditingPhotoFor] = useState<string | null>(null);
+  const [editingInfoFor, setEditingInfoFor] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
   return (
@@ -55,6 +57,7 @@ export function FamilyList({
           const managers = managersByAccount[p.accountId] ?? [];
           const isActive = p.accountId === activeAccountId;
           const editingPhoto = editingPhotoFor === p.accountId;
+          const editingInfo = editingInfoFor === p.accountId;
           return (
             <div key={p.accountId} style={{ background: "white", border: isActive ? "1px solid var(--brand-primary)" : "1px solid #eee", borderRadius: 12, padding: 16 }}>
               <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -106,6 +109,13 @@ export function FamilyList({
                   >
                     {editingPhoto ? "Close" : "Change photo"}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingInfoFor(editingInfo ? null : p.accountId)}
+                    style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  >
+                    {editingInfo ? "Close" : "Edit Info"}
+                  </button>
                 </div>
               </div>
 
@@ -117,6 +127,12 @@ export function FamilyList({
                     forAccountId={p.isSelf ? undefined : p.accountId}
                     caption={p.isSelf ? undefined : `PNG, JPG, or WEBP, up to 3MB. Only ${p.firstName}'s managers and connected clinics can see this.`}
                   />
+                </div>
+              )}
+
+              {editingInfo && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                  <PersonalInfoEditor accountId={p.accountId} info={p.personalInfo} onChanged={() => router.refresh()} />
                 </div>
               )}
             </div>

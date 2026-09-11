@@ -1,6 +1,8 @@
 import { requirePatientPortal } from "@/lib/require-patient-portal";
+import type { PersonalInfoValues } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
+import { PersonalInfoEditor } from "@/components/personal-info-editor";
 import { PhotoUpload } from "./photo-upload";
 import { DependentCard } from "./dependent-card";
 import { age } from "@/lib/patients/get-patient-chart-data";
@@ -50,6 +52,38 @@ export default async function PatientProfilePage() {
     photoUrl = data?.signedUrl ?? null;
   }
 
+  // Personal Information (Angel: "allow us to edit personal information
+  // like full name, date of birth, address, also add work, company ...
+  // Health information is different as well") — sourced from the
+  // MyCareDesk platform account (mycaredeskAccount, already fetched above
+  // via get_my_mycaredesk_account's `select *`, so the new columns are
+  // already present), NOT the clinic's own patient record below. Only
+  // rendered once the platform account exists — before that there's
+  // nothing yet to edit here (the "Set up your MyCareDesk account" flow on
+  // Health Profile creates it).
+  const ma = mycaredeskAccount as any;
+  const myPersonalInfo: PersonalInfoValues | null = ma
+    ? {
+        firstName: ma.first_name,
+        lastName: ma.last_name,
+        dateOfBirth: ma.date_of_birth,
+        sex: ma.sex,
+        mobilePhone: ma.mobile_phone ?? null,
+        email: ma.email ?? null,
+        addressLine1: ma.address_line1 ?? null,
+        addressLine2: ma.address_line2 ?? null,
+        city: ma.city ?? null,
+        province: ma.province ?? null,
+        postalCode: ma.postal_code ?? null,
+        civilStatus: ma.civil_status ?? null,
+        occupation: ma.occupation ?? null,
+        employerName: ma.employer_name ?? null,
+        employerPosition: ma.employer_position ?? null,
+        employerContact: ma.employer_contact ?? null,
+        employerAddress: ma.employer_address ?? null,
+      }
+    : null;
+
   // Signed photo URL per dependent, same bucket/pattern as the account
   // holder's own photo above — lets each dependent's card show its real
   // photo (or an upload prompt) right here, not just on the separate My
@@ -69,6 +103,15 @@ export default async function PatientProfilePage() {
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account, doctors, and family.</p>
 
       <PhotoUpload photoUrl={photoUrl} initials={initials} />
+
+      {myPersonalInfo && (
+        <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: 18, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 0, marginBottom: 10 }}>
+            Personal Information
+          </h2>
+          <PersonalInfoEditor accountId={ma.id} info={myPersonalInfo} />
+        </div>
+      )}
 
       {(mycaredeskAccount as any)?.patient_number && (
         <div style={{ background: "white", border: "1px solid #eee", borderRadius: 12, padding: "14px 18px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -178,7 +221,33 @@ export default async function PatientProfilePage() {
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {familyList.map((f, i) => (
-            <DependentCard key={f.id} accountId={f.id} firstName={f.first_name} lastName={f.last_name} dateOfBirth={f.date_of_birth} photoUrl={familyPhotoUrls[i]} />
+            <DependentCard
+              key={f.id}
+              accountId={f.id}
+              firstName={f.first_name}
+              lastName={f.last_name}
+              dateOfBirth={f.date_of_birth}
+              photoUrl={familyPhotoUrls[i]}
+              personalInfo={{
+                firstName: f.first_name,
+                lastName: f.last_name,
+                dateOfBirth: f.date_of_birth,
+                sex: f.sex,
+                mobilePhone: f.mobile_phone ?? null,
+                email: f.email ?? null,
+                addressLine1: f.address_line1 ?? null,
+                addressLine2: f.address_line2 ?? null,
+                city: f.city ?? null,
+                province: f.province ?? null,
+                postalCode: f.postal_code ?? null,
+                civilStatus: f.civil_status ?? null,
+                occupation: f.occupation ?? null,
+                employerName: f.employer_name ?? null,
+                employerPosition: f.employer_position ?? null,
+                employerContact: f.employer_contact ?? null,
+                employerAddress: f.employer_address ?? null,
+              }}
+            />
           ))}
         </div>
       )}
