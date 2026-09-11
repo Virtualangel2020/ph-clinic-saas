@@ -49,12 +49,69 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
   const maintenance = await getMaintenanceStatus(supabase);
   if (maintenance.isEnabled) return <MaintenanceNotice message={maintenance.message} />;
 
+  // Redesign investigation finding (Digest 800866611): everything derived
+  // from the fetched provider data used to live AFTER this try/catch block
+  // — resolveEffectiveSettings(d.clinic, d.override) in particular assumes
+  // d.clinic is a populated object, and if that assumption ever breaks for
+  // a real (non-demo) provider whose tenant is missing expected settings
+  // rows, the exception happens completely outside this function's error
+  // handling and falls straight through to Next's generic crash page,
+  // exactly matching Angel's report that "the friendly error handling
+  // isn't catching this." Moving all of it inside the try block — matching
+  // the pattern app/portal/book/[providerId]/page.tsx already used
+  // correctly — means any failure here now renders the same friendly
+  // PortalDataError instead. Combined with the new
+  // app/portal/find-a-doctor/[id]/error.tsx boundary as a second layer of
+  // defense for anything neither of these catches.
+  let photoUrl: string | null = null;
+  let fullName = "This provider";
+  let providerInitials = "?";
+  let effective!: ReturnType<typeof resolveEffectiveSettings>;
+  let services: any[] = [];
+  let hmos: any[] = [];
+  let weeklyHours: any[] = [];
+  let pricedServices: any[] = [];
+  let onlinePaymentNotAvailable = false;
+  let visitOptions: string[] = [];
+  let paymentBadges: string[] = ["Cash / Self-Pay"];
+  let hoursByDay = new Map<number, { start_time: string; end_time: string }[]>();
   let d: any;
+
   try {
     const { data, error } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
     if (error) throw error;
     if (!data) notFound();
     d = data;
+
+    photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
+    fullName = d.provider.full_name || "This provider";
+    providerInitials =
+      fullName
+        .split(" ")
+        .map((s: string) => s.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "?";
+    effective = resolveEffectiveSettings(d.clinic ?? {}, d.override ?? null);
+    services = d.services ?? [];
+    hmos = d.accepted_hmos ?? [];
+    weeklyHours = d.weekly_hours ?? [];
+
+    pricedServices = services.filter((s) => s.show_price_to_patient && s.price_type !== "free" && s.price_type !== "variable" && s.price_php != null);
+    onlinePaymentNotAvailable = !effective.acceptOnlinePayments && !!d.clinic?.financial_active && pricedServices.length > 0;
+
+    const consultationType = d.provider.public_consultation_type as string | null;
+    if (consultationType !== "telehealth") visitOptions.push("In-Person");
+    if (consultationType === "telehealth" || consultationType === "both") visitOptions.push("Telehealth");
+
+    if (effective.acceptHmo) paymentBadges.push("HMO");
+    if (effective.acceptYakap) paymentBadges.push("YAKAP");
+    if (effective.acceptOnlinePayments) paymentBadges.push("Online Payment");
+
+    for (const h of weeklyHours) {
+      if (!hoursByDay.has(h.day_of_week)) hoursByDay.set(h.day_of_week, []);
+      hoursByDay.get(h.day_of_week)!.push(h);
+    }
   } catch (err) {
     // notFound() works by throwing a special Next.js redirect-style error —
     // let that pass through untouched; only a REAL failure (RPC error,
@@ -67,39 +124,6 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
         <PortalDataError message="We couldn't load this provider's profile right now." />
       </PortalShell>
     );
-  }
-
-  const photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
-  const fullName: string = d.provider.full_name || "This provider";
-  const providerInitials =
-    fullName
-      .split(" ")
-      .map((s: string) => s.charAt(0))
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "?";
-  const effective = resolveEffectiveSettings(d.clinic, d.override);
-  const services: any[] = d.services ?? [];
-  const hmos: any[] = d.accepted_hmos ?? [];
-  const weeklyHours: any[] = d.weekly_hours ?? [];
-
-  const pricedServices = services.filter((s) => s.show_price_to_patient && s.price_type !== "free" && s.price_type !== "variable" && s.price_php != null);
-  const onlinePaymentNotAvailable = !effective.acceptOnlinePayments && d.clinic.financial_active && pricedServices.length > 0;
-
-  const consultationType = d.provider.public_consultation_type as string | null;
-  const visitOptions: string[] = [];
-  if (consultationType !== "telehealth") visitOptions.push("In-Person");
-  if (consultationType === "telehealth" || consultationType === "both") visitOptions.push("Telehealth");
-
-  const paymentBadges: string[] = ["Cash / Self-Pay"];
-  if (effective.acceptHmo) paymentBadges.push("HMO");
-  if (effective.acceptYakap) paymentBadges.push("YAKAP");
-  if (effective.acceptOnlinePayments) paymentBadges.push("Online Payment");
-
-  const hoursByDay = new Map<number, { start_time: string; end_time: string }[]>();
-  for (const h of weeklyHours) {
-    if (!hoursByDay.has(h.day_of_week)) hoursByDay.set(h.day_of_week, []);
-    hoursByDay.get(h.day_of_week)!.push(h);
   }
 
   return (

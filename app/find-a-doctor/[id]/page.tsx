@@ -39,43 +39,81 @@ function timeLabel(t: string): string {
 export default async function ProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
-  if (!data) notFound();
 
-  const d = data as any;
-  const photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
-  const providerInitials =
-    (d.provider.full_name as string)
-      .split(" ")
-      .map((s: string) => s.charAt(0))
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "?";
-  const effective = resolveEffectiveSettings(d.clinic, d.override);
-  const services: any[] = d.services ?? [];
-  const hmos: any[] = d.accepted_hmos ?? [];
-  const weeklyHours: any[] = d.weekly_hours ?? [];
+  // Same fix as the in-portal copy of this page
+  // (app/portal/find-a-doctor/[id]/page.tsx): everything derived from the
+  // fetched data now lives INSIDE the try block, and every field access
+  // that isn't already guaranteed non-null by the RPC (full_name in
+  // particular — public_get_provider_profile doesn't filter on it the way
+  // public_list_directory_providers does) is null-safe, so a genuinely
+  // incomplete real provider record renders a friendly message instead of
+  // Next's generic crash page.
+  let d: any;
+  let photoUrl: string | null = null;
+  let fullName = "This provider";
+  let providerInitials = "?";
+  let effective!: ReturnType<typeof resolveEffectiveSettings>;
+  let services: any[] = [];
+  let hmos: any[] = [];
+  let weeklyHours: any[] = [];
+  let pricedServices: any[] = [];
+  let onlinePaymentNotAvailable = false;
+  let visitOptions: string[] = [];
+  let paymentBadges: string[] = ["Cash / Self-Pay"];
+  let hoursByDay = new Map<number, { start_time: string; end_time: string }[]>();
 
-  const pricedServices = services.filter((s) => s.show_price_to_patient && s.price_type !== "free" && s.price_type !== "variable" && s.price_php != null);
-  const onlinePaymentNotAvailable = !effective.acceptOnlinePayments && d.clinic.financial_active && pricedServices.length > 0;
+  try {
+    const { data, error } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
+    if (error) throw error;
+    if (!data) notFound();
+    d = data;
 
-  // public_consultation_type already existed on user_profiles before this
-  // pass; deriving Visit Options from it here (mirroring the same logic
-  // used on the directory cards) needed no schema or RPC change.
-  const consultationType = d.provider.public_consultation_type as string | null;
-  const visitOptions: string[] = [];
-  if (consultationType !== "telehealth") visitOptions.push("In-Person");
-  if (consultationType === "telehealth" || consultationType === "both") visitOptions.push("Telehealth");
+    photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
+    fullName = d.provider.full_name || "This provider";
+    providerInitials =
+      fullName
+        .split(" ")
+        .map((s: string) => s.charAt(0))
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "?";
+    effective = resolveEffectiveSettings(d.clinic ?? {}, d.override ?? null);
+    services = d.services ?? [];
+    hmos = d.accepted_hmos ?? [];
+    weeklyHours = d.weekly_hours ?? [];
 
-  const paymentBadges: string[] = ["Cash / Self-Pay"];
-  if (effective.acceptHmo) paymentBadges.push("HMO");
-  if (effective.acceptYakap) paymentBadges.push("YAKAP");
-  if (effective.acceptOnlinePayments) paymentBadges.push("Online Payment");
+    pricedServices = services.filter((s) => s.show_price_to_patient && s.price_type !== "free" && s.price_type !== "variable" && s.price_php != null);
+    onlinePaymentNotAvailable = !effective.acceptOnlinePayments && !!d.clinic?.financial_active && pricedServices.length > 0;
 
-  const hoursByDay = new Map<number, { start_time: string; end_time: string }[]>();
-  for (const h of weeklyHours) {
-    if (!hoursByDay.has(h.day_of_week)) hoursByDay.set(h.day_of_week, []);
-    hoursByDay.get(h.day_of_week)!.push(h);
+    // public_consultation_type already existed on user_profiles before this
+    // pass; deriving Visit Options from it here (mirroring the same logic
+    // used on the directory cards) needed no schema or RPC change.
+    const consultationType = d.provider.public_consultation_type as string | null;
+    if (consultationType !== "telehealth") visitOptions.push("In-Person");
+    if (consultationType === "telehealth" || consultationType === "both") visitOptions.push("Telehealth");
+
+    if (effective.acceptHmo) paymentBadges.push("HMO");
+    if (effective.acceptYakap) paymentBadges.push("YAKAP");
+    if (effective.acceptOnlinePayments) paymentBadges.push("Online Payment");
+
+    for (const h of weeklyHours) {
+      if (!hoursByDay.has(h.day_of_week)) hoursByDay.set(h.day_of_week, []);
+      hoursByDay.get(h.day_of_week)!.push(h);
+    }
+  } catch (err) {
+    if ((err as any)?.digest === "NEXT_NOT_FOUND") throw err;
+    console.error(`[find-a-doctor/${id}] failed to load provider profile:`, err);
+    return (
+      <div style={{ background: "var(--brand-background)" }}>
+        <SiteNav />
+        <main style={{ maxWidth: 480, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>😕</div>
+          <h1 style={{ fontSize: 18, margin: "0 0 8px" }}>We couldn't load this provider's profile right now.</h1>
+          <p style={{ fontSize: 13, color: "#888" }}>Please try again in a moment.</p>
+        </main>
+        <SiteFooter />
+      </div>
+    );
   }
 
   return (
