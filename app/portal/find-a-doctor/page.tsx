@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPortalUser } from "@/lib/auth/safe-get-user";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
 import { DirectorySearch } from "@/app/find-a-doctor/directory-search";
@@ -30,9 +31,14 @@ function logCheckpoint(step: string, detail?: Record<string, unknown>) {
 export default async function PortalFindADoctorPage() {
   logCheckpoint("FIND_DOCTOR_START");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Root cause found (Digest 800866611, third pass): supabase.auth.getUser()
+  // re-throws uncaught for anything it doesn't recognize as an AuthError —
+  // notably a corrupted/partially-chunked session cookie, a real risk here
+  // since this app had no middleware.ts refreshing sessions (now added).
+  // getPortalUser() treats ANY failure the same as "not signed in" instead
+  // of letting it crash straight through this page's own try/catch below
+  // (which never wrapped this call at all) into error.tsx.
+  const user = await getPortalUser(supabase);
   if (!user) {
     logCheckpoint("AUTH_MISSING_REDIRECT");
     redirect("/portal/login?next=/portal/find-a-doctor");

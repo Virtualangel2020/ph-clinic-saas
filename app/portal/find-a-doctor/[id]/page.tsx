@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPortalUser } from "@/lib/auth/safe-get-user";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
 import { resolveEffectiveSettings, BOOKING_TYPE_PATIENT_WORDING, BOOKING_TYPE_LABEL } from "@/lib/patient-access";
@@ -50,9 +51,12 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
   const { id } = await params;
   logCheckpoint("PROFILE_START", { providerId: id });
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // See lib/auth/safe-get-user.ts: supabase.auth.getUser() can throw
+  // uncaught (not just return a clean error) on a corrupted session cookie
+  // — a real risk here since this app had no middleware.ts refreshing
+  // sessions (now added). Treat any failure as "not signed in" rather than
+  // letting it crash past this page's own try/catch below.
+  const user = await getPortalUser(supabase);
   if (!user) redirect(`/portal/login?next=/portal/find-a-doctor/${id}`);
   logCheckpoint("AUTH_RESOLVED", { userId: user.id });
 

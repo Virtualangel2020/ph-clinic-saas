@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { getPortalUser } from "@/lib/auth/safe-get-user";
 
 export type PatientPortalAccount = {
   id: string;
@@ -106,9 +107,20 @@ export const ACTIVE_PROFILE_COOKIE = "mcd_active_profile";
 export const resolveMyCaredeskProfileSelection = cache(async function resolveMyCaredeskProfileSelection() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Root cause found (Find a Doctor crash investigation, Digest 800866611,
+  // third pass): supabase.auth.getUser() re-throws uncaught for anything
+  // it doesn't classify as an AuthError — notably a corrupted or
+  // partially-chunked session cookie, a real risk here since this app had
+  // no middleware.ts refreshing sessions on every request (now added; see
+  // lib/auth/safe-get-user.ts for the full mechanism). This function is
+  // the single shared gate behind requirePatientPortal() (~16 portal
+  // pages) and PortalShell's own profile resolution, so hardening it here
+  // protects every one of those call sites at once, not just Find a
+  // Doctor. Any failure to resolve "who is this" degrades to "treat as
+  // signed out" — the safest possible failure mode, since it's exactly
+  // what a genuinely-expired session already looks like, and a fresh
+  // sign-in writes a clean cookie and self-heals it.
+  const user = await getPortalUser(supabase);
 
   if (!user) {
     return { supabase, user: null as null, selectable: [] as SelectableProfile[], activeProfile: null as SelectableProfile | null, needsProfileChoice: false };

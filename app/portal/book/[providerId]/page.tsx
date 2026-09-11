@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getPortalUser } from "@/lib/auth/safe-get-user";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
 import { resolveEffectiveSettings } from "@/lib/patient-access";
@@ -31,9 +32,10 @@ export default async function PortalBookPage({
   const { providerId } = await params;
   const { followUpId, appointmentTypeId } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // See lib/auth/safe-get-user.ts — supabase.auth.getUser() can throw
+  // uncaught on a corrupted session cookie instead of returning a clean
+  // error. Treat any failure as "not signed in" rather than crashing.
+  const user = await getPortalUser(supabase);
   if (!user) redirect(`/portal/login?next=/portal/book/${providerId}`);
 
   const maintenance = await getMaintenanceStatus(supabase);
