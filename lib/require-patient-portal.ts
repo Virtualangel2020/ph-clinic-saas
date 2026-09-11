@@ -126,10 +126,57 @@ export const resolveMyCaredeskProfileSelection = cache(async function resolveMyC
     return { supabase, user: null as null, selectable: [] as SelectableProfile[], activeProfile: null as SelectableProfile | null, needsProfileChoice: false };
   }
 
-  const [{ data: myAccount }, { data: family }] = await Promise.all([
+  let [{ data: myAccount }, { data: family }] = await Promise.all([
     supabase.rpc("get_my_mycaredesk_account"),
     supabase.rpc("get_my_mycaredesk_family"),
   ]);
+
+  // Self-healing account creation (bug report: Ir-habsi Islani signed up,
+  // confirmed his email, and could sign in — but his name/details never
+  // showed anywhere in the portal). Root cause: account creation
+  // (self_register_mycaredesk_account) only ever ran on ONE path —
+  // /portal/finish-signup, reached right after clicking the confirmation
+  // email link. If that link is opened somewhere the app's own
+  // /auth/callback route doesn't get exercised the way this app expects
+  // (a different browser/device than the one that started signup, or a
+  // mismatch between Supabase's configured confirmation redirect and this
+  // route — a project-level setting, not something in this file), that
+  // one-time registration step silently never runs, and the account is
+  // stuck exactly like this forever: signed in, but with no
+  // mycaredesk_accounts row, no name, no details, on every page — with no
+  // error shown anywhere pointing at why. Manually re-running the RPC by
+  // hand fixed that one account; this makes it self-healing for everyone
+  // else. Every portal page and the shell already funnel through this one
+  // function, so a signed-in patient login whose signup metadata is
+  // complete (patient-signup-form.tsx always attaches it) but who still
+  // has no mycaredesk_accounts row gets registered right here, on their
+  // very next request — instead of staying invisibly broken until someone
+  // notices and fixes it by hand.
+  if (!myAccount) {
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const isPatientSignup = meta.account_kind === "mycaredesk_patient";
+    const hasRequiredFields = Boolean(meta.first_name && meta.last_name && meta.date_of_birth && meta.sex);
+    if (isPatientSignup && hasRequiredFields) {
+      const { error: registerError } = await supabase.rpc("self_register_mycaredesk_account", {
+        p_first_name: meta.first_name as string,
+        p_last_name: meta.last_name as string,
+        p_date_of_birth: meta.date_of_birth as string,
+        p_sex: meta.sex as string,
+        p_mobile_phone: (meta.mobile_phone as string) ?? null,
+        p_email: user.email ?? null,
+      });
+      // A registerError here is swallowed on purpose: "not authorized" (no
+      // session — can't happen, we already have `user`) and "already
+      // exists" (a genuine race between two concurrent requests both
+      // trying this at once) both mean nothing further needs doing, and
+      // any other failure just leaves this exactly as broken as it already
+      // was — never worse than the silent failure this replaces.
+      if (!registerError) {
+        await supabase.rpc("link_my_existing_patients_to_mycaredesk_account");
+        ({ data: myAccount } = await supabase.rpc("get_my_mycaredesk_account"));
+      }
+    }
+  }
 
   const familyList = (family as any as MyCaredeskFamilyMember[]) ?? [];
 
