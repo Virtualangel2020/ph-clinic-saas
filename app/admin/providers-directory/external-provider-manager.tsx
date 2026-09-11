@@ -24,22 +24,35 @@ type Provider = {
   source_url: string | null;
   verified_at: string | null;
   is_active: boolean;
+  hmo_names: string[] | null;
+  linked_provider_id: string | null;
 };
 
-export function ExternalProviderManager({ providers, photoUrls }: { providers: Provider[]; photoUrls: Record<string, string> }) {
+type LinkableProvider = { id: string; full_name: string; specialty: string | null; tenant_id: string };
+
+export function ExternalProviderManager({
+  providers,
+  photoUrls,
+  linkableProviders,
+}: {
+  providers: Provider[];
+  photoUrls: Record<string, string>;
+  linkableProviders: LinkableProvider[];
+}) {
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
+  const linkedProviderName = (id: string | null) => (id ? linkableProviders.find((lp) => lp.id === id)?.full_name ?? "Linked MyCareDesk provider" : null);
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {editingId === "new" && (
-        <ProviderForm provider={null} photoUrl={null} onDone={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
+        <ProviderForm provider={null} photoUrl={null} linkableProviders={linkableProviders} onDone={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
       )}
 
       {providers.map((p) =>
         editingId === p.id ? (
-          <ProviderForm key={p.id} provider={p} photoUrl={photoUrls[p.id] ?? null} onDone={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
+          <ProviderForm key={p.id} provider={p} photoUrl={photoUrls[p.id] ?? null} linkableProviders={linkableProviders} onDone={() => setEditingId(null)} onCancel={() => setEditingId(null)} />
         ) : (
-          <ProviderCard key={p.id} provider={p} photoUrl={photoUrls[p.id] ?? null} onEdit={() => setEditingId(p.id)} />
+          <ProviderCard key={p.id} provider={p} photoUrl={photoUrls[p.id] ?? null} linkedProviderName={linkedProviderName(p.linked_provider_id)} onEdit={() => setEditingId(p.id)} />
         )
       )}
 
@@ -59,7 +72,17 @@ export function ExternalProviderManager({ providers, photoUrls }: { providers: P
   );
 }
 
-function ProviderCard({ provider, photoUrl, onEdit }: { provider: Provider; photoUrl: string | null; onEdit: () => void }) {
+function ProviderCard({
+  provider,
+  photoUrl,
+  linkedProviderName,
+  onEdit,
+}: {
+  provider: Provider;
+  photoUrl: string | null;
+  linkedProviderName: string | null;
+  onEdit: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -94,10 +117,18 @@ function ProviderCard({ provider, photoUrl, onEdit }: { provider: Provider; phot
           {provider.verified_at && (
             <span style={{ marginLeft: 8, fontSize: 10.5, color: "#1a7f37", background: "#e6f4ea", padding: "2px 7px", borderRadius: 999 }}>Verified</span>
           )}
+          {linkedProviderName && (
+            <span style={{ marginLeft: 8, fontSize: 10.5, color: "#1a5c8c", background: "#eaf3fb", padding: "2px 7px", borderRadius: 999 }}>
+              Linked to {linkedProviderName} — hidden from public External list
+            </span>
+          )}
         </div>
         <div style={{ color: "#666", fontSize: 12.5, marginTop: 2 }}>{[provider.specialty, provider.subspecialty].filter(Boolean).join(" · ")}</div>
         <div style={{ color: "#999", fontSize: 12, marginTop: 2 }}>{[provider.clinic_name || provider.hospital, provider.city].filter(Boolean).join(" · ")}</div>
         {provider.contact_number && <div style={{ color: "#999", fontSize: 12, marginTop: 2 }}>{provider.contact_number}</div>}
+        {provider.hmo_names && provider.hmo_names.length > 0 && (
+          <div style={{ color: "#999", fontSize: 11.5, marginTop: 4 }}>HMO: {provider.hmo_names.join(", ")}</div>
+        )}
         {error && <p style={{ color: "crimson", fontSize: 12, marginTop: 6 }}>{error}</p>}
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -115,7 +146,19 @@ function ProviderCard({ provider, photoUrl, onEdit }: { provider: Provider; phot
 const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 7, border: "1px solid #ccc", fontSize: 13 };
 const labelStyle: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: "#555", marginBottom: 4, display: "block" };
 
-function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Provider | null; photoUrl: string | null; onDone: () => void; onCancel: () => void }) {
+function ProviderForm({
+  provider,
+  photoUrl,
+  linkableProviders,
+  onDone,
+  onCancel,
+}: {
+  provider: Provider | null;
+  photoUrl: string | null;
+  linkableProviders: LinkableProvider[];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
   const [fullName, setFullName] = useState(provider?.full_name ?? "");
   const [credentials, setCredentials] = useState(provider?.credentials ?? "");
   const [specialty, setSpecialty] = useState(provider?.specialty ?? "");
@@ -130,6 +173,8 @@ function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Prov
   const [sourceUrl, setSourceUrl] = useState(provider?.source_url ?? "");
   const [verified, setVerified] = useState(!!provider?.verified_at);
   const [isActive, setIsActive] = useState(provider?.is_active ?? true);
+  const [hmoNamesText, setHmoNamesText] = useState((provider?.hmo_names ?? []).join(", "));
+  const [linkedProviderId, setLinkedProviderId] = useState<string>(provider?.linked_provider_id ?? "");
   const [photoPath, setPhotoPath] = useState<string | null>(provider?.photo_path ?? null);
   const [previewUrl, setPreviewUrl] = useState(photoUrl);
   const [uploading, setUploading] = useState(false);
@@ -177,6 +222,11 @@ function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Prov
           sourceUrl,
           verified,
           isActive,
+          hmoNames: hmoNamesText
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          linkedProviderId: linkedProviderId || null,
         });
         onDone();
       } catch (e: any) {
@@ -260,6 +310,30 @@ function ProviderForm({ provider, photoUrl, onDone, onCancel }: { provider: Prov
           onChange={(e) => setScheduleText(e.target.value)}
           placeholder={"Mon–Fri: 9:00 AM – 5:00 PM\nSat: 9:00 AM – 12:00 PM"}
         />
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div style={labelStyle}>HMO affiliations (comma-separated, optional)</div>
+        <input style={inputStyle} value={hmoNamesText} onChange={(e) => setHmoNamesText(e.target.value)} placeholder="Maxicare, Intellicare, MediCard" />
+        <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>Free-text — external providers aren't tied to a clinic's structured HMO list.</p>
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div style={labelStyle}>Link to MyCareDesk provider (optional)</div>
+        <select style={inputStyle} value={linkedProviderId} onChange={(e) => setLinkedProviderId(e.target.value)}>
+          <option value="">— Not linked —</option>
+          {linkableProviders.map((lp) => (
+            <option key={lp.id} value={lp.id}>
+              {lp.full_name}
+              {lp.specialty ? ` — ${lp.specialty}` : ""}
+            </option>
+          ))}
+        </select>
+        <p style={{ fontSize: 11, color: "#999", margin: "4px 0 0" }}>
+          Use this only once you've confirmed this is genuinely the same person's real MyCareDesk account — never link by name alone. Once linked,
+          this listing is hidden from the public External Providers section (the patient sees their real MyCareDesk profile instead), but the
+          record itself is kept, not deleted.
+        </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 12 }}>

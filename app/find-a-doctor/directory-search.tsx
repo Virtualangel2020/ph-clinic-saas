@@ -45,6 +45,7 @@ type ExternalProvider = {
   schedule_text: string | null;
   source: string;
   source_url: string | null;
+  hmo_names: string[] | null;
 };
 
 const NAVY = "var(--brand-primary)";
@@ -181,8 +182,47 @@ export function DirectorySearch({
     [externalProviders, filter, q, bookingFilters, coverageFilters, visitModeFilters]
   );
 
-  const totalShown = filteredProviders.length + filteredExternal.length;
-  const hasActiveFilters = q !== "" || filter !== "all" || bookingFilters.size > 0 || coverageFilters.size > 0 || visitModeFilters.size > 0;
+  // Zero MyCareDesk providers (or zero external providers) is a completely
+  // normal, expected state — not an error, and not the same thing as "your
+  // search/filters matched nothing." These two are kept explicitly
+  // distinct everywhere below: "not currently available" for a directory
+  // that's really empty vs. "match your search" for filters that hid
+  // everything. The two sections (MyCareDesk / External) are rendered
+  // independently of each other so one being empty never hides or gates
+  // the other.
+  const hasSearchOrFilters = q !== "" || bookingFilters.size > 0 || coverageFilters.size > 0 || visitModeFilters.size > 0;
+  const hasActiveFilters = hasSearchOrFilters || filter !== "all";
+  const hasAnyProviders = providers.length > 0;
+  const hasAnyExternal = externalProviders.length > 0;
+  const nothingInDirectoryAtAll = !hasAnyProviders && !hasAnyExternal;
+
+  const showMyCareDeskSection = filter === "all" || filter === "angelclinic";
+  const showExternalSection = filter === "all" || filter === "other";
+
+  // null means "don't show an empty-state box at all" — used for spec
+  // scenario 12(b): MyCareDesk providers exist and external doesn't, so
+  // the External section is simply omitted rather than shown empty.
+  const myCareDeskEmptyMessage: string | null =
+    filteredProviders.length > 0
+      ? null
+      : !hasAnyProviders
+      ? hasSearchOrFilters
+        ? "No MyCareDesk providers match your search."
+        : hasAnyExternal
+        ? "None of the listed doctors are currently using MyCareDesk for online booking, but you can still view their directory information."
+        : "No MyCareDesk providers are currently available."
+      : "No MyCareDesk providers match your search.";
+
+  const externalEmptyMessage: string | null =
+    filteredExternal.length > 0
+      ? null
+      : !hasAnyExternal
+      ? hasSearchOrFilters
+        ? "No external providers match your search."
+        : hasAnyProviders
+        ? null
+        : "No external providers are currently available."
+      : "No external providers match your search.";
 
   function clearFilters() {
     setQuery("");
@@ -205,8 +245,8 @@ export function DirectorySearch({
           {(
             [
               ["all", "All"],
-              ["angelclinic", "MyCareDesk Providers"],
-              ["other", "Other Providers"],
+              ["angelclinic", "MyCareDesk"],
+              ["other", "External"],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -251,24 +291,38 @@ export function DirectorySearch({
         </div>
       </div>
 
-      {totalShown === 0 && (
+      {/* Zero providers of EITHER kind, with nothing hidden by an active
+          filter, is a normal directory state (spec: "no doctors have been
+          added yet"), not an error — render one plain message and stop,
+          rather than two empty sections stacked on top of each other. */}
+      {nothingInDirectoryAtAll && (
         <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 28, textAlign: "center", color: "#888", fontSize: 13.5 }}>
-          <p style={{ margin: hasActiveFilters ? "0 0 12px" : 0 }}>
-            {hasActiveFilters ? "No providers found for these filters." : "No providers are listed yet — check back soon."}
-          </p>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              style={{ background: "white", color: NAVY, fontWeight: 600, fontSize: 12.5, padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer" }}
-            >
-              Clear Filters
-            </button>
-          )}
+          No doctors have been added to the directory yet.
         </div>
       )}
 
-      {filteredProviders.length > 0 && (
-        <div style={{ display: "grid", gap: 12, marginBottom: filteredExternal.length > 0 ? 32 : 0 }}>
+      {!nothingInDirectoryAtAll && showMyCareDeskSection && (
+        <div style={{ marginBottom: showExternalSection && (filteredExternal.length > 0 || externalEmptyMessage) ? 32 : 0 }}>
+          {filter === "all" && <SectionLabel>MyCareDesk Providers</SectionLabel>}
+
+          {myCareDeskEmptyMessage && (
+            <EmptySection>
+              {myCareDeskEmptyMessage}
+              {hasActiveFilters && hasAnyProviders && (
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    onClick={clearFilters}
+                    style={{ background: "white", color: NAVY, fontWeight: 600, fontSize: 12.5, padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer" }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </EmptySection>
+          )}
+
+          {filteredProviders.length > 0 && (
+        <div style={{ display: "grid", gap: 12 }}>
           {filteredProviders.map((p) => {
             const bookingType = effectiveBookingType(p);
             const canRequest = bookingType === "appointment" || bookingType === "both" || bookingType === "appointment_request";
@@ -305,7 +359,7 @@ export function DirectorySearch({
                           {p.title ? `${p.title} ` : ""}
                           {p.full_name}
                           <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: "#1a7f37", background: "#e6f4ea", padding: "2px 8px", borderRadius: 999, verticalAlign: "middle" }}>
-                            MyCareDesk
+                            MyCareDesk Provider
                           </span>
                         </div>
                       </Link>
@@ -363,44 +417,101 @@ export function DirectorySearch({
             );
           })}
         </div>
+          )}
+        </div>
       )}
 
-      {filteredExternal.length > 0 && (
-        <div style={{ display: "grid", gap: 12 }}>
-          {filteredExternal.map((p) => (
-            <div key={p.id} style={{ background: "#f8f8f6", border: "1px solid #e6e6e2", borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#eee", flexShrink: 0 }}>
-                {p.photo_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.photo_url} alt={p.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "#333" }}>
-                  {p.full_name}
-                  {p.credentials && <span style={{ fontWeight: 400, color: "#888" }}> · {p.credentials}</span>}
+      {!nothingInDirectoryAtAll && showExternalSection && (
+        <div>
+          {filter === "all" && <SectionLabel>External Providers</SectionLabel>}
+
+          {externalEmptyMessage && (
+            <EmptySection>
+              {externalEmptyMessage}
+              {hasActiveFilters && hasAnyExternal && (
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    onClick={clearFilters}
+                    style={{ background: "white", color: NAVY, fontWeight: 600, fontSize: 12.5, padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer" }}
+                  >
+                    Clear Filters
+                  </button>
                 </div>
-                <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ")}</div>
-                <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name || p.hospital, p.address || p.city].filter(Boolean).join(" · ")}</div>
-                {p.contact_number && <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{p.contact_number}</div>}
-                {p.schedule_text && <div style={{ color: "#666", fontSize: 12, marginTop: 6, whiteSpace: "pre-line" }}>{p.schedule_text}</div>}
-                <div style={{ color: "#aaa", fontSize: 11, marginTop: 8 }}>
-                  Externally listed — not an MyCareDesk user. Source:{" "}
-                  {p.source_url ? (
-                    <a href={p.source_url} target="_blank" rel="noreferrer" style={{ color: "#aaa" }}>
-                      {p.source}
-                    </a>
-                  ) : (
-                    p.source
+              )}
+            </EmptySection>
+          )}
+
+          {filteredExternal.length > 0 && (
+            <div style={{ display: "grid", gap: 12 }}>
+              {filteredExternal.map((p) => (
+                <div key={p.id} style={{ background: "#f8f8f6", border: "1px solid #e6e6e2", borderRadius: 12, padding: "18px 20px", display: "flex", gap: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 8, overflow: "hidden", background: "#eee", flexShrink: 0 }}>
+                    {p.photo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.photo_url} alt={p.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "#333" }}>
+                      {p.full_name}
+                      {p.credentials && <span style={{ fontWeight: 400, color: "#888" }}> · {p.credentials}</span>}
+                      <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, color: "#8a6d1f", background: "#fbf1d8", padding: "2px 8px", borderRadius: 999, verticalAlign: "middle" }}>
+                        External Provider
+                      </span>
+                    </div>
+                    <div style={{ color: "#666", fontSize: 13, marginTop: 2 }}>{[p.specialty, p.subspecialty].filter(Boolean).join(" · ")}</div>
+                    <div style={{ color: "#999", fontSize: 12.5, marginTop: 2 }}>{[p.clinic_name || p.hospital, p.address || p.city].filter(Boolean).join(" · ")}</div>
+                    {p.hmo_names && p.hmo_names.length > 0 && (
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                        {p.hmo_names.map((h) => (
+                          <span key={h} style={{ fontSize: 11, color: "#1a5c8c", background: "#eaf3fb", border: "1px solid #bcd9f0", borderRadius: 999, padding: "2px 8px" }}>
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {p.schedule_text && <div style={{ color: "#666", fontSize: 12, marginTop: 6, whiteSpace: "pre-line" }}>{p.schedule_text}</div>}
+                    <div style={{ color: "#aaa", fontSize: 11, marginTop: 8 }}>
+                      Not yet on MyCareDesk — this doctor doesn't have online booking or messaging here. Directory source:{" "}
+                      {p.source_url ? (
+                        <a href={p.source_url} target="_blank" rel="noreferrer" style={{ color: "#aaa" }}>
+                          {p.source}
+                        </a>
+                      ) : (
+                        p.source
+                      )}
+                    </div>
+                  </div>
+                  {p.contact_number && (
+                    <div style={{ flexShrink: 0 }}>
+                      <a
+                        href={`tel:${p.contact_number.replace(/[^+\d]/g, "")}`}
+                        style={{ fontSize: 12, fontWeight: 600, color: NAVY, border: "1px solid #ddd", borderRadius: 8, padding: "7px 14px", textDecoration: "none", whiteSpace: "nowrap", display: "inline-block", background: "white" }}
+                      >
+                        Call Clinic
+                      </a>
+                    </div>
                   )}
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
       {requestingFor && <AppointmentRequestForm provider={requestingFor} onClose={() => setRequestingFor(null)} />}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <div style={{ fontSize: 11.5, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>{children}</div>;
+}
+
+function EmptySection({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 22, textAlign: "center", color: "#888", fontSize: 13.5 }}>
+      {children}
     </div>
   );
 }

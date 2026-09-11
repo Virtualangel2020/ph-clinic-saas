@@ -19,8 +19,9 @@ export default async function FindADoctorPage() {
     supabase.rpc("public_list_directory_providers"),
     supabase
       .from("external_providers")
-      .select("id, full_name, credentials, specialty, subspecialty, clinic_name, hospital, address, city, contact_number, photo_path, schedule_text, source, source_url")
+      .select("id, full_name, credentials, specialty, subspecialty, clinic_name, hospital, address, city, contact_number, photo_path, schedule_text, source, source_url, hmo_names")
       .eq("is_active", true)
+      .is("linked_provider_id", null)
       .order("full_name"),
   ]);
 

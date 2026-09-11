@@ -23,15 +23,29 @@ export default async function ProvidersDirectoryPage() {
     }
   }
 
+  // For the "Link to MyCareDesk provider" dropdown — controlled admin
+  // linking only (never auto-merge by name, per spec). Platform admins
+  // already have full read access to user_profiles via the "platform
+  // admins manage all profiles" RLS policy, so this is a direct read, no
+  // new RPC needed.
+  const { data: linkableProviders } = await supabase
+    .from("user_profiles")
+    .select("id, full_name, specialty, tenant_id")
+    .in("role", ["doctor", "clinic_admin"])
+    .eq("is_active", true)
+    .order("full_name");
+
   return (
     <div>
       <h1 style={{ fontSize: 24, marginBottom: 4 }}>Provider Directory</h1>
       <p style={{ color: "#666", marginBottom: 24, maxWidth: 640 }}>
-        Manually-entered listings for real, verified providers who aren't MyCareDesk users — shown under "Other
+        Manually-entered listings for real, verified providers who aren't MyCareDesk users — shown under "External
         Providers" on the public Find a Doctor page. Never scraped, never fabricated — only add someone here if
-        you've actually verified their information.
+        you've actually verified their information. If one of these doctors later joins MyCareDesk, link their
+        listing to their real account instead of leaving a duplicate-looking entry — linked listings are hidden
+        from the public External section automatically.
       </p>
-      <ExternalProviderManager providers={(providers as any) ?? []} photoUrls={photoUrls} />
+      <ExternalProviderManager providers={(providers as any) ?? []} photoUrls={photoUrls} linkableProviders={(linkableProviders as any) ?? []} />
     </div>
   );
 }

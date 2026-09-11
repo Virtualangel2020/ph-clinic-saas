@@ -615,6 +615,8 @@ export async function upsertExternalProviderAction(input: {
   sourceUrl: string;
   verified: boolean;
   isActive: boolean;
+  hmoNames: string[];
+  linkedProviderId: string | null;
 }) {
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase.rpc("admin_upsert_external_provider", {
@@ -634,6 +636,8 @@ export async function upsertExternalProviderAction(input: {
     p_source_url: input.sourceUrl || null,
     p_verified: input.verified,
     p_is_active: input.isActive,
+    p_hmo_names: input.hmoNames.length > 0 ? input.hmoNames : null,
+    p_linked_provider_id: input.linkedProviderId,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/providers-directory");
