@@ -105,7 +105,26 @@ const VISIT_MODE_FILTERS = [
   { value: "telehealth", label: "Telehealth" },
 ];
 
-export function DirectorySearch({ providers, externalProviders }: { providers: Provider[]; externalProviders: ExternalProvider[] }) {
+export function DirectorySearch({
+  providers,
+  externalProviders,
+  basePath = "/find-a-doctor",
+  bookHref,
+}: {
+  providers: Provider[];
+  externalProviders: ExternalProvider[];
+  // Lets the SAME directory UI/data be reused inside the Patient Portal
+  // (app/portal/find-a-doctor) without a second copy: basePath swaps
+  // where the provider name / "View Profile" link points (the public
+  // page's own provider profile vs. the portal-shelled one), and bookHref
+  // — when provided — replaces the public "Request Appointment (no
+  // account needed)" modal with a direct link to the real in-portal
+  // booking flow, since a signed-in patient never needs the anonymous
+  // request form. Omitting both keeps the public page's behavior exactly
+  // as it was.
+  basePath?: string;
+  bookHref?: (providerId: string) => string;
+}) {
   const [filter, setFilter] = useState<"all" | "angelclinic" | "other">("all");
   const [query, setQuery] = useState("");
   const [bookingFilters, setBookingFilters] = useState<Set<string>>(new Set());
@@ -262,7 +281,7 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                       )}
                     </div>
                     <div>
-                      <Link href={`/find-a-doctor/${p.id}`} style={{ textDecoration: "none" }}>
+                      <Link href={`${basePath}/${p.id}`} style={{ textDecoration: "none" }}>
                         <div style={{ fontWeight: 700, fontSize: 15.5, color: NAVY }}>
                           {p.title ? `${p.title} ` : ""}
                           {p.full_name}
@@ -286,19 +305,39 @@ export function DirectorySearch({ providers, externalProviders }: { providers: P
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                     <Link
-                      href={`/find-a-doctor/${p.id}`}
+                      href={`${basePath}/${p.id}`}
                       style={{ fontSize: 12, fontWeight: 600, color: NAVY, border: "1px solid #ddd", borderRadius: 8, padding: "7px 14px", textDecoration: "none", whiteSpace: "nowrap" }}
                     >
                       View Profile
                     </Link>
-                    {canRequest && (
-                      <button
-                        onClick={() => setRequestingFor(p)}
-                        style={{ background: NAVY, color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
-                      >
-                        Request Appointment
-                      </button>
-                    )}
+                    {canRequest &&
+                      (bookHref ? (
+                        <Link
+                          href={bookHref(p.id)}
+                          style={{
+                            background: NAVY,
+                            color: "#fff",
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            padding: "9px 16px",
+                            borderRadius: 8,
+                            border: "none",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            textDecoration: "none",
+                            display: "inline-block",
+                          }}
+                        >
+                          Book Appointment
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => setRequestingFor(p)}
+                          style={{ background: NAVY, color: "#fff", fontWeight: 700, fontSize: 12.5, padding: "9px 16px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+                        >
+                          Request Appointment
+                        </button>
+                      ))}
                   </div>
                 </div>
               </div>

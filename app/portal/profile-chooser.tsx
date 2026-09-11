@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setActiveProfileAction, setActiveProfileNoRedirectAction } from "@/app/portal/actions";
 import { AddFamilyMemberForm } from "@/components/add-family-member-form";
+import { RelationshipEditor } from "@/components/relationship-editor";
 import type { SelectableProfile } from "@/lib/require-patient-portal";
 
 function initials(firstName: string, lastName: string) {
@@ -60,31 +61,32 @@ export function ProfileChooser({ selectable }: { selectable: SelectableProfile[]
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 16, maxWidth: 560 }}>
         {selectable.map((p) => (
-          <form key={p.accountId} action={setActiveProfileAction.bind(null, p.accountId)}>
-            <button
-              type="submit"
-              style={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-                padding: "18px 10px",
-                borderRadius: 12,
-                border: "1px solid #eee",
-                background: "white",
-                cursor: "pointer",
-              }}
-            >
-              <Avatar p={p} size={64} />
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#222" }}>
+          <div key={p.accountId} style={{ padding: "18px 10px 12px", borderRadius: 12, border: "1px solid #eee", background: "white" }}>
+            <form action={setActiveProfileAction.bind(null, p.accountId)}>
+              <button
+                type="submit"
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 0,
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <Avatar p={p} size={64} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#222", textAlign: "center" }}>
                   {p.firstName} {p.lastName}
                 </div>
-                <div style={{ fontSize: 12, color: "#888" }}>{p.isSelf ? "You" : p.relationship === "other" ? p.relationshipOtherDescription || "Family" : capitalize(p.relationship ?? "")}</div>
-              </div>
-            </button>
-          </form>
+              </button>
+            </form>
+            <div style={{ textAlign: "center", marginTop: 2 }}>
+              {p.isSelf ? <div style={{ fontSize: 12, color: "#888" }}>You</div> : <RelationshipEditor accountId={p.accountId} relationship={p.relationship} relationshipOtherDescription={p.relationshipOtherDescription} onChanged={() => router.refresh()} />}
+            </div>
+          </div>
         ))}
 
         <button
@@ -123,8 +125,4 @@ export function ProfileChooser({ selectable }: { selectable: SelectableProfile[]
       )}
     </div>
   );
-}
-
-function capitalize(s: string) {
-  return s ? s[0].toUpperCase() + s.slice(1) : s;
 }

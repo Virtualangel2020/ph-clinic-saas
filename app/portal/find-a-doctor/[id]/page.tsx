@@ -1,0 +1,235 @@
+import { redirect, notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { PortalShell } from "@/components/portal-shell";
+import { BackLink } from "@/components/back-link";
+import { resolveEffectiveSettings, BOOKING_TYPE_PATIENT_WORDING, BOOKING_TYPE_LABEL } from "@/lib/patient-access";
+import { PortalProfileActions } from "./portal-profile-actions";
+
+const NAVY = "var(--brand-primary)";
+const GOLD = "var(--brand-secondary)";
+const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function peso(n: number) {
+  return `₱${Number(n).toLocaleString("en-PH")}`;
+}
+function priceLabel(s: any): string {
+  if (s.price_type === "free") return "Free";
+  if (s.price_type === "variable") return "Variable — depends on visit";
+  if (!s.show_price_to_patient || s.price_php == null) return "Contact clinic for pricing";
+  const base = peso(s.price_php);
+  if (s.price_type === "starting_at") return `Starting at ${base}`;
+  if (s.price_type === "range" && s.price_max_php != null) return `${base}–${peso(s.price_max_php)}`;
+  return base;
+}
+function timeLabel(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+// In-portal provider profile — bug fix companion to app/portal/find-a-
+// doctor/page.tsx. Same content and same public_get_provider_profile RPC
+// as the public app/find-a-doctor/[id]/page.tsx (so the two can never
+// disagree about what a provider offers), just rendered inside PortalShell
+// instead of the public SiteNav/SiteFooter, and with Book/Message actions
+// that go straight to the real portal flows — no /portal/login redirect
+// hop, since being here already proves the patient is signed in.
+export default async function PortalProviderProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/portal/login?next=/portal/find-a-doctor/${id}`);
+
+  const { data } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
+  if (!data) notFound();
+
+  const d = data as any;
+  const photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
+  const providerInitials =
+    (d.provider.full_name as string)
+      .split(" ")
+      .map((s: string) => s.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
+  const effective = resolveEffectiveSettings(d.clinic, d.override);
+  const services: any[] = d.services ?? [];
+  const hmos: any[] = d.accepted_hmos ?? [];
+  const weeklyHours: any[] = d.weekly_hours ?? [];
+
+  const pricedServices = services.filter((s) => s.show_price_to_patient && s.price_type !== "free" && s.price_type !== "variable" && s.price_php != null);
+  const onlinePaymentNotAvailable = !effective.acceptOnlinePayments && d.clinic.financial_active && pricedServices.length > 0;
+
+  const consultationType = d.provider.public_consultation_type as string | null;
+  const visitOptions: string[] = [];
+  if (consultationType !== "telehealth") visitOptions.push("In-Person");
+  if (consultationType === "telehealth" || consultationType === "both") visitOptions.push("Telehealth");
+
+  const paymentBadges: string[] = ["Cash / Self-Pay"];
+  if (effective.acceptHmo) paymentBadges.push("HMO");
+  if (effective.acceptYakap) paymentBadges.push("YAKAP");
+  if (effective.acceptOnlinePayments) paymentBadges.push("Online Payment");
+
+  const hoursByDay = new Map<number, { start_time: string; end_time: string }[]>();
+  for (const h of weeklyHours) {
+    if (!hoursByDay.has(h.day_of_week)) hoursByDay.set(h.day_of_week, []);
+    hoursByDay.get(h.day_of_week)!.push(h);
+  }
+
+  return (
+    <PortalShell>
+      <BackLink href="/portal/find-a-doctor" label="Find a Doctor" />
+
+      <section
+        style={{
+          background: `linear-gradient(180deg, ${NAVY} 0%, var(--brand-primary-dark) 100%)`,
+          color: "#f4f5f7",
+          padding: "28px 24px",
+          borderRadius: 14,
+          marginBottom: 20,
+          display: "flex",
+          gap: 20,
+        }}
+      >
+        <div
+          style={{
+            width: 76,
+            height: 76,
+            borderRadius: "50%",
+            overflow: "hidden",
+            background: "rgba(255,255,255,0.15)",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 24,
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt={d.provider.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            providerInitials
+          )}
+        </div>
+        <div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: GOLD, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>{d.clinic.clinic_name ?? "Your Clinic"}</div>
+          <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>
+            {d.provider.title ? `${d.provider.title} ` : ""}
+            {d.provider.full_name}
+          </h1>
+          <p style={{ color: "rgba(244,245,247,0.85)", fontSize: 13, margin: 0 }}>
+            {[d.provider.specialty, d.provider.subspecialty].filter(Boolean).join(" · ") || "General practice"}
+            {d.clinic.city ? ` · ${d.clinic.city}` : ""}
+          </p>
+          {d.provider.public_bio && <p style={{ color: "rgba(244,245,247,0.75)", fontSize: 12.5, lineHeight: 1.7, maxWidth: 560, marginTop: 10 }}>{d.provider.public_bio}</p>}
+        </div>
+      </section>
+
+      <div style={{ display: "grid", gap: 16 }}>
+        <Card>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#7a5c12", background: "#fff7e6", border: "1px solid #e6c66b", borderRadius: 999, padding: "4px 12px", display: "inline-block", marginBottom: 8 }}>
+            {BOOKING_TYPE_LABEL[effective.bookingType] ?? effective.bookingType}
+          </div>
+          <p style={{ fontSize: 13.5, color: "#444", margin: 0 }}>{BOOKING_TYPE_PATIENT_WORDING[effective.bookingType] ?? ""}</p>
+        </Card>
+
+        <Card title="Visit Options">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {visitOptions.map((v) => (
+              <span key={v} style={{ fontSize: 12, fontWeight: 600, color: "#1a5c8c", background: "#eaf3fb", border: "1px solid #bcd9f0", borderRadius: 999, padding: "5px 12px" }}>
+                ✓ {v}
+              </span>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Services & Pricing">
+          {services.length === 0 ? (
+            <p style={{ fontSize: 12.5, color: "#888", margin: 0 }}>Contact the clinic for available services and pricing.</p>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              {services.map((s) => (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0f0f0", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13.5, color: NAVY, wordBreak: "break-word" }}>{s.name}</div>
+                    {s.description && <div style={{ fontSize: 11.5, color: "#888", wordBreak: "break-word" }}>{s.description}</div>}
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: "#555", whiteSpace: "nowrap", marginLeft: 12 }}>{priceLabel(s)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card title="Payment & Coverage">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: onlinePaymentNotAvailable ? 10 : 0 }}>
+            {paymentBadges.map((b) => (
+              <span key={b} style={{ fontSize: 11.5, fontWeight: 600, color: "#1a7f37", background: "#eaf7ee", border: "1px solid #bfe6c9", borderRadius: 999, padding: "4px 10px" }}>
+                {b}
+              </span>
+            ))}
+          </div>
+          {onlinePaymentNotAvailable && <p style={{ fontSize: 12, color: "#a12a2a", margin: 0 }}>Online Payment — Not available for this clinic.</p>}
+
+          {effective.acceptHmo && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 6 }}>Accepted HMOs</div>
+              {hmos.length === 0 ? (
+                <p style={{ fontSize: 12, color: "#999", margin: 0 }}>Contact the clinic for the current HMO list.</p>
+              ) : (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {hmos.map((h: any) => (
+                    <span key={h.id} title={h.patient_instructions ?? undefined} style={{ fontSize: 11.5, color: "#444", background: "#f4f4f5", border: "1px solid #e2e2e5", borderRadius: 999, padding: "3px 10px" }}>
+                      {h.hmo_name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {effective.acceptYakap && (
+            <div style={{ marginTop: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#1a7f37" }}>YAKAP Available ✓</span>
+              <p style={{ fontSize: 11.5, color: "#888", marginTop: 4, marginBottom: 0 }}>
+                {d.clinic.yakap_instructions || "Eligibility and coverage may need verification — this doesn't guarantee automatic coverage."}
+              </p>
+            </div>
+          )}
+        </Card>
+
+        {weeklyHours.length > 0 && (
+          <Card title="Clinic Hours">
+            <div style={{ display: "grid", gap: 4 }}>
+              {Array.from(hoursByDay.entries())
+                .sort(([a], [b]) => a - b)
+                .map(([day, ranges]) => (
+                  <div key={day} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
+                    <span style={{ color: "#444", fontWeight: 600 }}>{DAY_LABELS[day]}</span>
+                    <span style={{ color: "#888" }}>{ranges.map((r) => `${timeLabel(r.start_time)}–${timeLabel(r.end_time)}`).join(", ")}</span>
+                  </div>
+                ))}
+            </div>
+          </Card>
+        )}
+
+        <PortalProfileActions provider={{ id: d.provider.id, full_name: d.provider.full_name }} bookingType={effective.bookingType} messagingEnabled={effective.messagingEnabled} />
+      </div>
+    </PortalShell>
+  );
+}
+
+function Card({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: "18px 20px" }}>
+      {title && <h2 style={{ fontSize: 14, margin: "0 0 10px", color: NAVY }}>{title}</h2>}
+      {children}
+    </div>
+  );
+}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setActiveProfileAction } from "@/app/portal/actions";
 import { AddFamilyMemberForm } from "@/components/add-family-member-form";
+import { RelationshipEditor } from "@/components/relationship-editor";
 import { PhotoUpload } from "@/app/portal/profile/photo-upload";
 import type { SelectableProfile } from "@/lib/require-patient-portal";
 
@@ -20,12 +21,6 @@ export type ManagerRow = {
 function managersLabel(managers: ManagerRow[]) {
   if (managers.length === 0) return "You";
   return managers.map((m) => (m.is_me ? "You" : `${m.first_name} ${m.last_name}`)).join(", ");
-}
-
-function relationshipLabel(p: SelectableProfile) {
-  if (p.isSelf) return "You";
-  if (p.relationship === "other") return p.relationshipOtherDescription || "Family";
-  return p.relationship ? p.relationship.charAt(0).toUpperCase() + p.relationship.slice(1) : "Family";
 }
 
 function initials(p: SelectableProfile) {
@@ -91,7 +86,9 @@ export function FamilyList({
                     {p.firstName} {p.lastName}
                     {isActive && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-primary)", marginLeft: 8 }}>Currently viewing</span>}
                   </div>
-                  <div style={{ fontSize: 12.5, color: "#888", marginTop: 2 }}>{relationshipLabel(p)}</div>
+                  <div style={{ fontSize: 12.5, color: "#888", marginTop: 2 }}>
+                    {p.isSelf ? "You" : <RelationshipEditor accountId={p.accountId} relationship={p.relationship} relationshipOtherDescription={p.relationshipOtherDescription} align="left" onChanged={() => router.refresh()} />}
+                  </div>
                   {!p.isSelf && <div style={{ fontSize: 11.5, color: "#999", marginTop: 4 }}>Managed by: {managersLabel(managers)}</div>}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>

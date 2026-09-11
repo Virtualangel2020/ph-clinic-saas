@@ -28,7 +28,7 @@ export default async function PortalMessagesPage() {
       <h1 style={{ fontSize: 21, marginBottom: 4 }}>My Messages</h1>
       <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>
         Conversations with your providers. To start a new one, visit a provider's profile from{" "}
-        <Link href="/find-a-doctor" style={{ color: "var(--text-heading, var(--brand-primary))", fontWeight: 600 }}>
+        <Link href="/portal/find-a-doctor" style={{ color: "var(--text-heading, var(--brand-primary))", fontWeight: 600 }}>
           Find a Doctor
         </Link>
         .

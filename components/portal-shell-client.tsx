@@ -14,9 +14,12 @@ import type { SelectableProfile } from "@/lib/require-patient-portal";
 // Records, Authorizations, Results, Prescriptions, Forms); they're now
 // reachable via the My Care and Profile hub pages instead of the top nav,
 // so nothing was moved or renamed and no existing bookmark or deep link
-// breaks. Find a Doctor deliberately points at the public directory page
-// (outside this shell) rather than a portal-shelled duplicate — same
-// directory, same data, no second copy.
+// breaks. Find a Doctor points at the portal-shelled directory
+// (app/portal/find-a-doctor) — it used to point at the public marketing
+// page instead, which swapped out this whole nav/banner for the public
+// site header, reading exactly like being logged out even though the
+// session was untouched. The portal version reuses the exact same
+// DirectorySearch UI and RPC, just rendered inside PortalShell.
 //
 // Layout: on wide screens this renders as a left sidebar of tabs (the
 // style Angel asked for, modeled after other patient-portal apps) with the
@@ -27,7 +30,7 @@ import type { SelectableProfile } from "@/lib/require-patient-portal";
 const PORTAL_NAV = [
   { href: "/portal", label: "Home", icon: "home" },
   { href: "/portal/appointments", label: "Appointments", icon: "calendar" },
-  { href: "/find-a-doctor", label: "Find a Doctor", icon: "doctor" },
+  { href: "/portal/find-a-doctor", label: "Find a Doctor", icon: "doctor" },
   { href: "/portal/care", label: "My Care", icon: "care" },
   { href: "/portal/messages", label: "Messages", icon: "messages" },
   { href: "/portal/profile", label: "Profile", icon: "profile" },

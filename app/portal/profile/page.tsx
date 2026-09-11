@@ -116,7 +116,7 @@ export default async function PatientProfilePage() {
       {myDoctors.length === 0 ? (
         <p style={{ color: "#999", fontSize: 12.5, marginBottom: 20 }}>
           No established relationships yet — book your first appointment from{" "}
-          <a href="/find-a-doctor" style={{ color: "var(--brand-primary)", fontWeight: 600 }}>
+          <a href="/portal/find-a-doctor" style={{ color: "var(--brand-primary)", fontWeight: 600 }}>
             Find a Doctor
           </a>
           .
@@ -133,7 +133,7 @@ export default async function PatientProfilePage() {
                 {[d.specialty, d.clinicName].filter(Boolean).join(" · ")}
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-                <a href={`/find-a-doctor/${d.providerId}`} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", textDecoration: "none" }}>
+                <a href={`/portal/find-a-doctor/${d.providerId}`} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", textDecoration: "none" }}>
                   View Profile
                 </a>
                 <a href={`/portal/book/${d.providerId}`} style={{ fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary)", textDecoration: "none" }}>

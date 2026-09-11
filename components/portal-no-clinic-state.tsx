@@ -17,7 +17,7 @@ export function PortalNoClinicState({ what }: { what: string }) {
         approving your access request — will connect your account automatically.
       </p>
       <Link
-        href="/find-a-doctor"
+        href="/portal/find-a-doctor"
         style={{ display: "inline-block", background: "var(--brand-primary)", color: "white", borderRadius: 8, padding: "10px 20px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
       >
         Find a Doctor →

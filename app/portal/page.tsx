@@ -116,7 +116,7 @@ export default async function PortalHomePage() {
                 </Link>
               )}
               <Link
-                href="/find-a-doctor"
+                href="/portal/find-a-doctor"
                 style={{ display: "block", background: "white", border: "1px solid #ddd", color: "var(--brand-primary)", borderRadius: 10, padding: "12px 16px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}
               >
                 Find a Doctor →
@@ -399,7 +399,7 @@ export default async function PortalHomePage() {
 
       <div style={{ marginTop: 14, display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
         {[
-          { href: "/find-a-doctor", label: "Find a Doctor" },
+          { href: "/portal/find-a-doctor", label: "Find a Doctor" },
           { href: "/portal/care", label: "My Care" },
           { href: "/portal/messages", label: "Messages" },
           { href: "/portal/appointments", label: "Appointments" },

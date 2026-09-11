@@ -6,6 +6,28 @@ import { LoadingButton } from "@/components/loading/loading-button";
 
 const input: React.CSSProperties = { padding: 9, borderRadius: 8, border: "1px solid #ccc", fontSize: 13.5, width: "100%", boxSizing: "border-box" };
 
+// Shared relationship options — a dependent can be either "younger" (a
+// manager's child/ward) or "older" (a manager caring for their own parent
+// or another relative), so both directions are offered rather than
+// assuming every dependent is a child. Exported so the inline "change
+// relationship" editor (relationship-editor.tsx) stays in sync with
+// exactly the same list the server accepts (see
+// mycaredesk_dependent_relationship_fix.sql's check constraint).
+export const RELATIONSHIP_OPTIONS: { value: string; label: string }[] = [
+  { value: "child", label: "Child" },
+  { value: "son", label: "Son" },
+  { value: "daughter", label: "Daughter" },
+  { value: "ward", label: "Ward" },
+  { value: "spouse", label: "Spouse" },
+  { value: "mother", label: "Mother" },
+  { value: "father", label: "Father" },
+  { value: "parent", label: "Parent" },
+  { value: "sibling", label: "Sibling" },
+  { value: "legal_guardian", label: "Legal Guardian" },
+  { value: "caregiver", label: "Caregiver" },
+  { value: "other", label: "Other" },
+];
+
 // Shared "+ Add Family Member" inline form — the same create_dependent_mycaredesk_account
 // call, used from two places (the profile chooser's tile and the My Family
 // screen) that each want their own surrounding card/tile chrome and their
@@ -23,6 +45,8 @@ export function AddFamilyMemberForm({
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [sex, setSex] = useState("female");
+  const [relationship, setRelationship] = useState("child");
+  const [relationshipOther, setRelationshipOther] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +60,8 @@ export function AddFamilyMemberForm({
       p_last_name: lastName,
       p_date_of_birth: dateOfBirth,
       p_sex: sex,
+      p_relationship: relationship,
+      p_relationship_other_description: relationship === "other" ? relationshipOther : null,
     });
     if (error) {
       setSaving(false);
@@ -73,6 +99,24 @@ export function AddFamilyMemberForm({
           <option value="male">Male</option>
           <option value="other">Other</option>
         </select>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: relationship === "other" ? "1fr 1fr" : "1fr", gap: 10 }}>
+        <label style={{ display: "block" }}>
+          <span style={{ fontSize: 11.5, color: "#666", marginBottom: 4, display: "block", fontWeight: 600 }}>Relationship to you</span>
+          <select value={relationship} onChange={(e) => setRelationship(e.target.value)} style={input}>
+            {RELATIONSHIP_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {relationship === "other" && (
+          <label style={{ display: "block" }}>
+            <span style={{ fontSize: 11.5, color: "#666", marginBottom: 4, display: "block", fontWeight: 600 }}>Please specify</span>
+            <input required value={relationshipOther} onChange={(e) => setRelationshipOther(e.target.value)} placeholder="e.g. Niece" style={input} />
+          </label>
+        )}
       </div>
       {error && <p style={{ color: "crimson", fontSize: 13, margin: 0 }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>
