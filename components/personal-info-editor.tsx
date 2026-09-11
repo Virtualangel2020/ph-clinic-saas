@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { PersonalInfoValues } from "@/lib/require-patient-portal";
-import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
+import { DOB_MIN_DATE, dobMaxDate, formatDob } from "@/lib/dob";
 
 const FIELD: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid #ccc", fontSize: 13, width: "100%", boxSizing: "border-box" };
 const LABEL: React.CSSProperties = { fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 4, display: "block" };
@@ -106,7 +106,7 @@ export function PersonalInfoEditor({
             <strong>
               {info.firstName} {info.lastName}
             </strong>{" "}
-            · {info.sex} · {info.dateOfBirth ? new Date(info.dateOfBirth).toLocaleDateString() : "—"}
+            · {info.sex} · {formatDob(info.dateOfBirth)}
           </div>
           {info.civilStatus && <div style={{ color: "#777" }}>{info.civilStatus}</div>}
           <div style={{ color: "#777" }}>{info.mobilePhone || "No mobile on file"}</div>

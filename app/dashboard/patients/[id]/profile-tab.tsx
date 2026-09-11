@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { age } from "@/lib/patients/get-patient-chart-data";
+import { formatDob } from "@/lib/dob";
 import { formatDayLabel, formatTime } from "../../calendar/date-utils";
 import { PortalSection } from "./portal-section";
 import { TelehealthLinkCard } from "./telehealth-link-card";
@@ -89,7 +90,7 @@ export function ProfileTab({
             <div style={FIELD_BLOCK}>
               <div style={LABEL}>Date of birth / age</div>
               <div style={{ fontSize: 14 }}>
-                {new Date(patient.date_of_birth).toLocaleDateString()} · {age(patient.date_of_birth)} years old
+                {formatDob(patient.date_of_birth)} · {age(patient.date_of_birth)} years old
               </div>
             </div>
             <div style={FIELD_BLOCK}>

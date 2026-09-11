@@ -4,19 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchPatientsAction, recentPatientsAction, type PatientSearchResult } from "./actions";
+import { calculateAge as age } from "@/lib/dob";
 
-// Same whole-years-elapsed logic as the old patient-list.tsx's age()
-// helper (and the patient chart's own copy in [id]/page.tsx) — kept
-// identical so the number shown here never disagrees with the chart.
-function age(dob: string) {
-  const b = new Date(dob);
-  const now = new Date();
-  let a = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
-  return a;
-}
-
+// formatDob below already avoids the timezone-shift DOB bug (Angel: DOB
+// off by one day) by appending "T00:00:00" — no UTC marker, so it parses
+// as local time — before reading it back with local getters. age() above
+// used to be a local copy of the same buggy `new Date(dob)` (no time
+// suffix, parsed as UTC) pattern found across the app; now shares
+// lib/dob.ts's timezone-safe calculateAge() instead, aliased to the same
+// name so the one call site below needs no change.
 function formatDob(dob: string) {
   const d = new Date(`${dob}T00:00:00`);
   if (Number.isNaN(d.getTime())) return "—";

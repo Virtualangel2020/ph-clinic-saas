@@ -6,6 +6,7 @@ import { PatientAlertsBanner } from "./[id]/patient-alerts-banner";
 import { PatientChartTabs } from "./[id]/patient-chart-tabs";
 import { ArchiveButton } from "./[id]/archive-button";
 import { getPatientChartData, age, patientInitials } from "@/lib/patients/get-patient-chart-data";
+import { formatDob } from "@/lib/dob";
 
 // Right-pane chart for the master-detail Patients list. Same data loader,
 // same tab component as the standalone /dashboard/patients/[id] route —
@@ -54,7 +55,7 @@ export async function PatientChartPane({ patientId }: { patientId: string }) {
               {!patient.is_active && <span style={{ marginLeft: 10, fontSize: 12, color: "#a12a2a", fontWeight: 600 }}>ARCHIVED</span>}
             </h1>
             <p style={{ color: "#666", fontSize: 12.5 }}>
-              {age(patient.date_of_birth)} y/o {patient.sex} · Born {new Date(patient.date_of_birth).toLocaleDateString()}
+              {age(patient.date_of_birth)} y/o {patient.sex} · Born {formatDob(patient.date_of_birth)}
               {patient.patient_code ? ` · ${patient.patient_code}` : ""}
             </p>
           </div>

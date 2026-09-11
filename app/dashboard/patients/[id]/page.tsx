@@ -7,6 +7,7 @@ import { canViewClinicalContent } from "@/lib/permissions";
 import { PatientAlertsBanner } from "./patient-alerts-banner";
 import { PatientChartTabs } from "./patient-chart-tabs";
 import { getPatientChartData, age, patientInitials } from "@/lib/patients/get-patient-chart-data";
+import { formatDob } from "@/lib/dob";
 
 // Standalone patient chart route — the canonical, deep-linkable URL for
 // one patient (linked to from Calendar, Encounters, Documents, Records
@@ -57,7 +58,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
               {!patient.is_active && <span style={{ marginLeft: 10, fontSize: 12, color: "#a12a2a", fontWeight: 600 }}>ARCHIVED</span>}
             </h1>
             <p style={{ color: "#666", fontSize: 13 }}>
-              {age(patient.date_of_birth)} y/o {patient.sex} · Born {new Date(patient.date_of_birth).toLocaleDateString()}
+              {age(patient.date_of_birth)} y/o {patient.sex} · Born {formatDob(patient.date_of_birth)}
               {patient.blood_type ? ` · Blood type ${patient.blood_type}` : ""}
               {patient.patient_code ? ` · ${patient.patient_code}` : ""}
             </p>

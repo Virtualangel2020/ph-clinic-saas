@@ -3,15 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { searchPatientsAction, type PatientSearchResult } from "../patients/actions";
-
-function age(dob: string) {
-  const b = new Date(dob);
-  const now = new Date();
-  let a = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
-  return a;
-}
+// Was a local `new Date(dob)`-based copy — timezone-shift DOB bug (Angel:
+// DOB off by one day). See lib/dob.ts.
+import { calculateAge as age } from "@/lib/dob";
 
 // Patient-first gate for the global Documents tab (spec §10): staff search
 // for and select a patient BEFORE any documents render, so nobody lands on

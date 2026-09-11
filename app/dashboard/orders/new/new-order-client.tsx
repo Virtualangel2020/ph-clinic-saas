@@ -4,15 +4,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { searchPatientsAction, type PatientSearchResult } from "../../patients/actions";
 import { addLabOrderAction, type OrderType } from "../actions";
-
-function age(dob: string) {
-  const b = new Date(dob);
-  const now = new Date();
-  let a = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
-  return a;
-}
+// Was a local `new Date(dob)`-based copy — timezone-shift DOB bug (Angel:
+// DOB off by one day). See lib/dob.ts.
+import { calculateAge as age } from "@/lib/dob";
 
 const ORDER_TYPE_LABEL: Record<OrderType, string> = {
   lab: "Lab",

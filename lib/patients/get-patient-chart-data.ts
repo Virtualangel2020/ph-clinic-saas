@@ -7,6 +7,7 @@ import type { InsurancePlanRow } from "@/app/dashboard/patients/[id]/coverage-se
 import type { ReferralRow } from "@/app/dashboard/patients/[id]/referrals-section";
 import type { FollowUpRow } from "@/app/dashboard/patients/[id]/follow-ups-section";
 import { paymongoMode } from "@/lib/patient-paymongo";
+import { calculateAge } from "@/lib/dob";
 
 // Single source of truth for "everything about one patient's chart."
 // Extracted from patients/[id]/page.tsx so the standalone chart route AND
@@ -18,13 +19,14 @@ const ENCOUNTER_PAGE_SIZE = 20;
 const PAST_APPT_LIMIT = 10;
 const UPCOMING_APPT_LIMIT = 5;
 
-export function age(dob: string) {
-  const b = new Date(dob);
-  const now = new Date();
-  let a = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
-  return a;
+// Was `new Date(dob)` — timezone-shift DOB bug (Angel: DOB saving/showing
+// one day off). See lib/dob.ts for the full explanation; this now
+// delegates to the timezone-safe calculateAge() there. Kept as a
+// re-exported `age()` with the same signature so every existing call site
+// (patient chart pane, patient detail page, profile tab, portal profile,
+// documents list) is fixed by this one change with no other edits needed.
+export function age(dob: string): number {
+  return calculateAge(dob) ?? 0;
 }
 
 // Same shape as patient-search-panel.tsx's local initials() — kept as one

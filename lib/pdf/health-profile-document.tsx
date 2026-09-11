@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+import { calculateAge, formatDob } from "@/lib/dob";
 
 // Server-only (@react-pdf/renderer). "Download PDF" on the Patient Portal
 // Health Profile — a printable summary the patient can bring to a visit
@@ -71,16 +72,6 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 24, left: 36, right: 36, fontSize: 7.5, color: "#aaa", textAlign: "center", borderTop: "0.5 solid #eee", paddingTop: 6 },
 });
 
-function age(dob: string | null): number | null {
-  if (!dob) return null;
-  const d = new Date(dob);
-  const now = new Date();
-  let a = now.getFullYear() - d.getFullYear();
-  const m = now.getMonth() - d.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
-  return a;
-}
-
 function ListSection({ title, status, items }: { title: string; status: SectionStatus; items: string[] }) {
   return (
     <View style={styles.section}>
@@ -108,7 +99,7 @@ function TextSection({ title, status, text }: { title: string; status: SectionSt
 
 export function HealthProfileDocument({ data }: { data: HealthProfileData }) {
   const { patient } = data;
-  const patientAge = age(patient.dateOfBirth);
+  const patientAge = calculateAge(patient.dateOfBirth);
   return (
     <Document title={`Patient Profile — ${patient.fullName}`}>
       <Page size="A4" style={styles.page}>
@@ -130,7 +121,7 @@ export function HealthProfileDocument({ data }: { data: HealthProfileData }) {
           <View>
             <Text style={styles.patientName}>{patient.fullName}</Text>
             <Text style={styles.patientMeta}>
-              {[patient.sex, patientAge !== null ? `${patientAge}y` : null, patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : null].filter(Boolean).join(" · ")}
+              {[patient.sex, patientAge !== null ? `${patientAge}y` : null, patient.dateOfBirth ? formatDob(patient.dateOfBirth) : null].filter(Boolean).join(" · ")}
             </Text>
           </View>
           {patient.patientNumber && (

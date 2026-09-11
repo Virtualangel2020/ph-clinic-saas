@@ -10,6 +10,7 @@ import {
 } from "../encounters/records-exchange-actions";
 import type { PatientInput } from "../patients/actions";
 import { foldersWithCustom, uploadableTypesWithCustom } from "@/lib/documents/folder-taxonomy";
+import { formatDob } from "@/lib/dob";
 import { TransferPreview } from "./transfer-preview";
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; color: string; label: string }> = {
@@ -205,7 +206,7 @@ export function IncomingTransferRow({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)" }}>
-            {transfer.patient_name} <span style={{ fontWeight: 400, color: "#888" }}>· DOB {new Date(transfer.patient_dob).toLocaleDateString()}</span>
+            {transfer.patient_name} <span style={{ fontWeight: 400, color: "#888" }}>· DOB {formatDob(transfer.patient_dob)}</span>
           </div>
           <div style={{ fontSize: 12, color: "#888" }}>
             From Dr. {transfer.sending_provider_name}
@@ -290,7 +291,7 @@ export function IncomingTransferRow({
                   >
                     <input type="radio" name="patientMatch" checked={selectedId === p.id} onChange={() => setSelectedId(p.id)} />
                     <span>
-                      {p.last_name}, {p.first_name} — DOB {new Date(p.date_of_birth).toLocaleDateString()}
+                      {p.last_name}, {p.first_name} — DOB {formatDob(p.date_of_birth)}
                       {p.mobile_phone ? ` · ${p.mobile_phone}` : ""}
                     </span>
                   </label>

@@ -2,6 +2,7 @@
 
 import { TransferPreview } from "./transfer-preview";
 import type { TransferDocumentAttachment } from "../encounters/records-exchange-actions";
+import { formatDob } from "@/lib/dob";
 
 const STATUS_STYLE: Record<string, { bg: string; border: string; color: string; label: string }> = {
   sent: { bg: "#fff6e6", border: "#f0d998", color: "#8a6100", label: "Awaiting review" },
@@ -34,7 +35,7 @@ export function SentTransferRow({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-heading)" }}>
-            {transfer.patient_name} <span style={{ fontWeight: 400, color: "#888" }}>· DOB {new Date(transfer.patient_dob).toLocaleDateString()}</span>
+            {transfer.patient_name} <span style={{ fontWeight: 400, color: "#888" }}>· DOB {formatDob(transfer.patient_dob)}</span>
           </div>
           <div style={{ fontSize: 12, color: "#888" }}>
             To {transfer.receiving_provider_name}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingButton } from "@/components/loading/loading-button";
-import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
+import { DOB_MIN_DATE, dobMaxDate, formatDob } from "@/lib/dob";
 
 type Match = {
   mycaredesk_account_id: string;
@@ -100,7 +100,7 @@ export function MyCareDeskDedupSearch() {
                           {m.first_name} {m.last_name}
                         </div>
                         <div style={{ fontSize: 11.5, color: "#888" }}>
-                          DOB {new Date(m.date_of_birth).toLocaleDateString()} · {m.masked_email ?? m.masked_mobile ?? "no contact on file"}
+                          DOB {formatDob(m.date_of_birth)} · {m.masked_email ?? m.masked_mobile ?? "no contact on file"}
                           {m.patient_number_last4 ? ` · MyCareDesk ID ending •${m.patient_number_last4}` : ""}
                         </div>
                       </div>

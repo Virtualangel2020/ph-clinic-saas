@@ -6,6 +6,7 @@ import { PersonalInfoEditor } from "@/components/personal-info-editor";
 import { PhotoUpload } from "./photo-upload";
 import { DependentCard } from "./dependent-card";
 import { age } from "@/lib/patients/get-patient-chart-data";
+import { formatDob } from "@/lib/dob";
 import { getMyDoctors } from "@/lib/patients/my-doctors";
 
 // Profile (spec Part 23's simplified nav, extended by the bug-fix spec
@@ -132,7 +133,7 @@ export default async function PatientProfilePage() {
                 <strong>{fullName}</strong>
               </div>
               <div style={{ color: "#666" }}>
-                {patient.sex} · {age(patient.date_of_birth)}y · {new Date(patient.date_of_birth).toLocaleDateString()}
+                {patient.sex} · {age(patient.date_of_birth)}y · {formatDob(patient.date_of_birth)}
               </div>
               <div style={{ color: "#666" }}>{patient.mobile_phone ?? "No mobile on file"}</div>
               <div style={{ color: "#666" }}>{patient.email ?? "No email on file"}</div>

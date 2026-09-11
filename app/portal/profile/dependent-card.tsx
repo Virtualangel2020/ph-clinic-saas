@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PhotoUpload } from "./photo-upload";
 import { PersonalInfoEditor } from "@/components/personal-info-editor";
 import type { PersonalInfoValues } from "@/lib/require-patient-portal";
+import { formatDob } from "@/lib/dob";
 
 // Compact dependent card for the Profile page's "Family / Dependents"
 // section — per Angel's ask ("allow us to upload a profile picture on
@@ -71,7 +72,7 @@ export function DependentCard({
             {firstName} {lastName}
           </div>
           <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-            {dateOfBirth ? `Born ${new Date(dateOfBirth).toLocaleDateString()}` : "Dependent"}
+            {dateOfBirth ? `Born ${formatDob(dateOfBirth)}` : "Dependent"}
             {patientNumber ? ` · ${patientNumber}` : ""} · View / Manage Health Profile →
           </div>
         </a>
