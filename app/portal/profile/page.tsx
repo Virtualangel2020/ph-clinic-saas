@@ -2,6 +2,7 @@ import { requirePatientPortal } from "@/lib/require-patient-portal";
 import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
 import { PhotoUpload } from "./photo-upload";
+import { DependentCard } from "./dependent-card";
 import { age } from "@/lib/patients/get-patient-chart-data";
 import { getMyDoctors } from "@/lib/patients/my-doctors";
 
@@ -48,6 +49,18 @@ export default async function PatientProfilePage() {
     const { data } = await supabase.storage.from("patient-photos").createSignedUrl((mycaredeskAccount as any).photo_path, 3600);
     photoUrl = data?.signedUrl ?? null;
   }
+
+  // Signed photo URL per dependent, same bucket/pattern as the account
+  // holder's own photo above — lets each dependent's card show its real
+  // photo (or an upload prompt) right here, not just on the separate My
+  // Family screen.
+  const familyPhotoUrls = await Promise.all(
+    familyList.map(async (f) => {
+      if (!f.photo_path) return null;
+      const { data } = await supabase.storage.from("patient-photos").createSignedUrl(f.photo_path, 3600);
+      return data?.signedUrl ?? null;
+    })
+  );
 
   return (
     <PortalShell>
@@ -164,19 +177,8 @@ export default async function PatientProfilePage() {
         </p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
-          {familyList.map((f) => (
-            <a
-              key={f.id}
-              href={`/portal/health-profile?for=${f.id}`}
-              style={{ display: "block", background: "white", border: "1px solid #eee", borderRadius: 10, padding: "12px 14px", textDecoration: "none" }}
-            >
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-heading, #222)" }}>
-                {f.first_name} {f.last_name}
-              </div>
-              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                {f.date_of_birth ? `Born ${new Date(f.date_of_birth).toLocaleDateString()}` : "Dependent"} · View / Manage Health Profile →
-              </div>
-            </a>
+          {familyList.map((f, i) => (
+            <DependentCard key={f.id} accountId={f.id} firstName={f.first_name} lastName={f.last_name} dateOfBirth={f.date_of_birth} photoUrl={familyPhotoUrls[i]} />
           ))}
         </div>
       )}
