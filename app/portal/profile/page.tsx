@@ -228,6 +228,7 @@ export default async function PatientProfilePage() {
               lastName={f.last_name}
               dateOfBirth={f.date_of_birth}
               photoUrl={familyPhotoUrls[i]}
+              patientNumber={f.patient_number ?? null}
               personalInfo={{
                 firstName: f.first_name,
                 lastName: f.last_name,

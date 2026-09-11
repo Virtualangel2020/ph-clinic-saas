@@ -96,7 +96,8 @@ export function FamilyList({
                   <div style={{ fontSize: 12.5, color: "#888", marginTop: 2 }}>
                     {p.isSelf ? "You" : <RelationshipEditor accountId={p.accountId} relationship={p.relationship} relationshipOtherDescription={p.relationshipOtherDescription} align="left" onChanged={() => router.refresh()} />}
                   </div>
-                  {!p.isSelf && <div style={{ fontSize: 11.5, color: "#999", marginTop: 4 }}>Managed by: {managersLabel(managers)}</div>}
+                  {p.patientNumber && <div style={{ fontSize: 11.5, color: "#999", marginTop: 4 }}>Patient ID: {p.patientNumber}</div>}
+                  {!p.isSelf && <div style={{ fontSize: 11.5, color: "#999", marginTop: 2 }}>Managed by: {managersLabel(managers)}</div>}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
                   {!isActive && (

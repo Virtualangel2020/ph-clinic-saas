@@ -85,6 +85,7 @@ export function ProfileChooser({ selectable }: { selectable: SelectableProfile[]
             </form>
             <div style={{ textAlign: "center", marginTop: 2 }}>
               {p.isSelf ? <div style={{ fontSize: 12, color: "#888" }}>You</div> : <RelationshipEditor accountId={p.accountId} relationship={p.relationship} relationshipOtherDescription={p.relationshipOtherDescription} onChanged={() => router.refresh()} />}
+              {p.patientNumber && <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{p.patientNumber}</div>}
             </div>
           </div>
         ))}

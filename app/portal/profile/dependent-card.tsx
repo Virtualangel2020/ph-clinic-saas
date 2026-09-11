@@ -22,6 +22,7 @@ export function DependentCard({
   dateOfBirth,
   photoUrl,
   personalInfo,
+  patientNumber,
 }: {
   accountId: string;
   firstName: string;
@@ -29,6 +30,7 @@ export function DependentCard({
   dateOfBirth: string | null;
   photoUrl: string | null;
   personalInfo: PersonalInfoValues;
+  patientNumber?: string | null;
 }) {
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
@@ -69,7 +71,8 @@ export function DependentCard({
             {firstName} {lastName}
           </div>
           <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-            {dateOfBirth ? `Born ${new Date(dateOfBirth).toLocaleDateString()}` : "Dependent"} · View / Manage Health Profile →
+            {dateOfBirth ? `Born ${new Date(dateOfBirth).toLocaleDateString()}` : "Dependent"}
+            {patientNumber ? ` · ${patientNumber}` : ""} · View / Manage Health Profile →
           </div>
         </a>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>

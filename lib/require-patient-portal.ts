@@ -21,6 +21,7 @@ export type MyCaredeskFamilyMember = {
   date_of_birth: string;
   sex: string;
   photo_path: string | null;
+  patient_number: string | null;
   relationship: string;
   relationship_other_description: string | null;
   is_primary: boolean;
@@ -83,6 +84,7 @@ export type SelectableProfile = {
   lastName: string;
   photoPath: string | null;
   photoUrl: string | null; // resolved signed URL, see resolveMyCaredeskProfileSelection
+  patientNumber: string | null; // own permanent MyCareDesk patient ID (e.g. "MCD-000002") — every profile has its own, self and every dependent alike
   isSelf: boolean;
   relationship: string | null; // null for isSelf
   relationshipOtherDescription: string | null;
@@ -127,6 +129,7 @@ export const resolveMyCaredeskProfileSelection = cache(async function resolveMyC
       firstName: a.first_name,
       lastName: a.last_name,
       photoPath: a.photo_path ?? null,
+      patientNumber: a.patient_number ?? null,
       isSelf: true,
       relationship: null,
       relationshipOtherDescription: null,
@@ -157,6 +160,7 @@ export const resolveMyCaredeskProfileSelection = cache(async function resolveMyC
       firstName: m.first_name,
       lastName: m.last_name,
       photoPath: m.photo_path ?? null,
+      patientNumber: m.patient_number ?? null,
       isSelf: false,
       relationship: m.relationship,
       relationshipOtherDescription: m.relationship_other_description ?? null,

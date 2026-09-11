@@ -148,6 +148,7 @@ function ViewingBanner({ activeProfile, canSwitch }: { activeProfile: Selectable
         <span>
           <strong>Viewing:</strong> {activeProfile.firstName} {activeProfile.lastName}
           {relationship ? ` (${relationship})` : ""}
+          {activeProfile.patientNumber ? ` · ${activeProfile.patientNumber}` : ""}
         </span>
       </span>
       <Link href={canSwitch ? "/portal/switch-profile" : "/portal/family"} style={{ fontWeight: 700, color: "var(--brand-primary)", textDecoration: "none", whiteSpace: "nowrap" }}>
