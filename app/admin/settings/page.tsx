@@ -3,15 +3,17 @@ import { WhatsappSettingsForm } from "./whatsapp-settings-form";
 import { CommerceSettingsForm } from "./commerce-settings-form";
 import { EmailProviderSettingsForm } from "./email-provider-settings-form";
 import { SmsProviderSettingsForm } from "./sms-provider-settings-form";
+import { MaintenanceSettingsForm } from "./maintenance-settings-form";
 
 export default async function AdminSettingsPage() {
   const { supabase } = await requireAdmin();
 
-  const [{ data: whatsapp }, { data: commerce }, { data: emailSettings }, { data: smsSettings }] = await Promise.all([
+  const [{ data: whatsapp }, { data: commerce }, { data: emailSettings }, { data: smsSettings }, { data: maintenance }] = await Promise.all([
     supabase.from("whatsapp_settings").select("phone_number, default_message, is_enabled").single(),
     supabase.from("commerce_settings").select("offer_monthly, offer_yearly, offer_one_time").eq("id", true).single(),
     supabase.from("email_provider_settings").select("provider, api_key, from_email, from_name, is_enabled").single(),
     supabase.from("sms_provider_settings").select("provider, api_key, sender_id, is_enabled").single(),
+    supabase.from("maintenance_settings").select("is_enabled, message").eq("id", true).single(),
   ]);
 
   // The api_key column never reaches the client — collapse it to a
@@ -29,6 +31,16 @@ export default async function AdminSettingsPage() {
       <p style={{ color: "#666", marginBottom: 24 }}>
         Platform-wide settings that aren't specific to one client.
       </p>
+
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 16, marginBottom: 10 }}>Maintenance mode</h2>
+        <p style={{ color: "#888", fontSize: 12, marginBottom: 10 }}>
+          Turn this on before a system update — every sign-in and sign-up page (clinic staff, patients, get-started,
+          create-account) shows the message below instead of the real form until you turn it back off. This admin
+          console stays reachable the whole time.
+        </p>
+        <MaintenanceSettingsForm settings={maintenance as any} />
+      </div>
 
       <div style={{ marginBottom: 32 }}>
         <h2 style={{ fontSize: 16, marginBottom: 10 }}>Billing options</h2>

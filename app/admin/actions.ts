@@ -283,6 +283,29 @@ export async function setWhatsappSettingsAction(input: { phoneNumber: string; de
   revalidatePath("/");
 }
 
+// Angel: "if Im doing a system update, do not allow anybody to create an
+// account or login, just let them know system is currently under
+// maintenance and will be back in a few minutes." Revalidates every gated
+// entry point (see lib/maintenance.ts + the *-form split in app/login,
+// app/signup, app/patient-signup, app/portal/login, plus app/get-started
+// and app/create-account) so flipping this takes effect immediately,
+// without anyone needing to hard-refresh.
+export async function setMaintenanceSettingsAction(input: { isEnabled: boolean; message: string }) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_maintenance_settings", {
+    p_is_enabled: input.isEnabled,
+    p_message: input.message,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/settings");
+  revalidatePath("/login");
+  revalidatePath("/signup");
+  revalidatePath("/patient-signup");
+  revalidatePath("/portal/login");
+  revalidatePath("/get-started");
+  revalidatePath("/create-account");
+}
+
 // Which billing cycles (monthly/yearly/lifetime) are offered to customers —
 // a Superadmin-editable toggle instead of hardcoding it into the pricing
 // page and checkout. See migration 028_admin_advanced_controls.

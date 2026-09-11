@@ -32,6 +32,10 @@ export function DependentCard({
 }) {
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
+  // Lifted so the header avatar below updates the instant a new photo is
+  // saved, instead of waiting on router.refresh() to fetch a fresh signed
+  // URL — see photo-upload.tsx for why that used to look like nothing saved.
+  const [localPhotoUrl, setLocalPhotoUrl] = useState(photoUrl);
   const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
   return (
@@ -53,9 +57,9 @@ export function DependentCard({
             flexShrink: 0,
           }}
         >
-          {photoUrl ? (
+          {localPhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src={localPhotoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             initials
           )}
@@ -88,7 +92,13 @@ export function DependentCard({
 
       {editingPhoto && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
-          <PhotoUpload photoUrl={photoUrl} initials={initials} forAccountId={accountId} caption={`PNG, JPG, or WEBP, up to 3MB. Only ${firstName}'s managers and connected clinics can see this.`} />
+          <PhotoUpload
+            photoUrl={localPhotoUrl}
+            initials={initials}
+            forAccountId={accountId}
+            caption={`PNG, JPG, or WEBP, up to 3MB. Only ${firstName}'s managers and connected clinics can see this.`}
+            onUploaded={setLocalPhotoUrl}
+          />
         </div>
       )}
 

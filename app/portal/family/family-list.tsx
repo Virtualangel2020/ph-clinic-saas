@@ -49,6 +49,10 @@ export function FamilyList({
   const [editingPhotoFor, setEditingPhotoFor] = useState<string | null>(null);
   const [editingInfoFor, setEditingInfoFor] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  // Lifted per-profile so each header avatar updates the instant a new
+  // photo is saved, instead of waiting on router.refresh() to fetch a fresh
+  // signed URL — see photo-upload.tsx.
+  const [localPhotoUrls, setLocalPhotoUrls] = useState<Record<string, string>>({});
 
   return (
     <div>
@@ -77,9 +81,9 @@ export function FamilyList({
                     flexShrink: 0,
                   }}
                 >
-                  {p.photoUrl ? (
+                  {localPhotoUrls[p.accountId] ?? p.photoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={localPhotoUrls[p.accountId] ?? p.photoUrl ?? undefined} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
                     initials(p)
                   )}
@@ -122,10 +126,11 @@ export function FamilyList({
               {editingPhoto && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
                   <PhotoUpload
-                    photoUrl={p.photoUrl}
+                    photoUrl={localPhotoUrls[p.accountId] ?? p.photoUrl}
                     initials={initials(p)}
                     forAccountId={p.isSelf ? undefined : p.accountId}
                     caption={p.isSelf ? undefined : `PNG, JPG, or WEBP, up to 3MB. Only ${p.firstName}'s managers and connected clinics can see this.`}
+                    onUploaded={(url) => setLocalPhotoUrls((m) => ({ ...m, [p.accountId]: url }))}
                   />
                 </div>
               )}

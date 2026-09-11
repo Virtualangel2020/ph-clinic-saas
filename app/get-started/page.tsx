@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { BrandHeader } from "@/components/brand-header";
 import { WhatsappButton } from "@/components/whatsapp-button";
 import { GetStartedForm } from "./get-started-form";
+import { getMaintenanceStatus } from "@/lib/maintenance";
+import { MaintenanceNotice } from "@/components/maintenance-notice";
 
 // Step 2 of self-serve signup (step 1 is /signup — create the account).
 // Pick a plan/add-ons, pay, and the tenant provisions automatically —
@@ -14,6 +16,12 @@ export default async function GetStartedPage({
 }) {
   const { plan: planParam, cycle: cycleParam } = await searchParams;
   const supabase = await createClient();
+
+  // Angel: "do not allow anybody to create an account or login" during a
+  // system update — this is where a clinic signup actually finishes
+  // (payment provisions the tenant), so it's gated the same as /signup.
+  const maintenance = await getMaintenanceStatus(supabase);
+  if (maintenance.isEnabled) return <MaintenanceNotice message={maintenance.message} />;
 
   const {
     data: { user },
