@@ -23,7 +23,7 @@ function fmtDate(iso: string) {
 // clinic's own staff views and the portal's other pages already read,
 // via the existing portal-self-read RLS policies (is_portal_patient()).
 export default async function PortalHomePage() {
-  const { supabase, account } = await requirePatientPortal();
+  const { supabase, account, activeProfile, activeAccountId } = await requirePatientPortal();
   const cutoffIso = new Date(Date.now() - RECENCY_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -34,16 +34,26 @@ export default async function PortalHomePage() {
   // point required a clinic relationship that doesn't exist yet — see
   // requirePatientPortal). Access requests in particular matter MORE for
   // a 0-clinic patient: that's literally how a clinic connects with them.
-  const [{ data: mycaredeskAccount }, { data: accessRequestsRaw }] = await Promise.all([
-    supabase.rpc("get_my_mycaredesk_account"),
-    supabase.rpc("patient_list_my_access_requests"),
-  ]);
+  //
+  // Redesign Phase 3 / spec Section U fix: this used to call
+  // get_my_mycaredesk_account() and use its .id/.first_name directly, which
+  // ALWAYS resolves the signed-in LOGIN's own identity — so switching to a
+  // co-managed dependent's profile (e.g. viewing Sofia) still showed
+  // Angel's own health-profile nudge and name here, never Sofia's. Now uses
+  // activeProfile — already resolved by requirePatientPortal from the
+  // mcd_active_profile cookie — so this section always reflects whichever
+  // profile is currently selected, with no extra RPC call needed.
+  // patient_list_my_access_requests() itself returns rows across every
+  // profile this login can manage (by design, for the My Family screen), so
+  // it's narrowed to the active profile's own rows below wherever it's
+  // used, per "never mix data between profiles."
+  const { data: accessRequestsRaw } = await supabase.rpc("patient_list_my_access_requests");
 
   let healthProfileNudge: { title: string; subtitle: string } | null = null;
-  if (!mycaredeskAccount) {
+  if (!activeProfile) {
     healthProfileNudge = { title: "Set up your Health Profile", subtitle: "One quick step — share allergies, medications, and conditions with your doctors." };
   } else {
-    const { data: profileRow } = await supabase.from("mycaredesk_health_profiles").select("mycaredesk_account_id").eq("mycaredesk_account_id", (mycaredeskAccount as any).id).maybeSingle();
+    const { data: profileRow } = await supabase.from("mycaredesk_health_profiles").select("mycaredesk_account_id").eq("mycaredesk_account_id", activeProfile.accountId).maybeSingle();
     if (!profileRow) {
       healthProfileNudge = { title: "Complete your Health Profile", subtitle: "Share allergies, medications, and conditions with your doctors — nothing is required." };
     }
@@ -58,7 +68,7 @@ export default async function PortalHomePage() {
   // visited, they're never hidden or redirected away from.
   if (!account) {
     const attentionItems: { key: string; title: string; subtitle: string; action: React.ReactNode }[] = [];
-    const pendingAccessRequest = ((accessRequestsRaw as any[]) ?? []).find((r) => r.status === "pending");
+    const pendingAccessRequest = ((accessRequestsRaw as any[]) ?? []).find((r) => r.status === "pending" && r.for_account_id === activeAccountId);
     if (pendingAccessRequest) {
       attentionItems.push({
         key: "access-request",
@@ -74,7 +84,7 @@ export default async function PortalHomePage() {
 
     return (
       <PortalShell>
-        <h1 style={{ fontSize: 21, marginBottom: 4 }}>Welcome to MyCareDesk{(mycaredeskAccount as any)?.first_name ? `, ${(mycaredeskAccount as any).first_name}` : ""}!</h1>
+        <h1 style={{ fontSize: 21, marginBottom: 4 }}>Welcome to MyCareDesk{activeProfile?.firstName ? `, ${activeProfile.firstName}` : ""}!</h1>
         <p style={{ color: "#666", fontSize: 13, marginBottom: 20 }}>Your account is ready. Fill in your Health Profile whenever you have a few minutes, or jump straight to finding a doctor.</p>
 
         <div style={{ display: "grid", gap: 14 }}>
@@ -172,7 +182,7 @@ export default async function PortalHomePage() {
       .limit(1)
       .maybeSingle(),
     supabase.from("patient_forms").select("id, template_name").eq("patient_id", patientId).eq("status", "assigned"),
-    supabase.rpc("patient_list_my_follow_ups"),
+    supabase.rpc("patient_list_my_follow_ups", { p_for_account_id: activeAccountId }),
     supabase
       .from("appointment_status_events")
       .select("id, old_status, new_status, old_start_at, new_start_at, changed_at")
@@ -182,7 +192,7 @@ export default async function PortalHomePage() {
     supabase.from("lab_results").select("id, result_summary, released_at").eq("patient_id", patientId).eq("status", "released").gte("released_at", cutoffIso).order("released_at", { ascending: false }),
     supabase.from("prescriptions").select("id, prescribed_at").eq("patient_id", patientId).gte("prescribed_at", cutoffIso).order("prescribed_at", { ascending: false }),
     supabase.from("patient_documents").select("id, title, created_at").eq("patient_id", patientId).eq("status", "active").gte("created_at", cutoffIso).order("created_at", { ascending: false }),
-    supabase.rpc("portal_list_message_threads"),
+    supabase.rpc("portal_list_message_threads", { p_for_account_id: activeAccountId }),
     getLastCompletedEncounter(supabase, patientId),
     getPortalBalanceSummary(supabase, patientId),
   ]);
@@ -202,7 +212,7 @@ export default async function PortalHomePage() {
   // resolved from auth.uid() by the RPC itself) — narrowed here to THIS
   // clinic's pending request, since a request from a different clinic has
   // no business showing on this tenant's dashboard.
-  const pendingAccessRequest = ((accessRequestsRaw as any[]) ?? []).find((r) => r.status === "pending" && r.tenant_id === tenantId);
+  const pendingAccessRequest = ((accessRequestsRaw as any[]) ?? []).find((r) => r.status === "pending" && r.tenant_id === tenantId && r.for_account_id === activeAccountId);
 
   const unreadThreads = ((threadsRaw as any[]) ?? []).filter((t) => t.unread_count > 0);
   const unreadTotal = unreadThreads.reduce((sum, t) => sum + t.unread_count, 0);

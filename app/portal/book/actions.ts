@@ -161,8 +161,8 @@ export async function submitPortalAppointmentRequestAction(input: { providerId: 
 // the wizard's point of view — a failure here never undoes the booking
 // that already succeeded.
 export async function scheduleFollowUpAction(followUpId: string, appointmentId: string): Promise<{ ok: boolean; error?: string }> {
-  const { supabase } = await requireSignedIn();
-  const { error } = await supabase.rpc("patient_schedule_follow_up", { p_follow_up_id: followUpId, p_appointment_id: appointmentId });
+  const { supabase, activeAccountId } = await requireSignedIn();
+  const { error } = await supabase.rpc("patient_schedule_follow_up", { p_follow_up_id: followUpId, p_appointment_id: appointmentId, p_for_account_id: activeAccountId });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/portal");
   return { ok: true };
