@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingButton } from "@/components/loading/loading-button";
 import { savePatientAction, type PatientInput } from "./actions";
+import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
 
 type Patient = {
   id: string;
@@ -125,7 +126,7 @@ export function PatientForm({ patient }: { patient: Patient | null }) {
           </div>
           <div>
             <label style={LABEL_STYLE}>Date of birth *</label>
-            <input type="date" style={FIELD_STYLE} value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} />
+            <input type="date" min={DOB_MIN_DATE} max={dobMaxDate()} style={FIELD_STYLE} value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} />
           </div>
           <div>
             <label style={LABEL_STYLE}>Sex *</label>

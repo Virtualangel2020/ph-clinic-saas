@@ -4,6 +4,9 @@ import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
 import { resolveEffectiveSettings } from "@/lib/patient-access";
 import { BookingWizard } from "./booking-wizard";
+import { PortalDataError } from "@/components/portal-data-error";
+import { getMaintenanceStatus } from "@/lib/maintenance";
+import { MaintenanceNotice } from "@/components/maintenance-notice";
 
 // Real self-service booking (spec §49-54) — the actual multi-step wizard,
 // available to any signed-in patient, whether or not they already have a
@@ -33,11 +36,27 @@ export default async function PortalBookPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/portal/login?next=/portal/book/${providerId}`);
 
-  const { data } = await supabase.rpc("public_get_provider_profile", { p_provider_id: providerId });
-  if (!data) notFound();
+  const maintenance = await getMaintenanceStatus(supabase);
+  if (maintenance.isEnabled) return <MaintenanceNotice message={maintenance.message} />;
 
-  const d = data as any;
-  const effective = resolveEffectiveSettings(d.clinic, d.override);
+  let d: any;
+  let effective: ReturnType<typeof resolveEffectiveSettings>;
+  try {
+    const { data, error } = await supabase.rpc("public_get_provider_profile", { p_provider_id: providerId });
+    if (error) throw error;
+    if (!data) notFound();
+    d = data;
+    effective = resolveEffectiveSettings(d.clinic, d.override);
+  } catch (err) {
+    if ((err as any)?.digest === "NEXT_NOT_FOUND") throw err;
+    console.error(`[portal/book/${providerId}] failed to load provider/booking settings:`, err);
+    return (
+      <PortalShell>
+        <BackLink href="/portal" label="Portal Home" />
+        <PortalDataError message="We couldn't load booking for this provider right now." />
+      </PortalShell>
+    );
+  }
 
   if (!effective.onlineBookingEnabled) {
     return (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingButton } from "@/components/loading/loading-button";
+import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
 
 type Prefill = { first_name: string; last_name: string; date_of_birth: string; sex: string; mobile_phone: string | null; email: string | null } | null;
 
@@ -61,7 +62,7 @@ export function AccountSetupPanel({ prefill, email }: { prefill: Prefill; email:
         <input required placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <input required type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={input} />
+        <input required type="date" min={DOB_MIN_DATE} max={dobMaxDate()} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={input} />
         <select value={sex} onChange={(e) => setSex(e.target.value)} style={input}>
           <option value="female">Female</option>
           <option value="male">Male</option>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BrandHeader } from "@/components/brand-header";
 import { SignOutButton } from "@/app/portal/sign-out-button";
 import { NavigationLoadingIndicator } from "@/components/loading/navigation-loading-indicator";
+import { MaintenanceModeWatcher } from "@/components/maintenance-mode-watcher";
 import type { SelectableProfile } from "@/lib/require-patient-portal";
 
 // Shared shell for every /portal/* page. Simplified per spec Part 23 down
@@ -170,6 +171,7 @@ export function PortalShellClient({
 
   return (
     <div style={{ minHeight: "100vh", background: "#f7f7f9" }}>
+      <MaintenanceModeWatcher />
       <div className="portal-layout">
         <aside className="portal-sidebar">
           <div style={{ padding: "22px 16px 16px" }}>

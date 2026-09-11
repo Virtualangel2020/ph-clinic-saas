@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { PersonalInfoValues } from "@/lib/require-patient-portal";
+import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
 
 const FIELD: React.CSSProperties = { padding: "8px 10px", borderRadius: 8, border: "1px solid #ccc", fontSize: 13, width: "100%", boxSizing: "border-box" };
 const LABEL: React.CSSProperties = { fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 4, display: "block" };
@@ -136,7 +137,7 @@ export function PersonalInfoEditor({
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Field label="Date of birth">
-          <input type="date" style={FIELD} value={form.dateOfBirth ?? ""} onChange={(e) => set("dateOfBirth", e.target.value)} />
+          <input type="date" min={DOB_MIN_DATE} max={dobMaxDate()} style={FIELD} value={form.dateOfBirth ?? ""} onChange={(e) => set("dateOfBirth", e.target.value)} />
         </Field>
         <Field label="Sex">
           <select style={FIELD} value={form.sex ?? ""} onChange={(e) => set("sex", e.target.value)}>

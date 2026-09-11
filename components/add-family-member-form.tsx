@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingButton } from "@/components/loading/loading-button";
+import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
 
 const input: React.CSSProperties = { padding: 9, borderRadius: 8, border: "1px solid #ccc", fontSize: 13.5, width: "100%", boxSizing: "border-box" };
 
@@ -93,7 +94,7 @@ export function AddFamilyMemberForm({
         <input required placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} style={input} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <input required type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={input} />
+        <input required type="date" min={DOB_MIN_DATE} max={dobMaxDate()} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={input} />
         <select value={sex} onChange={(e) => setSex(e.target.value)} style={input}>
           <option value="female">Female</option>
           <option value="male">Male</option>

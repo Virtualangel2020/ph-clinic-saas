@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GlobalSearch } from "./global-search";
 import { NavigationLoadingIndicator } from "@/components/loading/navigation-loading-indicator";
+import { MaintenanceModeWatcher } from "@/components/maintenance-mode-watcher";
 
 type NavItem = { href: string; label: string; short: string };
 
@@ -270,6 +271,7 @@ export function EmrShell({
           minHeight: "calc(100vh - 56px)",
         }}
       >
+        <MaintenanceModeWatcher />
         {isMobile && (
           <div style={{ marginBottom: 12 }}>
             <AccountMenu clinicName={clinicName} userLabel={userLabel} align="left" />

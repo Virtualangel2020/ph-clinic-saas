@@ -182,6 +182,15 @@ export function DirectorySearch({
   );
 
   const totalShown = filteredProviders.length + filteredExternal.length;
+  const hasActiveFilters = q !== "" || filter !== "all" || bookingFilters.size > 0 || coverageFilters.size > 0 || visitModeFilters.size > 0;
+
+  function clearFilters() {
+    setQuery("");
+    setFilter("all");
+    setBookingFilters(new Set());
+    setCoverageFilters(new Set());
+    setVisitModeFilters(new Set());
+  }
 
   return (
     <div>
@@ -244,7 +253,17 @@ export function DirectorySearch({
 
       {totalShown === 0 && (
         <div style={{ background: "white", border: "1px solid #e2e2e5", borderRadius: 12, padding: 28, textAlign: "center", color: "#888", fontSize: 13.5 }}>
-          No providers match your search yet.
+          <p style={{ margin: hasActiveFilters ? "0 0 12px" : 0 }}>
+            {hasActiveFilters ? "No providers found for these filters." : "No providers are listed yet — check back soon."}
+          </p>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              style={{ background: "white", color: NAVY, fontWeight: 600, fontSize: 12.5, padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer" }}
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
       )}
 

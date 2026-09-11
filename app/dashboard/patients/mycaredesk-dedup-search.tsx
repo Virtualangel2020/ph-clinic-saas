@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingButton } from "@/components/loading/loading-button";
+import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
 
 type Match = {
   mycaredesk_account_id: string;
@@ -78,7 +79,7 @@ export function MyCareDeskDedupSearch() {
           </p>
           <form onSubmit={search} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <input required placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: "1 1 180px", padding: "8px 10px", borderRadius: 8, border: "1px solid #ccc", fontSize: 13 }} />
-            <input required type="date" value={dob} onChange={(e) => setDob(e.target.value)} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ccc", fontSize: 13 }} />
+            <input required type="date" min={DOB_MIN_DATE} max={dobMaxDate()} value={dob} onChange={(e) => setDob(e.target.value)} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ccc", fontSize: 13 }} />
             <LoadingButton type="submit" loading={searching} loadingText="Searching..." style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--brand-primary)", color: "white", fontWeight: 600, fontSize: 13 }}>
               Search
             </LoadingButton>

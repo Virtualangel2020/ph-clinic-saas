@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BrandHeader } from "@/components/brand-header";
 import { LoadingButton } from "@/components/loading/loading-button";
 import { PasswordInput } from "@/components/password-input";
+import { DOB_MIN_DATE, dobMaxDate } from "@/lib/dob";
 
 // Free patient self-registration — a permanent, platform-level MyCareDesk
 // account independent of any one clinic (see migrations-pending/
@@ -212,7 +213,15 @@ export function PatientSignupForm() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label style={{ fontSize: 12, color: "#666" }}>
             Date of birth
-            <input required type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} style={{ ...input, width: "100%", marginTop: 4, boxSizing: "border-box" }} />
+            <input
+              required
+              type="date"
+              min={DOB_MIN_DATE}
+              max={dobMaxDate()}
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              style={{ ...input, width: "100%", marginTop: 4, boxSizing: "border-box" }}
+            />
           </label>
           <label style={{ fontSize: 12, color: "#666" }}>
             Sex

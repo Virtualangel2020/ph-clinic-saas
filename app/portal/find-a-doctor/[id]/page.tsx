@@ -4,6 +4,9 @@ import { PortalShell } from "@/components/portal-shell";
 import { BackLink } from "@/components/back-link";
 import { resolveEffectiveSettings, BOOKING_TYPE_PATIENT_WORDING, BOOKING_TYPE_LABEL } from "@/lib/patient-access";
 import { PortalProfileActions } from "./portal-profile-actions";
+import { PortalDataError } from "@/components/portal-data-error";
+import { getMaintenanceStatus } from "@/lib/maintenance";
+import { MaintenanceNotice } from "@/components/maintenance-notice";
 
 const NAVY = "var(--brand-primary)";
 const GOLD = "var(--brand-secondary)";
@@ -43,13 +46,33 @@ export default async function PortalProviderProfilePage({ params }: { params: Pr
   } = await supabase.auth.getUser();
   if (!user) redirect(`/portal/login?next=/portal/find-a-doctor/${id}`);
 
-  const { data } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
-  if (!data) notFound();
+  const maintenance = await getMaintenanceStatus(supabase);
+  if (maintenance.isEnabled) return <MaintenanceNotice message={maintenance.message} />;
 
-  const d = data as any;
+  let d: any;
+  try {
+    const { data, error } = await supabase.rpc("public_get_provider_profile", { p_provider_id: id });
+    if (error) throw error;
+    if (!data) notFound();
+    d = data;
+  } catch (err) {
+    // notFound() works by throwing a special Next.js redirect-style error —
+    // let that pass through untouched; only a REAL failure (RPC error,
+    // network hiccup, malformed payload) should fall to the friendly state.
+    if ((err as any)?.digest === "NEXT_NOT_FOUND") throw err;
+    console.error(`[find-a-doctor/${id}] failed to load provider profile:`, err);
+    return (
+      <PortalShell>
+        <BackLink href="/portal/find-a-doctor" label="Find a Doctor" />
+        <PortalDataError message="We couldn't load this provider's profile right now." />
+      </PortalShell>
+    );
+  }
+
   const photoUrl = d.provider.public_photo_path ? supabase.storage.from("provider-photos").getPublicUrl(d.provider.public_photo_path).data.publicUrl : null;
+  const fullName: string = d.provider.full_name || "This provider";
   const providerInitials =
-    (d.provider.full_name as string)
+    fullName
       .split(" ")
       .map((s: string) => s.charAt(0))
       .join("")
